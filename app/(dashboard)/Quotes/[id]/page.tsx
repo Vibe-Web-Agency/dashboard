@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Phone, MessageSquare, FileText } from "lucide-react";
 import Link from "next/link";
+import type { User } from "@supabase/supabase-js";
 
 interface Quote {
     id: string;
@@ -23,6 +24,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [quoteId, setQuoteId] = useState<string>("");
+    const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
         const getParams = async () => {
@@ -33,21 +35,44 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     }, [params]);
 
     useEffect(() => {
-        if (quoteId) {
+        // Vérifier l'authentification
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                router.push("/login");
+                return;
+            }
+
+            setUser(user);
+        };
+
+        checkAuth();
+    }, [router]);
+
+    useEffect(() => {
+        if (quoteId && user?.email) {
             fetchQuote();
         }
-    }, [quoteId]);
+    }, [quoteId, user]);
 
     const fetchQuote = async () => {
+        if (!user?.email) return;
+
         setLoading(true);
         const { data, error } = await supabase
             .from("quotes")
             .select("*")
             .eq("id", quoteId)
+            .eq("customer_email", user.email) // Vérifier que le devis appartient à l'utilisateur
             .single();
 
         if (error) {
             console.error("Erreur:", error);
+            // Si le devis n'existe pas ou n'appartient pas à l'utilisateur, rediriger
+            if (error.code === 'PGRST116') {
+                router.push("/Quotes");
+            }
         } else {
             setQuote(data);
         }

@@ -1,8 +1,13 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Reservation {
     id: string;
@@ -22,21 +27,44 @@ interface GroupedReservations {
 }
 
 export default function ReservationsPage() {
+    const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [newReservation, setNewReservation] = useState({
+        customer_name: "",
+        customer_mail: "",
+        customer_phone: "",
+        date: "",
+        time: "",
+        message: ""
+    });
 
     useEffect(() => {
-        fetchReservations();
-    }, []);
+        // Quand le profil a fini de charger
+        if (!profileLoading) {
+            if (profile?.id) {
+                fetchReservations();
+            } else {
+                // Pas de profil trouvé, arrêter le chargement
+                setLoading(false);
+            }
+        }
+    }, [profile?.id, profileLoading]);
 
     const fetchReservations = async () => {
+        if (!profile?.id) return;
+
         setLoading(true);
         const { data, error } = await supabase
             .from("reservations")
             .select("*")
+            .eq("user_id", profile.id) // Filtrer par l'ID de l'utilisateur connecté
             .is("attended", null)
             .order("date", { ascending: true });
 
+        console.log("User profile ID:", profile.id);
         console.log("Reservations data:", data);
         console.log("Reservations error:", error);
 
@@ -46,6 +74,48 @@ export default function ReservationsPage() {
             setReservations(data || []);
         }
         setLoading(false);
+    };
+
+    const handleCreateReservation = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!profile?.id) return;
+
+        setCreating(true);
+
+        // Combiner date et heure
+        const dateTime = new Date(`${newReservation.date}T${newReservation.time}:00`);
+
+        const { data, error } = await supabase
+            .from("reservations")
+            .insert({
+                user_id: profile.id, // Utiliser le bon user_id
+                customer_name: newReservation.customer_name,
+                customer_mail: newReservation.customer_mail || null,
+                customer_phone: newReservation.customer_phone || null,
+                date: dateTime.toISOString(),
+                message: newReservation.message || null,
+                status: "pending"
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Erreur création réservation:", error);
+            alert("Erreur: " + error.message);
+        } else {
+            console.log("Réservation créée:", data);
+            setShowModal(false);
+            setNewReservation({
+                customer_name: "",
+                customer_mail: "",
+                customer_phone: "",
+                date: "",
+                time: "",
+                message: ""
+            });
+            fetchReservations(); // Rafraîchir la liste
+        }
+        setCreating(false);
     };
 
     const formatDateHeader = (dateString: string) => {
@@ -118,24 +188,190 @@ export default function ReservationsPage() {
                         Gérez vos réservations clients
                     </p>
                 </div>
-                <div
-                    className="flex items-center gap-2 rounded-lg px-4 py-2"
-                    style={{
-                        background: 'rgba(99, 102, 241, 0.1)',
-                        border: '1px solid rgba(99, 102, 241, 0.2)'
-                    }}
-                >
+                <div className="flex items-center gap-3">
+                    <Button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center gap-2 font-semibold"
+                        style={{
+                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                            color: '#ffffff'
+                        }}
+                    >
+                        <Plus className="w-4 h-4" />
+                        Nouvelle réservation
+                    </Button>
                     <div
-                        className="w-2 h-2 rounded-full animate-pulse"
-                        style={{ background: '#6366f1' }}
-                    />
-                    <span className="font-medium" style={{ color: '#818cf8' }}>
-                        {reservations.length} planifiée{reservations.length > 1 ? "s" : ""}
-                    </span>
+                        className="flex items-center gap-2 rounded-lg px-4 py-2"
+                        style={{
+                            background: 'rgba(99, 102, 241, 0.1)',
+                            border: '1px solid rgba(99, 102, 241, 0.2)'
+                        }}
+                    >
+                        <div
+                            className="w-2 h-2 rounded-full animate-pulse"
+                            style={{ background: '#6366f1' }}
+                        />
+                        <span className="font-medium" style={{ color: '#818cf8' }}>
+                            {reservations.length} planifiée{reservations.length > 1 ? "s" : ""}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {loading ? (
+            {/* Modal nouvelle réservation */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
+                    <div
+                        className="w-full max-w-md rounded-xl p-6"
+                        style={{
+                            background: 'rgba(18, 18, 26, 0.95)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            backdropFilter: 'blur(20px)'
+                        }}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+                                Nouvelle réservation
+                            </h2>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="p-2 rounded-lg transition-colors hover:bg-white/10"
+                                style={{ color: '#a1a1aa' }}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateReservation} className="space-y-4">
+                            <div>
+                                <Label style={{ color: '#e4e4e7' }}>Nom du client *</Label>
+                                <Input
+                                    value={newReservation.customer_name}
+                                    onChange={(e) => setNewReservation(prev => ({ ...prev, customer_name: e.target.value }))}
+                                    required
+                                    placeholder="Jean Dupont"
+                                    className="mt-1"
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        color: '#ffffff'
+                                    }}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label style={{ color: '#e4e4e7' }}>Email</Label>
+                                    <Input
+                                        type="email"
+                                        value={newReservation.customer_mail}
+                                        onChange={(e) => setNewReservation(prev => ({ ...prev, customer_mail: e.target.value }))}
+                                        placeholder="email@exemple.com"
+                                        className="mt-1"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#ffffff'
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <Label style={{ color: '#e4e4e7' }}>Téléphone</Label>
+                                    <Input
+                                        type="tel"
+                                        value={newReservation.customer_phone}
+                                        onChange={(e) => setNewReservation(prev => ({ ...prev, customer_phone: e.target.value }))}
+                                        placeholder="06 12 34 56 78"
+                                        className="mt-1"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#ffffff'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label style={{ color: '#e4e4e7' }}>Date *</Label>
+                                    <Input
+                                        type="date"
+                                        value={newReservation.date}
+                                        onChange={(e) => setNewReservation(prev => ({ ...prev, date: e.target.value }))}
+                                        required
+                                        className="mt-1"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#ffffff'
+                                        }}
+                                    />
+                                </div>
+                                <div>
+                                    <Label style={{ color: '#e4e4e7' }}>Heure *</Label>
+                                    <Input
+                                        type="time"
+                                        value={newReservation.time}
+                                        onChange={(e) => setNewReservation(prev => ({ ...prev, time: e.target.value }))}
+                                        required
+                                        className="mt-1"
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.05)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#ffffff'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label style={{ color: '#e4e4e7' }}>Message / Notes</Label>
+                                <Input
+                                    value={newReservation.message}
+                                    onChange={(e) => setNewReservation(prev => ({ ...prev, message: e.target.value }))}
+                                    placeholder="Notes pour cette réservation..."
+                                    className="mt-1"
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        color: '#ffffff'
+                                    }}
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <Button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1"
+                                    variant="outline"
+                                    style={{
+                                        background: 'transparent',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        color: '#a1a1aa'
+                                    }}
+                                >
+                                    Annuler
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={creating}
+                                    className="flex-1 font-semibold"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                        color: '#ffffff'
+                                    }}
+                                >
+                                    {creating ? "Création..." : "Créer la réservation"}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,42 +16,70 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-export default function LoginPage() {
+export default function SignupPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState<string | null>(null)
 
     const [formData, setFormData] = useState({
         email: "",
         password: "",
+        confirmPassword: "",
     })
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
         setError(null)
+        setSuccess(null)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
         setError(null)
+        setSuccess(null)
+
+        // Validation côté client
+        if (formData.password !== formData.confirmPassword) {
+            setError("Les mots de passe ne correspondent pas")
+            setIsLoading(false)
+            return
+        }
+
+        if (formData.password.length < 6) {
+            setError("Le mot de passe doit contenir au moins 6 caractères")
+            setIsLoading(false)
+            return
+        }
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email: formData.email,
-                password: formData.password,
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                }),
             })
 
-            if (error) {
-                if (error.message === 'Invalid login credentials') {
-                    throw new Error('Email ou mot de passe incorrect')
-                }
-                throw error
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Une erreur est survenue')
             }
 
-            router.push("/")
-            router.refresh()
+            setSuccess(data.message)
+            setFormData({ email: "", password: "", confirmPassword: "" })
+
+            // Rediriger vers la page de connexion après 2 secondes
+            setTimeout(() => {
+                router.push('/login')
+            }, 2000)
+
         } catch (err) {
             setError(err instanceof Error ? err.message : "Une erreur est survenue")
         } finally {
@@ -105,15 +132,27 @@ export default function LoginPage() {
                         className="text-2xl font-bold"
                         style={{ color: '#ffffff' }}
                     >
-                        Connexion
+                        Activer mon compte
                     </CardTitle>
                     <CardDescription style={{ color: '#a1a1aa' }}>
-                        Accédez à votre espace client
+                        Créez votre mot de passe pour accéder à votre espace client
                     </CardDescription>
                 </CardHeader>
 
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
+                        {/* Info box */}
+                        <div
+                            className="p-3 rounded-lg text-sm"
+                            style={{
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                border: '1px solid rgba(99, 102, 241, 0.2)',
+                                color: '#a5b4fc'
+                            }}
+                        >
+                            <span className="font-medium">💡 Information :</span> Utilisez l&apos;email associé à votre compte client. Si vous n&apos;avez pas de compte, contactez votre gestionnaire.
+                        </div>
+
                         {/* Error message */}
                         {error && (
                             <div
@@ -128,10 +167,24 @@ export default function LoginPage() {
                             </div>
                         )}
 
+                        {/* Success message */}
+                        {success && (
+                            <div
+                                className="p-3 rounded-lg text-sm"
+                                style={{
+                                    background: 'rgba(34, 197, 94, 0.15)',
+                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                    color: '#86efac'
+                                }}
+                            >
+                                ✅ {success}
+                            </div>
+                        )}
+
                         {/* Email */}
                         <div className="space-y-2">
                             <Label htmlFor="email" style={{ color: '#e4e4e7' }}>
-                                Email
+                                Email professionnel
                             </Label>
                             <Input
                                 id="email"
@@ -153,24 +206,41 @@ export default function LoginPage() {
 
                         {/* Password */}
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password" style={{ color: '#e4e4e7' }}>
-                                    Mot de passe
-                                </Label>
-                                <Link
-                                    href="/forgot-password"
-                                    className="text-xs transition-colors hover:underline underline-offset-4"
-                                    style={{ color: '#a1a1aa' }}
-                                >
-                                    Mot de passe oublié ?
-                                </Link>
-                            </div>
+                            <Label htmlFor="password" style={{ color: '#e4e4e7' }}>
+                                Créer un mot de passe
+                            </Label>
                             <Input
                                 id="password"
                                 name="password"
                                 type="password"
                                 placeholder="••••••••"
                                 value={formData.password}
+                                onChange={handleInputChange}
+                                required
+                                disabled={isLoading}
+                                className="transition-all duration-200"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    color: '#ffffff'
+                                }}
+                            />
+                            <p className="text-xs" style={{ color: '#71717a' }}>
+                                Minimum 6 caractères
+                            </p>
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword" style={{ color: '#e4e4e7' }}>
+                                Confirmer le mot de passe
+                            </Label>
+                            <Input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                value={formData.confirmPassword}
                                 onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
@@ -217,10 +287,10 @@ export default function LoginPage() {
                                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                         />
                                     </svg>
-                                    Connexion...
+                                    Activation en cours...
                                 </div>
                             ) : (
-                                "Se connecter"
+                                "Activer mon compte"
                             )}
                         </Button>
 
@@ -234,11 +304,11 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {/* Link to signup */}
+                        {/* Link to login */}
                         <p className="text-center text-sm" style={{ color: '#a1a1aa' }}>
-                            Première connexion ?
+                            Déjà un compte activé ?
                             <Link
-                                href="/signup"
+                                href="/login"
                                 className="ml-1 font-medium transition-colors underline-offset-4 hover:underline"
                                 style={{
                                     background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
@@ -247,7 +317,7 @@ export default function LoginPage() {
                                     backgroundClip: 'text'
                                 }}
                             >
-                                Activer mon compte
+                                Se connecter
                             </Link>
                         </p>
                     </CardFooter>

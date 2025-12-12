@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
@@ -17,42 +16,27 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-export default function LoginPage() {
-    const router = useRouter()
+export default function ForgotPasswordPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    const [formData, setFormData] = useState({
-        email: "",
-        password: "",
-    })
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
-        setError(null)
-    }
+    const [success, setSuccess] = useState<string | null>(null)
+    const [email, setEmail] = useState("")
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
         setError(null)
+        setSuccess(null)
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email: formData.email,
-                password: formData.password,
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
             })
 
-            if (error) {
-                if (error.message === 'Invalid login credentials') {
-                    throw new Error('Email ou mot de passe incorrect')
-                }
-                throw error
-            }
+            if (error) throw error
 
-            router.push("/")
-            router.refresh()
+            setSuccess("Un email de réinitialisation vous a été envoyé. Vérifiez votre boîte de réception.")
+            setEmail("")
         } catch (err) {
             setError(err instanceof Error ? err.message : "Une erreur est survenue")
         } finally {
@@ -71,10 +55,6 @@ export default function LoginPage() {
                 <div
                     className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"
                     style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', animationDelay: '2s' }}
-                />
-                <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #ec4899)', animationDelay: '4s' }}
                 />
             </div>
 
@@ -105,10 +85,10 @@ export default function LoginPage() {
                         className="text-2xl font-bold"
                         style={{ color: '#ffffff' }}
                     >
-                        Connexion
+                        Mot de passe oublié
                     </CardTitle>
                     <CardDescription style={{ color: '#a1a1aa' }}>
-                        Accédez à votre espace client
+                        Entrez votre email pour recevoir un lien de réinitialisation
                     </CardDescription>
                 </CardHeader>
 
@@ -128,6 +108,20 @@ export default function LoginPage() {
                             </div>
                         )}
 
+                        {/* Success message */}
+                        {success && (
+                            <div
+                                className="p-3 rounded-lg text-sm"
+                                style={{
+                                    background: 'rgba(34, 197, 94, 0.15)',
+                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                    color: '#86efac'
+                                }}
+                            >
+                                ✅ {success}
+                            </div>
+                        )}
+
                         {/* Email */}
                         <div className="space-y-2">
                             <Label htmlFor="email" style={{ color: '#e4e4e7' }}>
@@ -138,40 +132,11 @@ export default function LoginPage() {
                                 name="email"
                                 type="email"
                                 placeholder="votre@email.com"
-                                value={formData.email}
-                                onChange={handleInputChange}
-                                required
-                                disabled={isLoading}
-                                className="transition-all duration-200"
-                                style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                                    color: '#ffffff'
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value)
+                                    setError(null)
                                 }}
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password" style={{ color: '#e4e4e7' }}>
-                                    Mot de passe
-                                </Label>
-                                <Link
-                                    href="/forgot-password"
-                                    className="text-xs transition-colors hover:underline underline-offset-4"
-                                    style={{ color: '#a1a1aa' }}
-                                >
-                                    Mot de passe oublié ?
-                                </Link>
-                            </div>
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
                                 className="transition-all duration-200"
@@ -217,37 +182,34 @@ export default function LoginPage() {
                                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                         />
                                     </svg>
-                                    Connexion...
+                                    Envoi en cours...
                                 </div>
                             ) : (
-                                "Se connecter"
+                                "Envoyer le lien"
                             )}
                         </Button>
 
-                        {/* Divider */}
-                        <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)' }} />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="px-2" style={{ background: 'rgba(18, 18, 26, 0.7)', color: '#71717a' }}>ou</span>
-                            </div>
-                        </div>
-
-                        {/* Link to signup */}
+                        {/* Link to login */}
                         <p className="text-center text-sm" style={{ color: '#a1a1aa' }}>
-                            Première connexion ?
                             <Link
-                                href="/signup"
-                                className="ml-1 font-medium transition-colors underline-offset-4 hover:underline"
-                                style={{
-                                    background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                    backgroundClip: 'text'
-                                }}
+                                href="/login"
+                                className="font-medium transition-colors underline-offset-4 hover:underline flex items-center justify-center gap-2"
+                                style={{ color: '#a1a1aa' }}
                             >
-                                Activer mon compte
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="m15 18-6-6 6-6" />
+                                </svg>
+                                Retour à la connexion
                             </Link>
                         </p>
                     </CardFooter>

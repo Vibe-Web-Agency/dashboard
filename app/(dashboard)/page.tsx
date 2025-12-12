@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { Calendar, FileText, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -25,28 +26,39 @@ interface Quote {
 type TimeRange = '7days' | '1month' | '2months';
 
 export default function HomePage() {
+    const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<TimeRange>('7days');
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (!profileLoading) {
+            if (profile?.id) {
+                fetchData();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [profile?.id, profileLoading]);
 
     const fetchData = async () => {
+        if (!profile?.id) return;
+
         setLoading(true);
 
-        // Fetch all reservations for graph data
+        // Fetch all reservations for graph data - filtered by user_id
         const { data: resData } = await supabase
             .from("reservations")
             .select("id, customer_name, date, customer_mail, created_at")
+            .eq("user_id", profile.id)
             .order("date", { ascending: false });
 
-        // Fetch recent quotes
+        // Fetch recent quotes - filtered by user_id
         const { data: quotesData } = await supabase
             .from("quotes")
             .select("id, customer_name, customer_email, status, created_at")
+            .eq("user_id", profile.id)
             .order("created_at", { ascending: false })
             .limit(3);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,19 +15,29 @@ interface Reservation {
 }
 
 export default function CalendarPage() {
+    const { profile, loading: profileLoading } = useUserProfile();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchReservations();
-    }, []);
+        if (!profileLoading) {
+            if (profile?.id) {
+                fetchReservations();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [profile?.id, profileLoading]);
 
     const fetchReservations = async () => {
+        if (!profile?.id) return;
+
         setLoading(true);
         const { data, error } = await supabase
             .from("reservations")
             .select("id, customer_name, date, customer_phone, customer_mail")
+            .eq("user_id", profile.id) // Filtrer par utilisateur
             .order("date", { ascending: true });
 
         if (error) {
@@ -164,7 +175,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Calendar Grid */}
-            {loading ? (
+            {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{

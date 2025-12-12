@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -16,18 +17,28 @@ interface Reservation {
 }
 
 export default function HistoryPage() {
+    const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchHistory();
-    }, []);
+        if (!profileLoading) {
+            if (profile?.id) {
+                fetchHistory();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [profile?.id, profileLoading]);
 
     const fetchHistory = async () => {
+        if (!profile?.id) return;
+
         setLoading(true);
         const { data, error } = await supabase
             .from("reservations")
             .select("*")
+            .eq("user_id", profile.id) // Filtrer par utilisateur
             .not("attended", "is", null)
             .order("date", { ascending: false });
 
@@ -110,7 +121,7 @@ export default function HistoryPage() {
                 </div>
             </div>
 
-            {loading ? (
+            {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{

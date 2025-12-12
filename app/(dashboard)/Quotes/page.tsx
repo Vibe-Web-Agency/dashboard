@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -16,18 +17,28 @@ interface Quote {
 }
 
 export default function QuotesPage() {
+    const { profile, loading: profileLoading } = useUserProfile();
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchQuotes();
-    }, []);
+        if (!profileLoading) {
+            if (profile?.id) {
+                fetchQuotes();
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [profile?.id, profileLoading]);
 
     const fetchQuotes = async () => {
+        if (!profile?.id) return;
+
         setLoading(true);
         const { data, error } = await supabase
             .from("quotes")
             .select("*")
+            .eq("user_id", profile.id) // Filtrer par user_id de l'utilisateur connecté
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -142,7 +153,7 @@ export default function QuotesPage() {
                 </div>
             </div>
 
-            {loading ? (
+            {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{
