@@ -3,8 +3,9 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Calendar, Mail, Phone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Reservation {
     id: string;
@@ -19,6 +20,8 @@ export default function CalendarPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         if (!profileLoading) {
@@ -79,6 +82,18 @@ export default function CalendarPage() {
     const goToToday = () => {
         setCurrentDate(new Date());
     };
+
+    const handleDayClick = (date: Date) => {
+        setSelectedDate(date);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedDate(null);
+    };
+
+    const selectedDateReservations = selectedDate ? getReservationsForDate(selectedDate) : [];
 
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
     const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
@@ -233,7 +248,8 @@ export default function CalendarPage() {
                             return (
                                 <div
                                     key={date.toISOString()}
-                                    className="aspect-square rounded-lg p-2 flex flex-col transition-all duration-200"
+                                    className="aspect-square rounded-lg p-2 flex flex-col transition-all duration-200 cursor-pointer"
+                                    onClick={() => handleDayClick(date)}
                                     style={{
                                         background: isToday
                                             ? 'rgba(99, 102, 241, 0.15)'
@@ -246,20 +262,20 @@ export default function CalendarPage() {
                                         opacity: isPast ? 0.5 : 1
                                     }}
                                     onMouseEnter={(e) => {
-                                        if (!isPast) {
-                                            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-                                        }
+                                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                                        e.currentTarget.style.transform = 'scale(1.02)';
                                     }}
                                     onMouseLeave={(e) => {
-                                        if (!isPast) {
-                                            e.currentTarget.style.background = isToday
-                                                ? 'rgba(99, 102, 241, 0.15)'
+                                        e.currentTarget.style.background = isToday
+                                            ? 'rgba(99, 102, 241, 0.15)'
+                                            : isPast
+                                                ? 'rgba(255, 255, 255, 0.02)'
                                                 : 'rgba(255, 255, 255, 0.05)';
-                                            e.currentTarget.style.borderColor = isToday
-                                                ? 'rgba(99, 102, 241, 0.5)'
-                                                : 'rgba(255, 255, 255, 0.08)';
-                                        }
+                                        e.currentTarget.style.borderColor = isToday
+                                            ? 'rgba(99, 102, 241, 0.5)'
+                                            : 'rgba(255, 255, 255, 0.08)';
+                                        e.currentTarget.style.transform = 'scale(1)';
                                     }}
                                 >
                                     <div className="flex items-start justify-between mb-1">
@@ -359,6 +375,134 @@ export default function CalendarPage() {
                     <span className="text-sm" style={{ color: '#a1a1aa' }}>Nombre de réservations</span>
                 </div>
             </div>
+
+            {/* Modal pour afficher les réservations du jour */}
+            {isModalOpen && selectedDate && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+                    onClick={closeModal}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.1)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
+                                        border: '1px solid rgba(139, 92, 246, 0.3)'
+                                    }}
+                                >
+                                    <Calendar className="w-5 h-5" style={{ color: '#a78bfa' }} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                        {selectedDate.toLocaleDateString('fr-FR', {
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric'
+                                        })}
+                                    </h3>
+                                    <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                        {selectedDateReservations.length} réservation{selectedDateReservations.length !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={closeModal}
+                                className="rounded-full"
+                                style={{ color: '#a1a1aa' }}
+                            >
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </div>
+
+                        {/* Reservations List */}
+                        {selectedDateReservations.length === 0 ? (
+                            <div
+                                className="text-center py-12 rounded-xl"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.02)',
+                                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                                }}
+                            >
+                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#4b5563' }} />
+                                <p className="text-sm" style={{ color: '#71717a' }}>
+                                    Aucune réservation pour ce jour
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {selectedDateReservations.map((res) => (
+                                    <Link
+                                        key={res.id}
+                                        href={`/reservations/${res.id}`}
+                                        className="block rounded-xl p-4 transition-all duration-200"
+                                        style={{
+                                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))',
+                                            border: '1px solid rgba(139, 92, 246, 0.2)'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))';
+                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                                            e.currentTarget.style.transform = 'translateX(4px)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))';
+                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.2)';
+                                            e.currentTarget.style.transform = 'translateX(0)';
+                                        }}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <h4 className="font-medium mb-2" style={{ color: '#ffffff' }}>
+                                                    {res.customer_name}
+                                                </h4>
+                                                <div className="space-y-1">
+                                                    {res.customer_mail && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
+                                                            <Mail className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                            {res.customer_mail}
+                                                        </div>
+                                                    )}
+                                                    {res.customer_phone && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
+                                                            <Phone className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                            {res.customer_phone}
+                                                        </div>
+                                                    )}
+                                                    {res.date && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
+                                                            <Clock className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                            {new Date(res.date).toLocaleTimeString('fr-FR', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: '#6366f1' }} />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
