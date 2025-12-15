@@ -62,12 +62,22 @@ export default function CalendarPage() {
         return { daysInMonth, startingDayOfWeek, year, month };
     };
 
+    // Fonction helper pour obtenir la date locale en format YYYY-MM-DD
+    // Évite le bug de timezone causé par toISOString() qui convertit en UTC
+    const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const getReservationsForDate = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(date);
         return reservations.filter(res => {
             if (!res.date) return false;
-            const resDate = new Date(res.date).toISOString().split('T')[0];
-            return resDate === dateStr;
+            const resDate = new Date(res.date);
+            const resDateStr = getLocalDateString(resDate);
+            return resDateStr === dateStr;
         });
     };
 

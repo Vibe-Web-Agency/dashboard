@@ -67,6 +67,15 @@ export default function HomePage() {
         setLoading(false);
     };
 
+    // Fonction helper pour obtenir la date locale en format YYYY-MM-DD
+    // Évite le bug de timezone causé par toISOString() qui convertit en UTC
+    const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const getChartData = () => {
         const now = new Date();
         now.setHours(0, 0, 0, 0); // Reset time to start of day
@@ -76,12 +85,13 @@ export default function HomePage() {
         for (let i = 0; i < days; i++) {
             const date = new Date(now);
             date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(date);
 
             const count = reservations.filter(res => {
                 if (!res.date) return false;
-                const resDate = new Date(res.date).toISOString().split('T')[0];
-                return resDate === dateStr;
+                const resDate = new Date(res.date);
+                const resDateStr = getLocalDateString(resDate);
+                return resDateStr === dateStr;
             }).length;
 
             data.push({
