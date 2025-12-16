@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ export default function ReservationsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const [newReservation, setNewReservation] = useState({
         customer_name: "",
         customer_mail: "",
@@ -94,7 +95,7 @@ export default function ReservationsPage() {
                 customer_phone: newReservation.customer_phone || null,
                 date: dateTime.toISOString(),
                 message: newReservation.message || null,
-                status: "pending"
+                status: "scheduled"
             })
             .select()
             .single();
@@ -152,8 +153,21 @@ export default function ReservationsPage() {
         });
     };
 
+    // Filter reservations based on search query
+    const filteredReservations = reservations.filter((reservation) => {
+        if (!searchQuery.trim()) return true;
+
+        const query = searchQuery.toLowerCase();
+        return (
+            reservation.customer_name?.toLowerCase().includes(query) ||
+            reservation.customer_mail?.toLowerCase().includes(query) ||
+            reservation.customer_phone?.toLowerCase().includes(query) ||
+            reservation.message?.toLowerCase().includes(query)
+        );
+    });
+
     // Group reservations by date
-    const groupedReservations = reservations.reduce<GroupedReservations>((groups, reservation) => {
+    const groupedReservations = filteredReservations.reduce<GroupedReservations>((groups, reservation) => {
         if (!reservation.date) return groups;
 
         const dateKey = new Date(reservation.date).toDateString();
@@ -217,6 +231,48 @@ export default function ReservationsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+                <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5"
+                    style={{ color: '#71717a' }}
+                />
+                <Input
+                    type="text"
+                    placeholder="Rechercher par nom, email, téléphone ou message..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-full"
+                    style={{
+                        background: 'rgba(18, 18, 26, 0.7)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff'
+                    }}
+                />
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
+                        style={{ color: '#71717a' }}
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
+            {/* Search Results Count */}
+            {searchQuery && (
+                <div
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        color: '#a78bfa'
+                    }}
+                >
+                    {filteredReservations.length} résultat{filteredReservations.length > 1 ? "s" : ""} pour "{searchQuery}"
+                </div>
+            )}
 
             {/* Modal nouvelle réservation */}
             {showModal && (
@@ -449,7 +505,7 @@ export default function ReservationsPage() {
                                 {groupedReservations[dateKey].map((reservation) => (
                                     <Link
                                         key={reservation.id}
-                                        href={`/Reservations/${reservation.id}`}
+                                        href={`/reservations/${reservation.id}`}
                                     >
                                         <div
                                             className="rounded-xl p-5 transition-all duration-300 cursor-pointer"

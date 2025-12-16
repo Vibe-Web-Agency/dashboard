@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface Quote {
     id: string;
@@ -20,6 +22,7 @@ export default function QuotesPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         if (!profileLoading) {
@@ -117,6 +120,19 @@ export default function QuotesPage() {
         }
     };
 
+    // Filter quotes based on search query
+    const filteredQuotes = quotes.filter((quote) => {
+        if (!searchQuery.trim()) return true;
+
+        const query = searchQuery.toLowerCase();
+        return (
+            quote.customer_name?.toLowerCase().includes(query) ||
+            quote.customer_email?.toLowerCase().includes(query) ||
+            quote.customer_phone?.toLowerCase().includes(query) ||
+            quote.message?.toLowerCase().includes(query)
+        );
+    });
+
     return (
         <div className="flex flex-col gap-6 p-6">
             <div className="flex items-center justify-between">
@@ -153,6 +169,48 @@ export default function QuotesPage() {
                 </div>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative">
+                <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5"
+                    style={{ color: '#71717a' }}
+                />
+                <Input
+                    type="text"
+                    placeholder="Rechercher par nom, email, téléphone ou message..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-full"
+                    style={{
+                        background: 'rgba(18, 18, 26, 0.7)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff'
+                    }}
+                />
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
+                        style={{ color: '#71717a' }}
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
+            {/* Search Results Count */}
+            {searchQuery && (
+                <div
+                    className="text-sm px-3 py-2 rounded-lg"
+                    style={{
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        color: '#a78bfa'
+                    }}
+                >
+                    {filteredQuotes.length} résultat{filteredQuotes.length > 1 ? "s" : ""} pour "{searchQuery}"
+                </div>
+            )}
+
             {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-8 text-center"
@@ -170,7 +228,7 @@ export default function QuotesPage() {
                     />
                     <p className="mt-4" style={{ color: '#a1a1aa' }}>Chargement des devis...</p>
                 </div>
-            ) : quotes.length === 0 ? (
+            ) : filteredQuotes.length === 0 ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{
@@ -190,7 +248,7 @@ export default function QuotesPage() {
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {quotes.map((quote) => (
+                    {filteredQuotes.map((quote) => (
                         <Link
                             key={quote.id}
                             href={`/Quotes/${quote.id}`}

@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Mail, Phone, MessageSquare } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 interface Reservation {
@@ -25,6 +25,8 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [reservationId, setReservationId] = useState<string>("");
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         const getParams = async () => {
@@ -83,6 +85,31 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         });
     };
 
+    const deleteReservation = async () => {
+        setDeleting(true);
+        console.log("Tentative de suppression de la réservation:", reservationId);
+
+        const { error, status, statusText } = await supabase
+            .from("reservations")
+            .delete()
+            .eq("id", reservationId);
+
+        console.log("Résultat suppression - Status:", status, statusText);
+
+        if (error) {
+            console.error("Erreur lors de la suppression:", error);
+            console.error("Message d'erreur:", error.message);
+            console.error("Code d'erreur:", error.code);
+            console.error("Détails:", error.details);
+            console.error("Hint:", error.hint);
+            alert(`Erreur lors de la suppression: ${error.message}\n\nCode: ${error.code}\n\nVeuillez vérifier les politiques RLS dans Supabase.`);
+            setDeleting(false);
+        } else {
+            console.log("Suppression réussie, redirection...");
+            router.push("/reservations");
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -101,7 +128,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <p style={{ color: '#a1a1aa' }}>Réservation non trouvée</p>
-                <Link href="/Reservations">
+                <Link href="/reservations">
                     <Button>Retour aux réservations</Button>
                 </Link>
             </div>
@@ -112,7 +139,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
             {/* Back Button */}
             <Link
-                href="/Reservations"
+                href="/reservations"
                 className="flex items-center gap-2 w-fit transition-colors"
                 style={{ color: '#8b5cf6' }}
             >
@@ -303,7 +330,112 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         </Button>
                     </div>
                 </div>
+
+                {/* Danger Zone */}
+                <div
+                    className="p-4 rounded-lg mt-4"
+                    style={{
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}
+                >
+                    <p className="text-sm font-medium mb-3" style={{ color: '#ef4444' }}>
+                        Zone de danger
+                    </p>
+                    <Button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="w-full flex items-center justify-center gap-2"
+                        style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                        }}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Supprimer cette réservation
+                    </Button>
+                </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+                    onClick={() => setShowDeleteModal(false)}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl p-6"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.1)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center"
+                                style={{ background: 'rgba(239, 68, 68, 0.15)' }}
+                            >
+                                <AlertTriangle className="w-6 h-6" style={{ color: '#ef4444' }} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                    Confirmer la suppression
+                                </h3>
+                                <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                    Cette action est irréversible
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="mb-6" style={{ color: '#a1a1aa' }}>
+                            Êtes-vous sûr de vouloir supprimer la réservation de <strong style={{ color: '#ffffff' }}>{reservation.customer_name}</strong> ?
+                            Cette action ne peut pas être annulée.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => setShowDeleteModal(false)}
+                                className="flex-1"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    color: '#a1a1aa',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                onClick={deleteReservation}
+                                disabled={deleting}
+                                className="flex-1 flex items-center justify-center gap-2"
+                                style={{
+                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                    color: '#ffffff',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div
+                                            className="animate-spin w-4 h-4 border-2 rounded-full"
+                                            style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}
+                                        />
+                                        Suppression...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Supprimer
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

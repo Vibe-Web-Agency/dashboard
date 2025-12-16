@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, Phone, MessageSquare, FileText } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MessageSquare, FileText, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
@@ -25,6 +25,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     const [updating, setUpdating] = useState(false);
     const [quoteId, setQuoteId] = useState<string>("");
     const [user, setUser] = useState<User | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         const getParams = async () => {
@@ -116,6 +118,21 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                 return { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Refusé' };
             default:
                 return { bg: 'rgba(113, 113, 122, 0.15)', color: '#71717a', label: status };
+        }
+    };
+
+    const deleteQuote = async () => {
+        setDeleting(true);
+        const { error } = await supabase
+            .from("quotes")
+            .delete()
+            .eq("id", quoteId);
+
+        if (error) {
+            console.error("Erreur lors de la suppression:", error);
+            setDeleting(false);
+        } else {
+            router.push("/Quotes");
         }
     };
 
@@ -335,7 +352,112 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                         </Button>
                     </div>
                 </div>
+
+                {/* Danger Zone */}
+                <div
+                    className="p-4 rounded-lg mt-4"
+                    style={{
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}
+                >
+                    <p className="text-sm font-medium mb-3" style={{ color: '#ef4444' }}>
+                        Zone de danger
+                    </p>
+                    <Button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="w-full flex items-center justify-center gap-2"
+                        style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                        }}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Supprimer ce devis
+                    </Button>
+                </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+                    onClick={() => setShowDeleteModal(false)}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl p-6"
+                        style={{
+                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.1)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div
+                                className="w-12 h-12 rounded-full flex items-center justify-center"
+                                style={{ background: 'rgba(239, 68, 68, 0.15)' }}
+                            >
+                                <AlertTriangle className="w-6 h-6" style={{ color: '#ef4444' }} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                    Confirmer la suppression
+                                </h3>
+                                <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                    Cette action est irréversible
+                                </p>
+                            </div>
+                        </div>
+
+                        <p className="mb-6" style={{ color: '#a1a1aa' }}>
+                            Êtes-vous sûr de vouloir supprimer le devis de <strong style={{ color: '#ffffff' }}>{quote.customer_name}</strong> ?
+                            Cette action ne peut pas être annulée.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => setShowDeleteModal(false)}
+                                className="flex-1"
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    color: '#a1a1aa',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}
+                            >
+                                Annuler
+                            </Button>
+                            <Button
+                                onClick={deleteQuote}
+                                disabled={deleting}
+                                className="flex-1 flex items-center justify-center gap-2"
+                                style={{
+                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                    color: '#ffffff',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div
+                                            className="animate-spin w-4 h-4 border-2 rounded-full"
+                                            style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}
+                                        />
+                                        Suppression...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Supprimer
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

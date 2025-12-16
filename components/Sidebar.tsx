@@ -36,27 +36,27 @@ const navItems = [
     },
     {
         title: "Calendrier",
-        href: "/Calendar",
+        href: "/calendar",
         icon: Calendar,
     },
     {
         title: "Réservations",
-        href: "/Reservations",
+        href: "/reservations",
         icon: CalendarDays,
     },
     {
         title: "Historique",
-        href: "/History",
+        href: "/history",
         icon: Clock,
     },
     {
         title: "Devis",
-        href: "/Quotes",
+        href: "/quotes",
         icon: FileText,
     },
     {
         title: "Analytics",
-        href: "/Analytics",
+        href: "/analytics",
         icon: BarChart3,
     },
 ];
@@ -371,7 +371,7 @@ export default function Sidebar() {
                     ) : (
                         <>
                             <Link
-                                href="/Settings"
+                                href="/settings"
                                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all"
                                 style={{ color: '#a1a1aa' }}
                                 onMouseEnter={(e) => {

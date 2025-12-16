@@ -34,7 +34,8 @@ export async function middleware(request: NextRequest) {
     // Routes publiques (auth)
     const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
         request.nextUrl.pathname.startsWith('/signup') ||
-        request.nextUrl.pathname.startsWith('/forgot-password')
+        request.nextUrl.pathname.startsWith('/forgot-password') ||
+        request.nextUrl.pathname.startsWith('/reset-password')
 
     // Si l'utilisateur n'est pas connecté et essaie d'accéder au dashboard
     if (!user && !isAuthRoute) {
