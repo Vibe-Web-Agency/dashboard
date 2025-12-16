@@ -251,7 +251,7 @@ export default function QuotesPage() {
                     {filteredQuotes.map((quote) => (
                         <Link
                             key={quote.id}
-                            href={`/Quotes/${quote.id}`}
+                            href={`/quotes/${quote.id}`}
                         >
                             <div
                                 className="rounded-xl p-6 transition-all duration-300 cursor-pointer"

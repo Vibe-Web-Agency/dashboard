@@ -158,7 +158,7 @@ export default function HistoryPage() {
                             </h2>
                             <div className="grid gap-3">
                                 {attendedReservations.map((res) => (
-                                    <Link key={res.id} href={`/Reservations/${res.id}`}>
+                                    <Link key={res.id} href={`/reservations/${res.id}`}>
                                         <div
                                             className="rounded-xl p-5 transition-all duration-200 cursor-pointer"
                                             style={{
@@ -212,7 +212,7 @@ export default function HistoryPage() {
                             </h2>
                             <div className="grid gap-3">
                                 {missedReservations.map((res) => (
-                                    <Link key={res.id} href={`/Reservations/${res.id}`}>
+                                    <Link key={res.id} href={`/reservations/${res.id}`}>
                                         <div
                                             className="rounded-xl p-5 transition-all duration-200 cursor-pointer"
                                             style={{
