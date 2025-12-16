@@ -25,16 +25,35 @@ export default function ResetPasswordPage() {
         password: "",
         confirmPassword: "",
     })
+    const [isSessionReady, setIsSessionReady] = useState(false)
 
     useEffect(() => {
-        // Vérifier si l'utilisateur a un token de reset valide
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                setError("Lien de réinitialisation invalide ou expiré. Veuillez faire une nouvelle demande.")
+        const handlePasswordReset = async () => {
+            // Récupérer le code de l'URL
+            const urlParams = new URLSearchParams(window.location.search)
+            const code = urlParams.get('code')
+
+            if (code) {
+                // Échanger le code contre une session
+                const { error } = await supabase.auth.exchangeCodeForSession(code)
+                if (error) {
+                    console.error("Erreur lors de l'échange du code:", error)
+                    setError("Lien de réinitialisation invalide ou expiré. Veuillez faire une nouvelle demande.")
+                } else {
+                    setIsSessionReady(true)
+                }
+            } else {
+                // Vérifier si l'utilisateur a déjà une session (pour les tokens via fragment URL)
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session) {
+                    setIsSessionReady(true)
+                } else {
+                    setError("Lien de réinitialisation invalide ou expiré. Veuillez faire une nouvelle demande.")
+                }
             }
         }
-        checkSession()
+
+        handlePasswordReset()
     }, [])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
