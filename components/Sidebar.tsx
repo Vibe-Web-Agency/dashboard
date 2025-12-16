@@ -312,7 +312,7 @@ export default function Sidebar() {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Link
-                                        href="/Settings"
+                                        href="/settings"
                                         className="flex h-10 w-10 items-center justify-center rounded-lg transition-all mx-auto"
                                         style={{ color: '#a1a1aa' }}
                                         onMouseEnter={(e) => {
