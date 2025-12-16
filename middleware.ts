@@ -64,6 +64,7 @@ export const config = {
          * - public files (images, etc.)
          * - api routes
          */
+        '/dashboard/:path*',
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api).*)',
     ],
 }
