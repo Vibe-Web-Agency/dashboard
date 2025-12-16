@@ -276,7 +276,7 @@ export default function HomePage() {
                             </h2>
                         </div>
                         <Link
-                            href="/Reservations"
+                            href="/reservations"
                             className="text-sm font-medium transition-colors"
                             style={{ color: '#8b5cf6' }}
                         >
@@ -303,7 +303,7 @@ export default function HomePage() {
                             {reservations.slice(0, 3).map((res) => (
                                 <Link
                                     key={res.id}
-                                    href={`/Reservations/${res.id}`}
+                                    href={`/reservations/${res.id}`}
                                 >
                                     <div
                                         className="p-4 rounded-lg transition-all duration-200 cursor-pointer"
@@ -375,7 +375,7 @@ export default function HomePage() {
                             </h2>
                         </div>
                         <Link
-                            href="/Quotes"
+                            href="/quotes"
                             className="text-sm font-medium transition-colors"
                             style={{ color: '#ec4899' }}
                         >
@@ -404,7 +404,7 @@ export default function HomePage() {
                                 return (
                                     <Link
                                         key={quote.id}
-                                        href={`/Quotes/${quote.id}`}
+                                        href={`/quotes/${quote.id}`}
                                     >
                                         <div
                                             className="p-4 rounded-lg transition-all duration-200 cursor-pointer"
