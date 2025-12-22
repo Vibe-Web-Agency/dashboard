@@ -1,15 +1,16 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Mail, Phone, MessageSquare, FileText, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import type { User } from "@supabase/supabase-js";
 
 interface Quote {
     id: string;
+    user_id: string | null;
     customer_name: string;
     customer_email: string | null;
     customer_phone: string | null;
@@ -20,11 +21,11 @@ interface Quote {
 
 export default function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
+    const { profile, loading: profileLoading } = useUserProfile();
     const [quote, setQuote] = useState<Quote | null>(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [quoteId, setQuoteId] = useState<string>("");
-    const [user, setUser] = useState<User | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -37,43 +38,33 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     }, [params]);
 
     useEffect(() => {
-        // Vérifier l'authentification
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                router.push("/login");
-                return;
-            }
-
-            setUser(user);
-        };
-
-        checkAuth();
-    }, [router]);
+        if (!profileLoading && !profile) {
+            router.push("/login");
+        }
+    }, [profile, profileLoading, router]);
 
     useEffect(() => {
-        if (quoteId && user?.email) {
+        if (quoteId && profile?.id) {
             fetchQuote();
         }
-    }, [quoteId, user]);
+    }, [quoteId, profile?.id]);
 
     const fetchQuote = async () => {
-        if (!user?.email) return;
+        if (!profile?.id) return;
 
         setLoading(true);
         const { data, error } = await supabase
             .from("quotes")
             .select("*")
             .eq("id", quoteId)
-            .eq("customer_email", user.email) // Vérifier que le devis appartient à l'utilisateur
+            .eq("user_id", profile.id) // Filtrer par user_id de l'utilisateur connecté
             .single();
 
         if (error) {
             console.error("Erreur:", error);
             // Si le devis n'existe pas ou n'appartient pas à l'utilisateur, rediriger
             if (error.code === 'PGRST116') {
-                router.push("/Quotes");
+                router.push("/quotes");
             }
         } else {
             setQuote(data);
@@ -132,7 +123,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             console.error("Erreur lors de la suppression:", error);
             setDeleting(false);
         } else {
-            router.push("/Quotes");
+            router.push("/quotes");
         }
     };
 
@@ -154,7 +145,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
                 <p style={{ color: '#a1a1aa' }}>Devis non trouvé</p>
-                <Link href="/Quotes">
+                <Link href="/quotes">
                     <Button>Retour aux devis</Button>
                 </Link>
             </div>
@@ -167,7 +158,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
         <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
             {/* Back Button */}
             <Link
-                href="/Quotes"
+                href="/quotes"
                 className="flex items-center gap-2 w-fit transition-colors"
                 style={{ color: '#ec4899' }}
             >
