@@ -23,7 +23,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     const router = useRouter();
     const [reservation, setReservation] = useState<Reservation | null>(null);
     const [loading, setLoading] = useState(true);
-    const [updating, setUpdating] = useState(false);
+
     const [reservationId, setReservationId] = useState<string>("");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -58,20 +58,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         setLoading(false);
     };
 
-    const updateAttendance = async (attended: boolean | null) => {
-        setUpdating(true);
-        const { error } = await supabase
-            .from("reservations")
-            .update({ attended })
-            .eq("id", reservationId);
 
-        if (error) {
-            console.error("Erreur:", error);
-        } else {
-            setReservation(prev => prev ? { ...prev, attended } : null);
-        }
-        setUpdating(false);
-    };
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -262,74 +249,6 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
-                {/* Attendance Status */}
-                <div
-                    className="p-4 rounded-lg mb-4"
-                    style={{ background: 'rgba(255, 255, 255, 0.03)' }}
-                >
-                    <p className="text-sm font-medium mb-3" style={{ color: '#a1a1aa' }}>
-                        Le client s'est-il présenté ?
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                        <Button
-                            onClick={() => updateAttendance(true)}
-                            disabled={updating}
-                            style={
-                                reservation.attended === true
-                                    ? {
-                                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                        color: '#ffffff',
-                                        fontWeight: 600
-                                    }
-                                    : {
-                                        background: 'rgba(34, 197, 94, 0.1)',
-                                        color: '#22c55e',
-                                        border: '1px solid rgba(34, 197, 94, 0.3)'
-                                    }
-                            }
-                        >
-                            ✓ Présent
-                        </Button>
-                        <Button
-                            onClick={() => updateAttendance(null)}
-                            disabled={updating}
-                            style={
-                                reservation.attended === null
-                                    ? {
-                                        background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                                        color: '#ffffff',
-                                        fontWeight: 600
-                                    }
-                                    : {
-                                        background: 'rgba(251, 191, 36, 0.1)',
-                                        color: '#fbbf24',
-                                        border: '1px solid rgba(251, 191, 36, 0.3)'
-                                    }
-                            }
-                        >
-                            ○ En attente
-                        </Button>
-                        <Button
-                            onClick={() => updateAttendance(false)}
-                            disabled={updating}
-                            style={
-                                reservation.attended === false
-                                    ? {
-                                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                        color: '#ffffff',
-                                        fontWeight: 600
-                                    }
-                                    : {
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        color: '#ef4444',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)'
-                                    }
-                            }
-                        >
-                            ✗ Absent
-                        </Button>
-                    </div>
-                </div>
 
                 {/* Danger Zone */}
                 <div

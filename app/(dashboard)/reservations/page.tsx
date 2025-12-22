@@ -58,11 +58,15 @@ export default function ReservationsPage() {
         if (!profile?.id) return;
 
         setLoading(true);
+        // Calculer la date limite (maintenant - 15 minutes)
+        const now = new Date();
+        const limitDate = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+
         const { data, error } = await supabase
             .from("reservations")
             .select("*")
             .eq("user_id", profile.id) // Filtrer par l'ID de l'utilisateur connecté
-            .is("attended", null)
+            .gte("date", limitDate) // Réservations futures ou dans les 15 dernières minutes
             .order("date", { ascending: true });
 
         console.log("User profile ID:", profile.id);

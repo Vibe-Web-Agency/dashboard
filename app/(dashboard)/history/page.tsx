@@ -35,11 +35,15 @@ export default function HistoryPage() {
         if (!profile?.id) return;
 
         setLoading(true);
+        // Calculer la date limite (maintenant - 15 minutes)
+        const now = new Date();
+        const limitDate = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+
         const { data, error } = await supabase
             .from("reservations")
             .select("*")
             .eq("user_id", profile.id) // Filtrer par utilisateur
-            .not("attended", "is", null)
+            .lt("date", limitDate) // Réservations passées (plus de 15 min après l'heure)
             .order("date", { ascending: false });
 
         if (error) {
@@ -69,9 +73,7 @@ export default function HistoryPage() {
         });
     };
 
-    // Group by attendance status
-    const attendedReservations = reservations.filter(r => r.attended === true);
-    const missedReservations = reservations.filter(r => r.attended === false);
+
 
     return (
         <div className="flex flex-col gap-6 p-6">
@@ -94,30 +96,16 @@ export default function HistoryPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid md:grid-cols-2 gap-4">
-                <div
-                    className="p-4 rounded-xl"
-                    style={{
-                        background: 'rgba(34, 197, 94, 0.1)',
-                        border: '1px solid rgba(34, 197, 94, 0.3)'
-                    }}
-                >
-                    <div className="flex items-center justify-between">
-                        <span style={{ color: '#22c55e' }} className="text-sm font-medium">Présents</span>
-                        <span style={{ color: '#22c55e' }} className="text-2xl font-bold">{attendedReservations.length}</span>
-                    </div>
-                </div>
-                <div
-                    className="p-4 rounded-xl"
-                    style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.3)'
-                    }}
-                >
-                    <div className="flex items-center justify-between">
-                        <span style={{ color: '#ef4444' }} className="text-sm font-medium">Absents</span>
-                        <span style={{ color: '#ef4444' }} className="text-2xl font-bold">{missedReservations.length}</span>
-                    </div>
+            <div
+                className="p-4 rounded-xl"
+                style={{
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)'
+                }}
+            >
+                <div className="flex items-center justify-between">
+                    <span style={{ color: '#a78bfa' }} className="text-sm font-medium">Rendez-vous passés</span>
+                    <span style={{ color: '#a78bfa' }} className="text-2xl font-bold">{reservations.length}</span>
                 </div>
             </div>
 
@@ -149,114 +137,50 @@ export default function HistoryPage() {
                     <p style={{ color: '#a1a1aa' }}>Aucune réservation dans l'historique</p>
                 </div>
             ) : (
-                <div className="grid gap-6">
-                    {/* Attended Section */}
-                    {attendedReservations.length > 0 && (
-                        <div>
-                            <h2 className="text-xl font-semibold mb-4" style={{ color: '#22c55e' }}>
-                                ✓ Clients présents ({attendedReservations.length})
-                            </h2>
-                            <div className="grid gap-3">
-                                {attendedReservations.map((res) => (
-                                    <Link key={res.id} href={`/reservations/${res.id}`}>
+                <div className="grid gap-3">
+                    {reservations.map((res) => (
+                        <Link key={res.id} href={`/reservations/${res.id}`}>
+                            <div
+                                className="rounded-xl p-5 transition-all duration-200 cursor-pointer"
+                                style={{
+                                    background: 'rgba(18, 18, 26, 0.7)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                                    e.currentTarget.style.boxShadow = '0 0 30px rgba(139, 92, 246, 0.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
                                         <div
-                                            className="rounded-xl p-5 transition-all duration-200 cursor-pointer"
-                                            style={{
-                                                background: 'rgba(18, 18, 26, 0.7)',
-                                                border: '1px solid rgba(34, 197, 94, 0.3)'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.5)';
-                                                e.currentTarget.style.boxShadow = '0 0 30px rgba(34, 197, 94, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.3)';
-                                                e.currentTarget.style.boxShadow = 'none';
-                                            }}
+                                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+                                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                                                        style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
-                                                    >
-                                                        {res.customer_name?.charAt(0).toUpperCase() || "?"}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-semibold" style={{ color: '#ffffff' }}>
-                                                            {res.customer_name}
-                                                        </h3>
-                                                        <p className="text-sm" style={{ color: '#a1a1aa' }}>
-                                                            {res.date ? formatDate(res.date) : "Date non spécifiée"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {res.customer_mail && (
-                                                    <p className="text-sm" style={{ color: '#71717a' }}>
-                                                        {res.customer_mail}
-                                                    </p>
-                                                )}
-                                            </div>
+                                            {res.customer_name?.charAt(0).toUpperCase() || "?"}
                                         </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Missed Section */}
-                    {missedReservations.length > 0 && (
-                        <div>
-                            <h2 className="text-xl font-semibold mb-4" style={{ color: '#ef4444' }}>
-                                ✗ Clients absents ({missedReservations.length})
-                            </h2>
-                            <div className="grid gap-3">
-                                {missedReservations.map((res) => (
-                                    <Link key={res.id} href={`/reservations/${res.id}`}>
-                                        <div
-                                            className="rounded-xl p-5 transition-all duration-200 cursor-pointer"
-                                            style={{
-                                                background: 'rgba(18, 18, 26, 0.7)',
-                                                border: '1px solid rgba(239, 68, 68, 0.3)'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)';
-                                                e.currentTarget.style.boxShadow = '0 0 30px rgba(239, 68, 68, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                                                e.currentTarget.style.boxShadow = 'none';
-                                            }}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                                                        style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-                                                    >
-                                                        {res.customer_name?.charAt(0).toUpperCase() || "?"}
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-semibold" style={{ color: '#ffffff' }}>
-                                                            {res.customer_name}
-                                                        </h3>
-                                                        <p className="text-sm" style={{ color: '#a1a1aa' }}>
-                                                            {res.date ? formatDate(res.date) : "Date non spécifiée"}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {res.customer_mail && (
-                                                    <p className="text-sm" style={{ color: '#71717a' }}>
-                                                        {res.customer_mail}
-                                                    </p>
-                                                )}
-                                            </div>
+                                        <div>
+                                            <h3 className="font-semibold" style={{ color: '#ffffff' }}>
+                                                {res.customer_name}
+                                            </h3>
+                                            <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                                {res.date ? formatDate(res.date) : "Date non spécifiée"}
+                                            </p>
                                         </div>
-                                    </Link>
-                                ))}
+                                    </div>
+                                    {res.customer_mail && (
+                                        <p className="text-sm" style={{ color: '#71717a' }}>
+                                            {res.customer_mail}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        </Link>
+                    ))}
                 </div>
             )}
         </div>
