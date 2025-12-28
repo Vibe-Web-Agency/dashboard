@@ -35,7 +35,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         };
         getParams();
     }, [params]);
-
+ 
     useEffect(() => {
         if (reservationId) {
             fetchReservation();
