@@ -1,10 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { Database } from './database.types'
 
 export async function createServerSupabase() {
     const cookieStore = await cookies()
 
-    return createServerClient(
+    return createServerClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
@@ -36,9 +37,19 @@ export async function getCurrentUserProfile() {
 
     if (!user) return null
 
+    // On récupère le profil depuis la table USERS + team_members
     const { data: profile } = await supabase
         .from('users')
-        .select('*')
+        .select(`
+            *,
+            team_members (
+                business_id,
+                role,
+                business:businesses (
+                    *
+                )
+            )
+        `)
         .eq('dashboard_user_id', user.id)
         .single()
 
