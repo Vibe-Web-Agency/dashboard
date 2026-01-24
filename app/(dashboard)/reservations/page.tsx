@@ -76,7 +76,7 @@ export default function ReservationsPage() {
         if (error) {
             console.error("Erreur lors de la récupération des réservations:", error);
         } else {
-            setReservations(data || []);
+            setReservations((data as unknown as Reservation[]) || []);
         }
         setLoading(false);
     };

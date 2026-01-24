@@ -67,7 +67,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                 router.push("/quotes");
             }
         } else {
-            setQuote(data);
+            setQuote(data as unknown as Quote);
         }
         setLoading(false);
     };

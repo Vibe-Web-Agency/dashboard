@@ -49,7 +49,7 @@ export default function HistoryPage() {
         if (error) {
             console.error("Erreur:", error);
         } else {
-            setReservations(data || []);
+            setReservations((data as unknown as Reservation[]) || []);
         }
         setLoading(false);
     };

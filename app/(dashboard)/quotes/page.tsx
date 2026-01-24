@@ -47,7 +47,7 @@ export default function QuotesPage() {
         if (error) {
             console.error("Erreur lors de la récupération des devis:", error);
         } else {
-            setQuotes(data || []);
+            setQuotes((data as unknown as Quote[]) || []);
         }
         setLoading(false);
     };

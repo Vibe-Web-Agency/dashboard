@@ -62,8 +62,8 @@ export default function HomePage() {
             .order("created_at", { ascending: false })
             .limit(3);
 
-        setReservations(resData || []);
-        setQuotes(quotesData || []);
+        setReservations((resData as unknown as Reservation[]) || []);
+        setQuotes((quotesData as unknown as Quote[]) || []);
         setLoading(false);
     };
 

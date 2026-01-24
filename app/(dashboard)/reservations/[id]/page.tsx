@@ -35,7 +35,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         };
         getParams();
     }, [params]);
- 
+
     useEffect(() => {
         if (reservationId) {
             fetchReservation();
@@ -53,7 +53,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         if (error) {
             console.error("Erreur:", error);
         } else {
-            setReservation(data);
+            setReservation(data as unknown as Reservation);
         }
         setLoading(false);
     };
