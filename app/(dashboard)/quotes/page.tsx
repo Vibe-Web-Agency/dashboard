@@ -5,6 +5,7 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
