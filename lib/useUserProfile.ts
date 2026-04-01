@@ -2,7 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
-import { Database } from './database.types';
+
+type TeamMemberWithBusiness = {
+    business_id: string | null;
+    role: string | null;
+    business: {
+        name: string | null;
+        business_type: string | null;
+        address: string | null;
+    } | null;
+};
+
+type UserWithTeam = {
+    id: string;
+    email: string;
+    business_name: string | null;
+    business_type: string | null;
+    phone: string | null;
+    address: string | null;
+    dashboard_user_id: string;
+    created_at: string;
+    team_members: TeamMemberWithBusiness[] | TeamMemberWithBusiness | null;
+};
 
 export interface UserProfile {
     id: string; // users.id (public profile id)
@@ -53,30 +74,21 @@ export function useUserProfile() {
                     console.error('❌ Erreur récupération profil user:', userError);
                     setError(userError.message);
                 } else if (userData) {
-                    // Extraction des infos business via team_members (si existant)
-                    const teamMember = Array.isArray(userData.team_members)
-                        ? userData.team_members[0]
-                        : userData.team_members;
+                    const typed = userData as unknown as UserWithTeam;
+                    const teamMember = Array.isArray(typed.team_members)
+                        ? typed.team_members[0]
+                        : typed.team_members;
 
-                    // @ts-ignore
-                    const business = teamMember?.business;
+                    const business = teamMember?.business ?? null;
 
                     setProfile({
-                        // @ts-ignore
-                        id: userData.id,
-                        // @ts-ignore
-                        email: userData.email,
-                        // @ts-ignore
-                        business_name: business?.name ?? userData.business_name,
-                        // @ts-ignore
-                        business_type: business?.business_type ?? userData.business_type,
-                        // @ts-ignore
-                        phone: userData.phone,
-                        // @ts-ignore
-                        address: business?.address ?? userData.address,
-                        // @ts-ignore
-                        dashboard_user_id: userData.dashboard_user_id,
-                        // @ts-ignore
+                        id: typed.id,
+                        email: typed.email,
+                        business_name: business?.name ?? typed.business_name,
+                        business_type: business?.business_type ?? typed.business_type,
+                        phone: typed.phone,
+                        address: business?.address ?? typed.address,
+                        dashboard_user_id: typed.dashboard_user_id,
                         business_id: teamMember?.business_id ?? null
                     });
                 }

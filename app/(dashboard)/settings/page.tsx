@@ -29,7 +29,6 @@ export default function SettingsPage() {
     const router = useRouter();
     const { profile, loading: profileLoading } = useUserProfile();
 
-    // Profile form state
     const [formData, setFormData] = useState({
         business_name: "",
         business_type: "",
@@ -42,7 +41,6 @@ export default function SettingsPage() {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Password change state
     const [passwordData, setPasswordData] = useState({
         currentPassword: "",
         newPassword: "",
@@ -53,11 +51,9 @@ export default function SettingsPage() {
     const [passwordSuccess, setPasswordSuccess] = useState(false);
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
-    // Logout state
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
 
-    // Load profile data into form
     useEffect(() => {
         if (profile) {
             setFormData({
@@ -101,7 +97,6 @@ export default function SettingsPage() {
     };
 
     const handleCancelEdit = () => {
-        // Reset form data to original profile values
         if (profile) {
             setFormData({
                 business_name: profile.business_name || "",
@@ -142,7 +137,6 @@ export default function SettingsPage() {
         setPasswordSuccess(false);
         setPasswordError(null);
 
-        // 1. Vérifier l'ancien mot de passe en tentant une connexion
         const { data: { user } } = await supabase.auth.getUser();
         if (!user?.email) {
             setPasswordError("Impossible de récupérer l'utilisateur actuel");
@@ -162,7 +156,6 @@ export default function SettingsPage() {
             return;
         }
 
-        // 2. Si l'ancien mot de passe est correct, changer le mot de passe
         const { error } = await supabase.auth.updateUser({
             password: passwordData.newPassword
         });
@@ -190,7 +183,7 @@ export default function SettingsPage() {
                 <div
                     className="animate-spin w-8 h-8 border-2 rounded-full"
                     style={{
-                        borderColor: '#8b5cf6',
+                        borderColor: '#FFC745',
                         borderTopColor: 'transparent'
                     }}
                 />
@@ -199,21 +192,16 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
+        <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
             {/* Header */}
             <div>
                 <h1
-                    className="text-3xl font-bold"
-                    style={{
-                        background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                    }}
+                    className="text-2xl sm:text-3xl font-bold"
+                    style={{ color: '#FFC745' }}
                 >
                     Paramètres
                 </h1>
-                <p className="mt-1" style={{ color: '#a1a1aa' }}>
+                <p className="mt-1" style={{ color: '#c3c3d4' }}>
                     Gérez les paramètres de votre compte
                 </p>
             </div>
@@ -222,23 +210,23 @@ export default function SettingsPage() {
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
                 <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
                         <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ background: 'rgba(99, 102, 241, 0.15)' }}
+                            style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                         >
-                            <User className="w-5 h-5" style={{ color: '#818cf8' }} />
+                            <User className="w-5 h-5" style={{ color: '#FFC745' }} />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                                 Informations du profil
                             </h2>
-                            <p className="text-sm" style={{ color: '#71717a' }}>
+                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                 {isEditing ? "Modifiez les informations de votre entreprise" : "Informations de votre entreprise"}
                             </p>
                         </div>
@@ -248,9 +236,9 @@ export default function SettingsPage() {
                             onClick={() => setIsEditing(true)}
                             className="flex items-center gap-2"
                             style={{
-                                background: 'rgba(99, 102, 241, 0.15)',
-                                color: '#818cf8',
-                                border: '1px solid rgba(99, 102, 241, 0.3)'
+                                background: 'rgba(255, 199, 69, 0.15)',
+                                color: '#FFC745',
+                                border: '1px solid rgba(255, 199, 69, 0.3)'
                             }}
                         >
                             <Pencil className="w-4 h-4" />
@@ -265,11 +253,11 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div
                                 className="p-4 rounded-lg"
-                                style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
                             >
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Building2 className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    <span className="text-sm" style={{ color: '#71717a' }}>Nom de l'entreprise</span>
+                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Nom de l&apos;entreprise</span>
                                 </div>
                                 <p className="font-medium" style={{ color: '#ffffff' }}>
                                     {formData.business_name || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
@@ -277,11 +265,11 @@ export default function SettingsPage() {
                             </div>
                             <div
                                 className="p-4 rounded-lg"
-                                style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
                             >
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Briefcase className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    <span className="text-sm" style={{ color: '#71717a' }}>Type d'activité</span>
+                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Type d&apos;activité</span>
                                 </div>
                                 <p className="font-medium" style={{ color: '#ffffff' }}>
                                     {formData.business_type || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
@@ -291,11 +279,11 @@ export default function SettingsPage() {
 
                         <div
                             className="p-4 rounded-lg"
-                            style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+                            style={{ background: 'rgba(0, 255, 145, 0.03)' }}
                         >
                             <div className="flex items-center gap-2 mb-1">
-                                <Mail className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                <span className="text-sm" style={{ color: '#71717a' }}>Email</span>
+                                <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                <span className="text-sm" style={{ color: '#c3c3d4' }}>Email</span>
                             </div>
                             <p className="font-medium" style={{ color: '#ffffff' }}>
                                 {formData.email || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
@@ -305,11 +293,11 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div
                                 className="p-4 rounded-lg"
-                                style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
                             >
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Phone className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    <span className="text-sm" style={{ color: '#71717a' }}>Téléphone</span>
+                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Téléphone</span>
                                 </div>
                                 <p className="font-medium" style={{ color: '#ffffff' }}>
                                     {formData.phone || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
@@ -317,11 +305,11 @@ export default function SettingsPage() {
                             </div>
                             <div
                                 className="p-4 rounded-lg"
-                                style={{ background: 'rgba(255, 255, 255, 0.03)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
                             >
                                 <div className="flex items-center gap-2 mb-1">
-                                    <MapPin className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    <span className="text-sm" style={{ color: '#71717a' }}>Adresse</span>
+                                    <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Adresse</span>
                                 </div>
                                 <p className="font-medium" style={{ color: '#ffffff' }}>
                                     {formData.address || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
@@ -349,8 +337,8 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Building2 className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    Nom de l'entreprise
+                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    Nom de l&apos;entreprise
                                 </Label>
                                 <Input
                                     value={formData.business_name}
@@ -358,16 +346,16 @@ export default function SettingsPage() {
                                     placeholder="Mon entreprise"
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
                             </div>
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Briefcase className="w-4 h-4" style={{ color: '#a78bfa' }} />
-                                    Type d'activité
+                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                    Type d&apos;activité
                                 </Label>
                                 <Input
                                     value={formData.business_type}
@@ -375,8 +363,8 @@ export default function SettingsPage() {
                                     placeholder="Coiffure, Restaurant, etc."
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
@@ -385,7 +373,7 @@ export default function SettingsPage() {
 
                         <div>
                             <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                <Mail className="w-4 h-4" style={{ color: '#a78bfa' }} />
+                                <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
                                 Email
                             </Label>
                             <Input
@@ -395,8 +383,8 @@ export default function SettingsPage() {
                                 placeholder="contact@entreprise.com"
                                 className="mt-1"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)',
                                     color: '#ffffff'
                                 }}
                             />
@@ -405,7 +393,7 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Phone className="w-4 h-4" style={{ color: '#a78bfa' }} />
+                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
                                     Téléphone
                                 </Label>
                                 <Input
@@ -415,15 +403,15 @@ export default function SettingsPage() {
                                     placeholder="06 12 34 56 78"
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
                             </div>
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <MapPin className="w-4 h-4" style={{ color: '#a78bfa' }} />
+                                    <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} />
                                     Adresse
                                 </Label>
                                 <Input
@@ -432,8 +420,8 @@ export default function SettingsPage() {
                                     placeholder="123 Rue Example, 75001 Paris"
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
@@ -460,9 +448,9 @@ export default function SettingsPage() {
                                 onClick={handleCancelEdit}
                                 className="flex items-center gap-2"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    color: '#a1a1aa',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    color: '#c3c3d4',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)'
                                 }}
                             >
                                 <X className="w-4 h-4" />
@@ -473,15 +461,15 @@ export default function SettingsPage() {
                                 disabled={saving}
                                 className="flex items-center gap-2 font-semibold"
                                 style={{
-                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                    color: '#ffffff'
+                                    background: '#FFC745',
+                                    color: '#001C1C'
                                 }}
                             >
                                 {saving ? (
                                     <>
                                         <div
                                             className="animate-spin w-4 h-4 border-2 rounded-full"
-                                            style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}
+                                            style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }}
                                         />
                                         Enregistrement...
                                     </>
@@ -501,29 +489,28 @@ export default function SettingsPage() {
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
                 <div className="flex items-center gap-3 mb-6">
                     <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(139, 92, 246, 0.15)' }}
+                        style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                     >
-                        <Lock className="w-5 h-5" style={{ color: '#a78bfa' }} />
+                        <Lock className="w-5 h-5" style={{ color: '#FFC745' }} />
                     </div>
                     <div>
                         <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                             Sécurité
                         </h2>
-                        <p className="text-sm" style={{ color: '#71717a' }}>
+                        <p className="text-sm" style={{ color: '#c3c3d4' }}>
                             Modifiez votre mot de passe
                         </p>
                     </div>
                 </div>
 
                 <form onSubmit={handleChangePassword} className="space-y-4">
-                    {/* Current Password */}
                     <div>
                         <Label style={{ color: '#e4e4e7' }}>Mot de passe actuel</Label>
                         <div className="relative mt-1">
@@ -533,8 +520,8 @@ export default function SettingsPage() {
                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
                                 placeholder="••••••••"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)',
                                     color: '#ffffff',
                                     paddingRight: '40px'
                                 }}
@@ -550,7 +537,6 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
-                    {/* New Password Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <Label style={{ color: '#e4e4e7' }}>Nouveau mot de passe</Label>
@@ -561,8 +547,8 @@ export default function SettingsPage() {
                                 placeholder="••••••••"
                                 className="mt-1"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)',
                                     color: '#ffffff'
                                 }}
                             />
@@ -576,8 +562,8 @@ export default function SettingsPage() {
                                 placeholder="••••••••"
                                 className="mt-1"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)',
                                     color: '#ffffff'
                                 }}
                             />
@@ -617,16 +603,16 @@ export default function SettingsPage() {
                         disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                         className="flex items-center gap-2"
                         style={{
-                            background: 'rgba(139, 92, 246, 0.15)',
-                            color: '#a78bfa',
-                            border: '1px solid rgba(139, 92, 246, 0.3)'
+                            background: 'rgba(255, 199, 69, 0.15)',
+                            color: '#FFC745',
+                            border: '1px solid rgba(255, 199, 69, 0.3)'
                         }}
                     >
                         {changingPassword ? (
                             <>
                                 <div
                                     className="animate-spin w-4 h-4 border-2 rounded-full"
-                                    style={{ borderColor: '#a78bfa', borderTopColor: 'transparent' }}
+                                    style={{ borderColor: '#FFC745', borderTopColor: 'transparent' }}
                                 />
                                 Vérification et modification...
                             </>
@@ -644,7 +630,7 @@ export default function SettingsPage() {
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
+                    background: '#002928',
                     border: '1px solid rgba(239, 68, 68, 0.2)'
                 }}
             >
@@ -659,7 +645,7 @@ export default function SettingsPage() {
                         <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                             Session
                         </h2>
-                        <p className="text-sm" style={{ color: '#71717a' }}>
+                        <p className="text-sm" style={{ color: '#c3c3d4' }}>
                             Gérez votre session active
                         </p>
                     </div>
@@ -689,7 +675,7 @@ export default function SettingsPage() {
                     <div
                         className="w-full max-w-md rounded-2xl p-6"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
+                            background: '#002928',
                             border: '1px solid rgba(239, 68, 68, 0.3)',
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
                         }}
@@ -706,13 +692,13 @@ export default function SettingsPage() {
                                 <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                                     Se déconnecter ?
                                 </h3>
-                                <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                     Vous serez redirigé vers la page de connexion
                                 </p>
                             </div>
                         </div>
 
-                        <p className="mb-6" style={{ color: '#a1a1aa' }}>
+                        <p className="mb-6" style={{ color: '#c3c3d4' }}>
                             Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
                         </p>
 
@@ -721,9 +707,9 @@ export default function SettingsPage() {
                                 onClick={() => setShowLogoutModal(false)}
                                 className="flex-1"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    color: '#a1a1aa',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    color: '#c3c3d4',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)'
                                 }}
                             >
                                 Annuler

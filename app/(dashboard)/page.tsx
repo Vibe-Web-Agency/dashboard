@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { Calendar, FileText, TrendingUp } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import Link from "next/link";
 
 interface Reservation {
@@ -68,7 +69,6 @@ export default function HomePage() {
     };
 
     // Fonction helper pour obtenir la date locale en format YYYY-MM-DD
-    // Évite le bug de timezone causé par toISOString() qui convertit en UTC
     const getLocalDateString = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -78,7 +78,7 @@ export default function HomePage() {
 
     const getChartData = () => {
         const now = new Date();
-        now.setHours(0, 0, 0, 0); // Reset time to start of day
+        now.setHours(0, 0, 0, 0);
         const days = timeRange === '7days' ? 7 : timeRange === '1month' ? 30 : 60;
 
         const data = [];
@@ -119,7 +119,7 @@ export default function HomePage() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case "pending":
-                return { bg: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24' };
+                return { bg: 'rgba(255, 199, 69, 0.1)', color: '#FFC745' };
             case "approved":
                 return { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' };
             case "rejected":
@@ -134,17 +134,12 @@ export default function HomePage() {
             {/* Header */}
             <div>
                 <h1
-                    className="text-3xl font-bold mb-2"
-                    style={{
-                        background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                    }}
+                    className="text-2xl sm:text-3xl font-bold mb-2"
+                    style={{ color: '#FFC745' }}
                 >
                     Bienvenue sur le Dashboard
                 </h1>
-                <p style={{ color: '#a1a1aa' }}>
+                <p style={{ color: '#c3c3d4' }}>
                     Gérez vos réservations, devis et analytics depuis cette interface.
                 </p>
             </div>
@@ -153,25 +148,23 @@ export default function HomePage() {
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
                         <div
                             className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))'
-                            }}
+                            style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                         >
-                            <TrendingUp style={{ color: '#8b5cf6' }} className="w-5 h-5" />
+                            <TrendingUp style={{ color: '#FFC745' }} className="w-5 h-5" />
                         </div>
                         <div>
                             <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
                                 Réservations à venir
                             </h2>
-                            <p className="text-sm" style={{ color: '#71717a' }}>
+                            <p className="text-sm" style={{ color: '#a1a1aa' }}>
                                 Prévisions des prochains jours
                             </p>
                         </div>
@@ -181,8 +174,8 @@ export default function HomePage() {
                     <div
                         className="flex gap-2 p-1 rounded-lg"
                         style={{
-                            background: 'rgba(255, 255, 255, 0.05)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                            background: 'rgba(0, 255, 145, 0.05)',
+                            border: '1px solid rgba(0, 255, 145, 0.1)'
                         }}
                     >
                         {(['7days', '1month', '2months'] as TimeRange[]).map((range) => (
@@ -193,12 +186,12 @@ export default function HomePage() {
                                 style={
                                     timeRange === range
                                         ? {
-                                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                            color: '#ffffff',
+                                            background: '#FFC745',
+                                            color: '#001C1C',
                                             fontWeight: 600
                                         }
                                         : {
-                                            color: '#a1a1aa',
+                                            color: '#c3c3d4',
                                             fontWeight: 500
                                         }
                                 }
@@ -210,43 +203,43 @@ export default function HomePage() {
                 </div>
 
                 {/* Chart */}
-                <div style={{ width: '100%', height: 300 }}>
+                <div style={{ width: '100%', height: 250 }}>
                     <ResponsiveContainer>
-                        <LineChart data={getChartData()}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                        <AreaChart data={getChartData()}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" />
                             <XAxis
                                 dataKey="date"
-                                stroke="#71717a"
+                                stroke="#a1a1aa"
                                 style={{ fontSize: '12px' }}
                             />
                             <YAxis
-                                stroke="#71717a"
+                                stroke="#a1a1aa"
                                 style={{ fontSize: '12px' }}
                             />
                             <Tooltip
                                 contentStyle={{
-                                    background: 'rgba(18, 18, 26, 0.95)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    background: '#002928',
+                                    border: '1px solid rgba(0, 255, 145, 0.15)',
                                     borderRadius: '8px',
                                     color: '#ffffff'
                                 }}
                             />
-                            <Line
-                                type="monotone"
-                                dataKey="reservations"
-                                stroke="url(#colorGradient)"
-                                strokeWidth={3}
-                                dot={{ fill: '#8b5cf6', r: 4 }}
-                                activeDot={{ r: 6 }}
-                            />
                             <defs>
-                                <linearGradient id="colorGradient" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stopColor="#6366f1" />
-                                    <stop offset="50%" stopColor="#8b5cf6" />
-                                    <stop offset="100%" stopColor="#ec4899" />
+                                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#FFC745" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#FFC745" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                        </LineChart>
+                            <Area
+                                type="monotone"
+                                dataKey="reservations"
+                                stroke="#FFC745"
+                                strokeWidth={3}
+                                fill="url(#colorGradient)"
+                                dot={{ fill: '#FFC745', r: 4, strokeWidth: 0 }}
+                                activeDot={{ r: 6, fill: '#FFC745', stroke: '#001C1C', strokeWidth: 2 }}
+                            />
+                        </AreaChart>
                     </ResponsiveContainer>
                 </div>
             </div>
@@ -257,19 +250,17 @@ export default function HomePage() {
                 <div
                     className="rounded-xl p-6"
                     style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                        background: '#002928',
+                        border: '1px solid rgba(0, 255, 145, 0.1)'
                     }}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))'
-                                }}
+                                style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                             >
-                                <Calendar style={{ color: '#8b5cf6' }} className="w-5 h-5" />
+                                <Calendar style={{ color: '#FFC745' }} className="w-5 h-5" />
                             </div>
                             <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                                 Réservations récentes
@@ -278,24 +269,27 @@ export default function HomePage() {
                         <Link
                             href="/reservations"
                             className="text-sm font-medium transition-colors"
-                            style={{ color: '#8b5cf6' }}
+                            style={{ color: '#FFC745' }}
                         >
                             Voir tout →
                         </Link>
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div
-                                className="animate-spin w-6 h-6 border-2 rounded-full"
-                                style={{
-                                    borderColor: '#8b5cf6',
-                                    borderTopColor: 'transparent'
-                                }}
-                            />
+                        <div className="space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3">
+                                    <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                                    <div className="flex-1 space-y-1.5">
+                                        <Skeleton className="h-3.5 w-32" />
+                                        <Skeleton className="h-3 w-24" />
+                                    </div>
+                                    <Skeleton className="h-3 w-20" />
+                                </div>
+                            ))}
                         </div>
                     ) : reservations.length === 0 ? (
-                        <p className="text-center py-8" style={{ color: '#71717a' }}>
+                        <p className="text-center py-8" style={{ color: '#a1a1aa' }}>
                             Aucune réservation récente
                         </p>
                     ) : (
@@ -306,26 +300,19 @@ export default function HomePage() {
                                     href={`/reservations/${res.id}`}
                                 >
                                     <div
-                                        className="p-4 rounded-lg transition-all duration-200 cursor-pointer"
+                                        className="card-hover p-4 rounded-lg cursor-pointer"
                                         style={{
-                                            background: 'rgba(255, 255, 255, 0.03)',
-                                            border: '1px solid rgba(255, 255, 255, 0.08)'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                            background: 'rgba(0, 255, 145, 0.03)',
+                                            border: '1px solid rgba(0, 255, 145, 0.08)'
                                         }}
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div
-                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
                                                     style={{
-                                                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                                                        background: '#FFC745',
+                                                        color: '#001C1C'
                                                     }}
                                                 >
                                                     {res.customer_name?.charAt(0).toUpperCase() || "?"}
@@ -334,13 +321,13 @@ export default function HomePage() {
                                                     <p className="font-medium text-sm" style={{ color: '#ffffff' }}>
                                                         {res.customer_name}
                                                     </p>
-                                                    <p className="text-xs" style={{ color: '#71717a' }}>
+                                                    <p className="text-xs" style={{ color: '#a1a1aa' }}>
                                                         {res.customer_mail || "Pas d'email"}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                <p className="text-xs" style={{ color: '#c3c3d4' }}>
                                                     {formatDate(res.created_at)}
                                                 </p>
                                             </div>
@@ -356,19 +343,17 @@ export default function HomePage() {
                 <div
                     className="rounded-xl p-6"
                     style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                        background: '#002928',
+                        border: '1px solid rgba(0, 255, 145, 0.1)'
                     }}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2))'
-                                }}
+                                style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                             >
-                                <FileText style={{ color: '#ec4899' }} className="w-5 h-5" />
+                                <FileText style={{ color: '#FFC745' }} className="w-5 h-5" />
                             </div>
                             <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                                 Devis récents
@@ -377,24 +362,27 @@ export default function HomePage() {
                         <Link
                             href="/quotes"
                             className="text-sm font-medium transition-colors"
-                            style={{ color: '#ec4899' }}
+                            style={{ color: '#FFC745' }}
                         >
                             Voir tout →
                         </Link>
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div
-                                className="animate-spin w-6 h-6 border-2 rounded-full"
-                                style={{
-                                    borderColor: '#ec4899',
-                                    borderTopColor: 'transparent'
-                                }}
-                            />
+                        <div className="space-y-3">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-center gap-3 p-3">
+                                    <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                                    <div className="flex-1 space-y-1.5">
+                                        <Skeleton className="h-3.5 w-32" />
+                                        <Skeleton className="h-3 w-24" />
+                                    </div>
+                                    <Skeleton className="h-6 w-20 rounded-full" />
+                                </div>
+                            ))}
                         </div>
                     ) : quotes.length === 0 ? (
-                        <p className="text-center py-8" style={{ color: '#71717a' }}>
+                        <p className="text-center py-8" style={{ color: '#a1a1aa' }}>
                             Aucun devis récent
                         </p>
                     ) : (
@@ -407,26 +395,19 @@ export default function HomePage() {
                                         href={`/quotes/${quote.id}`}
                                     >
                                         <div
-                                            className="p-4 rounded-lg transition-all duration-200 cursor-pointer"
+                                            className="card-hover p-4 rounded-lg cursor-pointer"
                                             style={{
-                                                background: 'rgba(255, 255, 255, 0.03)',
-                                                border: '1px solid rgba(255, 255, 255, 0.08)'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = 'rgba(236, 72, 153, 0.1)';
-                                                e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.3)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                                background: 'rgba(0, 255, 145, 0.03)',
+                                                border: '1px solid rgba(0, 255, 145, 0.08)'
                                             }}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div
-                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+                                                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
                                                         style={{
-                                                            background: 'linear-gradient(135deg, #ec4899, #8b5cf6)'
+                                                            background: '#FFC745',
+                                                            color: '#001C1C'
                                                         }}
                                                     >
                                                         {quote.customer_name?.charAt(0).toUpperCase() || "?"}
@@ -435,7 +416,7 @@ export default function HomePage() {
                                                         <p className="font-medium text-sm" style={{ color: '#ffffff' }}>
                                                             {quote.customer_name}
                                                         </p>
-                                                        <p className="text-xs" style={{ color: '#71717a' }}>
+                                                        <p className="text-xs" style={{ color: '#a1a1aa' }}>
                                                             {quote.customer_email || "Pas d'email"}
                                                         </p>
                                                     </div>
@@ -452,7 +433,7 @@ export default function HomePage() {
                                                             quote.status === 'approved' ? 'Approuvé' :
                                                                 quote.status === 'rejected' ? 'Refusé' : quote.status}
                                                     </span>
-                                                    <p className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                    <p className="text-xs" style={{ color: '#c3c3d4' }}>
                                                         {formatDate(quote.created_at)}
                                                     </p>
                                                 </div>

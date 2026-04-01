@@ -4,10 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, X, Search } from "lucide-react";
+import { Plus, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Reservation {
     id: string;
@@ -32,7 +33,10 @@ export default function ReservationsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [page, setPage] = useState(0);
+    const PAGE_SIZE = 20;
     const [newReservation, setNewReservation] = useState({
         customer_name: "",
         customer_mail: "",
@@ -43,35 +47,40 @@ export default function ReservationsPage() {
     });
 
     useEffect(() => {
-        // Quand le profil a fini de charger
-        if (!profileLoading) {
-            if (profile?.id) {
-                fetchReservations();
-            } else {
-                // Pas de profil trouvé, arrêter le chargement
-                setLoading(false);
-            }
+        if (profileLoading) return;
+
+        if (!profile?.id) {
+            setLoading(false);
+            return;
         }
+
+        fetchReservations();
+
+        const channel = supabase
+            .channel(`reservations-${profile.id}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reservations', filter: `user_id=eq.${profile.id}` },
+                () => { fetchReservations(); }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
     }, [profile?.id, profileLoading]);
 
     const fetchReservations = async () => {
         if (!profile?.id) return;
 
         setLoading(true);
-        // Calculer la date limite (maintenant - 15 minutes)
         const now = new Date();
         const limitDate = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
 
         const { data, error } = await supabase
             .from("reservations")
             .select("*")
-            .eq("user_id", profile.id) // Filtrer par l'ID de l'utilisateur connecté
-            .gte("date", limitDate) // Réservations futures ou dans les 15 dernières minutes
+            .eq("user_id", profile.id)
+            .gte("date", limitDate)
             .order("date", { ascending: true });
-
-        console.log("User profile ID:", profile.id);
-        console.log("Reservations data:", data);
-        console.log("Reservations error:", error);
 
         if (error) {
             console.error("Erreur lors de la récupération des réservations:", error);
@@ -87,13 +96,12 @@ export default function ReservationsPage() {
 
         setCreating(true);
 
-        // Combiner date et heure
         const dateTime = new Date(`${newReservation.date}T${newReservation.time}:00`);
 
         const { data, error } = await supabase
             .from("reservations")
             .insert({
-                user_id: profile.id, // Utiliser le bon user_id
+                user_id: profile.id,
                 customer_name: newReservation.customer_name,
                 customer_mail: newReservation.customer_mail || null,
                 customer_phone: newReservation.customer_phone || null,
@@ -106,7 +114,7 @@ export default function ReservationsPage() {
 
         if (error) {
             console.error("Erreur création réservation:", error);
-            alert("Erreur: " + error.message);
+            setCreateError(error.message);
         } else {
             console.log("Réservation créée:", data);
             setShowModal(false);
@@ -118,7 +126,7 @@ export default function ReservationsPage() {
                 time: "",
                 message: ""
             });
-            fetchReservations(); // Rafraîchir la liste
+            fetchReservations();
         }
         setCreating(false);
     };
@@ -129,7 +137,6 @@ export default function ReservationsPage() {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        // Reset hours for comparison
         today.setHours(0, 0, 0, 0);
         tomorrow.setHours(0, 0, 0, 0);
         const compareDate = new Date(date);
@@ -157,10 +164,11 @@ export default function ReservationsPage() {
         });
     };
 
-    // Filter reservations based on search query
+    // Reset page quand la recherche change
+    const handleSearch = (q: string) => { setSearchQuery(q); setPage(0); };
+
     const filteredReservations = reservations.filter((reservation) => {
         if (!searchQuery.trim()) return true;
-
         const query = searchQuery.toLowerCase();
         return (
             reservation.customer_name?.toLowerCase().includes(query) ||
@@ -170,10 +178,8 @@ export default function ReservationsPage() {
         );
     });
 
-    // Group reservations by date
     const groupedReservations = filteredReservations.reduce<GroupedReservations>((groups, reservation) => {
         if (!reservation.date) return groups;
-
         const dateKey = new Date(reservation.date).toDateString();
         if (!groups[dateKey]) {
             groups[dateKey] = [];
@@ -182,54 +188,62 @@ export default function ReservationsPage() {
         return groups;
     }, {});
 
-    // Sort dates
     const sortedDates = Object.keys(groupedReservations).sort((a, b) =>
         new Date(a).getTime() - new Date(b).getTime()
     );
 
+    const totalPages = Math.ceil(filteredReservations.length / PAGE_SIZE);
+    const paginatedReservations = filteredReservations.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const paginatedGrouped = paginatedReservations.reduce<GroupedReservations>((groups, reservation) => {
+        if (!reservation.date) return groups;
+        const dateKey = new Date(reservation.date).toDateString();
+        if (!groups[dateKey]) groups[dateKey] = [];
+        groups[dateKey].push(reservation);
+        return groups;
+    }, {});
+    const paginatedDates = Object.keys(paginatedGrouped).sort((a, b) =>
+        new Date(a).getTime() - new Date(b).getTime()
+    );
+
     return (
-        <div className="flex flex-col gap-6 p-6">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h1
-                        className="text-3xl font-bold"
-                        style={{
-                            background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text'
-                        }}
+                        className="text-2xl sm:text-3xl font-bold"
+                        style={{ color: '#FFC745' }}
                     >
                         Réservations
                     </h1>
-                    <p className="mt-1" style={{ color: '#a1a1aa' }}>
+                    <p className="mt-1" style={{ color: '#c3c3d4' }}>
                         Gérez vos réservations clients
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                     <Button
                         onClick={() => setShowModal(true)}
                         className="flex items-center gap-2 font-semibold"
                         style={{
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            color: '#ffffff'
+                            background: '#FFC745',
+                            color: '#001C1C'
                         }}
                     >
                         <Plus className="w-4 h-4" />
-                        Nouvelle réservation
+                        <span className="hidden sm:inline">Nouvelle réservation</span>
+                        <span className="sm:hidden">Nouveau</span>
                     </Button>
                     <div
                         className="flex items-center gap-2 rounded-lg px-4 py-2"
                         style={{
-                            background: 'rgba(99, 102, 241, 0.1)',
-                            border: '1px solid rgba(99, 102, 241, 0.2)'
+                            background: 'rgba(255, 199, 69, 0.1)',
+                            border: '1px solid rgba(255, 199, 69, 0.2)'
                         }}
                     >
                         <div
                             className="w-2 h-2 rounded-full animate-pulse"
-                            style={{ background: '#6366f1' }}
+                            style={{ background: '#FFC745' }}
                         />
-                        <span className="font-medium" style={{ color: '#818cf8' }}>
+                        <span className="font-medium" style={{ color: '#FFC745' }}>
                             {reservations.length} planifiée{reservations.length > 1 ? "s" : ""}
                         </span>
                     </div>
@@ -240,25 +254,25 @@ export default function ReservationsPage() {
             <div className="relative">
                 <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5"
-                    style={{ color: '#71717a' }}
+                    style={{ color: '#a1a1aa' }}
                 />
                 <Input
                     type="text"
                     placeholder="Rechercher par nom, email, téléphone ou message..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10 w-full"
                     style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: '#002928',
+                        border: '1px solid rgba(0, 255, 145, 0.1)',
                         color: '#ffffff'
                     }}
                 />
                 {searchQuery && (
                     <button
-                        onClick={() => setSearchQuery("")}
+                        onClick={() => handleSearch("")}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
-                        style={{ color: '#71717a' }}
+                        style={{ color: '#a1a1aa' }}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -270,11 +284,11 @@ export default function ReservationsPage() {
                 <div
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{
-                        background: 'rgba(139, 92, 246, 0.1)',
-                        color: '#a78bfa'
+                        background: 'rgba(255, 199, 69, 0.1)',
+                        color: '#FFC745'
                     }}
                 >
-                    {filteredReservations.length} résultat{filteredReservations.length > 1 ? "s" : ""} pour "{searchQuery}"
+                    {filteredReservations.length} résultat{filteredReservations.length > 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
                 </div>
             )}
 
@@ -284,8 +298,8 @@ export default function ReservationsPage() {
                     <div
                         className="w-full max-w-md rounded-xl p-6"
                         style={{
-                            background: 'rgba(18, 18, 26, 0.95)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: '#002928',
+                            border: '1px solid rgba(0, 255, 145, 0.15)',
                             backdropFilter: 'blur(20px)'
                         }}
                     >
@@ -294,7 +308,7 @@ export default function ReservationsPage() {
                                 Nouvelle réservation
                             </h2>
                             <button
-                                onClick={() => setShowModal(false)}
+                                onClick={() => { setShowModal(false); setCreateError(null); }}
                                 className="p-2 rounded-lg transition-colors hover:bg-white/10"
                                 style={{ color: '#a1a1aa' }}
                             >
@@ -303,8 +317,20 @@ export default function ReservationsPage() {
                         </div>
 
                         <form onSubmit={handleCreateReservation} className="space-y-4">
+                            {createError && (
+                                <div
+                                    className="p-3 rounded-lg text-sm"
+                                    style={{
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: '#fca5a5'
+                                    }}
+                                >
+                                    {createError}
+                                </div>
+                            )}
                             <div>
-                                <Label style={{ color: '#e4e4e7' }}>Nom du client *</Label>
+                                <Label style={{ color: '#c3c3d4' }}>Nom du client *</Label>
                                 <Input
                                     value={newReservation.customer_name}
                                     onChange={(e) => setNewReservation(prev => ({ ...prev, customer_name: e.target.value }))}
@@ -312,16 +338,16 @@ export default function ReservationsPage() {
                                     placeholder="Jean Dupont"
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <Label style={{ color: '#e4e4e7' }}>Email</Label>
+                                    <Label style={{ color: '#c3c3d4' }}>Email</Label>
                                     <Input
                                         type="email"
                                         value={newReservation.customer_mail}
@@ -329,14 +355,14 @@ export default function ReservationsPage() {
                                         placeholder="email@exemple.com"
                                         className="mt-1"
                                         style={{
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            background: 'rgba(0, 255, 145, 0.05)',
+                                            border: '1px solid rgba(0, 255, 145, 0.1)',
                                             color: '#ffffff'
                                         }}
                                     />
                                 </div>
                                 <div>
-                                    <Label style={{ color: '#e4e4e7' }}>Téléphone</Label>
+                                    <Label style={{ color: '#c3c3d4' }}>Téléphone</Label>
                                     <Input
                                         type="tel"
                                         value={newReservation.customer_phone}
@@ -344,17 +370,17 @@ export default function ReservationsPage() {
                                         placeholder="06 12 34 56 78"
                                         className="mt-1"
                                         style={{
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            background: 'rgba(0, 255, 145, 0.05)',
+                                            border: '1px solid rgba(0, 255, 145, 0.1)',
                                             color: '#ffffff'
                                         }}
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <Label style={{ color: '#e4e4e7' }}>Date *</Label>
+                                    <Label style={{ color: '#c3c3d4' }}>Date *</Label>
                                     <Input
                                         type="date"
                                         value={newReservation.date}
@@ -362,14 +388,14 @@ export default function ReservationsPage() {
                                         required
                                         className="mt-1"
                                         style={{
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            background: 'rgba(0, 255, 145, 0.05)',
+                                            border: '1px solid rgba(0, 255, 145, 0.1)',
                                             color: '#ffffff'
                                         }}
                                     />
                                 </div>
                                 <div>
-                                    <Label style={{ color: '#e4e4e7' }}>Heure *</Label>
+                                    <Label style={{ color: '#c3c3d4' }}>Heure *</Label>
                                     <Input
                                         type="time"
                                         value={newReservation.time}
@@ -377,8 +403,8 @@ export default function ReservationsPage() {
                                         required
                                         className="mt-1"
                                         style={{
-                                            background: 'rgba(255, 255, 255, 0.05)',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            background: 'rgba(0, 255, 145, 0.05)',
+                                            border: '1px solid rgba(0, 255, 145, 0.1)',
                                             color: '#ffffff'
                                         }}
                                     />
@@ -386,15 +412,15 @@ export default function ReservationsPage() {
                             </div>
 
                             <div>
-                                <Label style={{ color: '#e4e4e7' }}>Message / Notes</Label>
+                                <Label style={{ color: '#c3c3d4' }}>Message / Notes</Label>
                                 <Input
                                     value={newReservation.message}
                                     onChange={(e) => setNewReservation(prev => ({ ...prev, message: e.target.value }))}
                                     placeholder="Notes pour cette réservation..."
                                     className="mt-1"
                                     style={{
-                                        background: 'rgba(255, 255, 255, 0.05)',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0, 255, 145, 0.05)',
+                                        border: '1px solid rgba(0, 255, 145, 0.1)',
                                         color: '#ffffff'
                                     }}
                                 />
@@ -403,13 +429,13 @@ export default function ReservationsPage() {
                             <div className="flex gap-3 pt-4">
                                 <Button
                                     type="button"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => { setShowModal(false); setCreateError(null); }}
                                     className="flex-1"
                                     variant="outline"
                                     style={{
                                         background: 'transparent',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                                        color: '#a1a1aa'
+                                        border: '1px solid rgba(0, 255, 145, 0.15)',
+                                        color: '#c3c3d4'
                                     }}
                                 >
                                     Annuler
@@ -419,8 +445,8 @@ export default function ReservationsPage() {
                                     disabled={creating}
                                     className="flex-1 font-semibold"
                                     style={{
-                                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                        color: '#ffffff'
+                                        background: '#FFC745',
+                                        color: '#001C1C'
                                     }}
                                 >
                                     {creating ? "Création..." : "Créer la réservation"}
@@ -432,72 +458,77 @@ export default function ReservationsPage() {
             )}
 
             {(loading || profileLoading) ? (
-                <div
-                    className="rounded-xl p-8 text-center"
-                    style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
-                    }}
-                >
-                    <div
-                        className="animate-spin w-8 h-8 border-2 rounded-full mx-auto"
-                        style={{
-                            borderColor: '#8b5cf6',
-                            borderTopColor: 'transparent'
-                        }}
-                    />
-                    <p className="mt-4" style={{ color: '#a1a1aa' }}>Chargement des réservations...</p>
+                <div className="flex flex-col gap-3">
+                    {[...Array(4)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="rounded-xl p-5"
+                            style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-40" />
+                                    <Skeleton className="h-3 w-28" />
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-6 w-28 rounded-full" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : reservations.length === 0 ? (
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                        background: '#002928',
+                        border: '1px solid rgba(0, 255, 145, 0.1)'
                     }}
                 >
                     <div
                         className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                        style={{ background: 'rgba(255, 255, 255, 0.05)' }}
+                        style={{ background: 'rgba(255, 199, 69, 0.1)' }}
                     >
-                        <svg className="w-8 h-8" style={{ color: '#71717a' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8" style={{ color: '#FFC745' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    <p style={{ color: '#a1a1aa' }}>Aucune réservation planifiée</p>
+                    <p style={{ color: '#c3c3d4' }}>Aucune réservation planifiée</p>
                 </div>
             ) : (
                 <div className="flex flex-col gap-6">
-                    {sortedDates.map((dateKey) => (
+                    {paginatedDates.map((dateKey) => (
                         <div key={dateKey} className="flex flex-col gap-3">
                             {/* Date Header */}
                             <div className="flex items-center gap-3">
                                 <div
                                     className="flex items-center gap-2 px-4 py-2 rounded-lg"
                                     style={{
-                                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15))',
-                                        border: '1px solid rgba(139, 92, 246, 0.3)'
+                                        background: 'rgba(255, 199, 69, 0.1)',
+                                        border: '1px solid rgba(255, 199, 69, 0.25)'
                                     }}
                                 >
-                                    <svg className="w-4 h-4" style={{ color: '#a78bfa' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4" style={{ color: '#FFC745' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     <span
                                         className="font-semibold capitalize"
-                                        style={{ color: '#c4b5fd' }}
+                                        style={{ color: '#FFC745' }}
                                     >
                                         {formatDateHeader(groupedReservations[dateKey][0].date!)}
                                     </span>
                                 </div>
                                 <div
                                     className="flex-1 h-px"
-                                    style={{ background: 'rgba(139, 92, 246, 0.2)' }}
+                                    style={{ background: 'rgba(255, 199, 69, 0.15)' }}
                                 />
                                 <span
                                     className="text-sm px-2 py-1 rounded"
                                     style={{
-                                        color: '#a1a1aa',
-                                        background: 'rgba(255, 255, 255, 0.05)'
+                                        color: '#c3c3d4',
+                                        background: 'rgba(0, 255, 145, 0.05)'
                                     }}
                                 >
                                     {groupedReservations[dateKey].length} rdv
@@ -506,32 +537,24 @@ export default function ReservationsPage() {
 
                             {/* Reservations for this date */}
                             <div className="grid gap-3 pl-2">
-                                {groupedReservations[dateKey].map((reservation) => (
+                                {paginatedGrouped[dateKey].map((reservation) => (
                                     <Link
                                         key={reservation.id}
                                         href={`/reservations/${reservation.id}`}
                                     >
                                         <div
-                                            className="rounded-xl p-5 transition-all duration-300 cursor-pointer"
+                                            className="card-hover rounded-xl p-5 cursor-pointer"
                                             style={{
-                                                background: 'rgba(18, 18, 26, 0.7)',
-                                                border: '1px solid rgba(255, 255, 255, 0.08)'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
-                                                e.currentTarget.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.1)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                                                e.currentTarget.style.boxShadow = 'none';
+                                                background: '#002928',
+                                                border: '1px solid rgba(0, 255, 145, 0.1)'
                                             }}
                                         >
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-2">
                                                         <div
-                                                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                                                            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899)' }}
+                                                            className="w-10 h-10 rounded-full flex items-center justify-center font-semibold"
+                                                            style={{ background: '#FFC745', color: '#001C1C' }}
                                                         >
                                                             {reservation.customer_name?.charAt(0).toUpperCase() || "?"}
                                                         </div>
@@ -539,7 +562,7 @@ export default function ReservationsPage() {
                                                             <h3 className="font-semibold" style={{ color: '#ffffff' }}>
                                                                 {reservation.customer_name || "Client inconnu"}
                                                             </h3>
-                                                            <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                                                 {reservation.customer_mail || "Pas d'email"}
                                                             </p>
                                                         </div>
@@ -549,8 +572,8 @@ export default function ReservationsPage() {
                                                             <span
                                                                 className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full font-medium"
                                                                 style={{
-                                                                    background: 'rgba(139, 92, 246, 0.15)',
-                                                                    color: '#c4b5fd'
+                                                                    background: 'rgba(255, 199, 69, 0.12)',
+                                                                    color: '#FFC745'
                                                                 }}
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -563,8 +586,8 @@ export default function ReservationsPage() {
                                                             <span
                                                                 className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full"
                                                                 style={{
-                                                                    background: 'rgba(99, 102, 241, 0.1)',
-                                                                    color: '#818cf8'
+                                                                    background: 'rgba(0, 255, 145, 0.08)',
+                                                                    color: '#c3c3d4'
                                                                 }}
                                                             >
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,23 +596,9 @@ export default function ReservationsPage() {
                                                                 {reservation.customer_phone}
                                                             </span>
                                                         )}
-                                                        {reservation.service_id && (
-                                                            <span
-                                                                className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full"
-                                                                style={{
-                                                                    background: 'rgba(236, 72, 153, 0.1)',
-                                                                    color: '#f472b6'
-                                                                }}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                                                </svg>
-                                                                Service
-                                                            </span>
-                                                        )}
                                                     </div>
                                                     {reservation.message && (
-                                                        <p className="text-sm mt-3 italic" style={{ color: '#71717a' }}>
+                                                        <p className="text-sm mt-3 italic" style={{ color: '#a1a1aa' }}>
                                                             &quot;{reservation.message}&quot;
                                                         </p>
                                                     )}
@@ -598,13 +607,13 @@ export default function ReservationsPage() {
                                                     <span
                                                         className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium"
                                                         style={{
-                                                            background: 'rgba(99, 102, 241, 0.1)',
-                                                            color: '#818cf8'
+                                                            background: 'rgba(255, 199, 69, 0.1)',
+                                                            color: '#FFC745'
                                                         }}
                                                     >
                                                         <div
                                                             className="w-1.5 h-1.5 rounded-full"
-                                                            style={{ background: '#6366f1' }}
+                                                            style={{ background: '#FFC745' }}
                                                         />
                                                         Planifié
                                                     </span>
@@ -616,10 +625,40 @@ export default function ReservationsPage() {
                             </div>
                         </div>
                     ))}
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2">
+                            <span className="text-sm" style={{ color: '#a1a1aa' }}>
+                                Page {page + 1} sur {totalPages} · {filteredReservations.length} résultat{filteredReservations.length > 1 ? "s" : ""}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(p => p - 1)}
+                                    disabled={page === 0}
+                                    className="flex items-center gap-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Préc.
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={page >= totalPages - 1}
+                                    className="flex items-center gap-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                                >
+                                    Suiv.
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 }
-
-

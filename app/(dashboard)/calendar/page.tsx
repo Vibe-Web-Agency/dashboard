@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X, Calendar, Mail, Phone, Clock } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -40,7 +41,7 @@ export default function CalendarPage() {
         const { data, error } = await supabase
             .from("reservations")
             .select("id, customer_name, date, customer_phone, customer_mail")
-            .eq("user_id", profile.id) // Filtrer par utilisateur
+            .eq("user_id", profile.id)
             .order("date", { ascending: true });
 
         if (error) {
@@ -62,8 +63,6 @@ export default function CalendarPage() {
         return { daysInMonth, startingDayOfWeek, year, month };
     };
 
-    // Fonction helper pour obtenir la date locale en format YYYY-MM-DD
-    // Évite le bug de timezone causé par toISOString() qui convertit en UTC
     const getLocalDateString = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -108,16 +107,11 @@ export default function CalendarPage() {
     const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
     const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-    // Create calendar grid
     const calendarDays: (Date | null)[] = [];
-
-    // Add empty cells for days before month starts (Sunday = 0, Monday = 1, etc.)
-    const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1; // Convert to Monday-start
+    const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
     for (let i = 0; i < adjustedStartDay; i++) {
         calendarDays.push(null);
     }
-
-    // Add all days of the month
     for (let day = 1; day <= daysInMonth; day++) {
         calendarDays.push(new Date(year, month, day));
     }
@@ -127,22 +121,17 @@ export default function CalendarPage() {
     today.setHours(0, 0, 0, 0);
 
     return (
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1
-                        className="text-3xl font-bold"
-                        style={{
-                            background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text'
-                        }}
+                        className="text-2xl sm:text-3xl font-bold"
+                        style={{ color: '#FFC745' }}
                     >
                         Calendrier
                     </h1>
-                    <p className="mt-1" style={{ color: '#a1a1aa' }}>
+                    <p className="mt-1" style={{ color: '#c3c3d4' }}>
                         Vue mensuelle de vos réservations
                     </p>
                 </div>
@@ -152,8 +141,8 @@ export default function CalendarPage() {
             <div
                 className="flex items-center justify-between p-4 rounded-xl"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
                 <Button
@@ -161,7 +150,7 @@ export default function CalendarPage() {
                     size="icon"
                     onClick={previousMonth}
                     className="rounded-lg"
-                    style={{ color: '#a1a1aa' }}
+                    style={{ color: '#c3c3d4' }}
                 >
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
@@ -179,12 +168,12 @@ export default function CalendarPage() {
                         onClick={goToToday}
                         className="text-xs"
                         style={{
-                            background: 'rgba(99, 102, 241, 0.1)',
-                            border: '1px solid rgba(99, 102, 241, 0.3)',
-                            color: '#818cf8'
+                            background: 'rgba(255, 199, 69, 0.1)',
+                            border: '1px solid rgba(255, 199, 69, 0.3)',
+                            color: '#FFC745'
                         }}
                     >
-                        Aujourd'hui
+                        Aujourd&apos;hui
                     </Button>
                 </div>
 
@@ -193,7 +182,7 @@ export default function CalendarPage() {
                     size="icon"
                     onClick={nextMonth}
                     className="rounded-lg"
-                    style={{ color: '#a1a1aa' }}
+                    style={{ color: '#c3c3d4' }}
                 >
                     <ChevronRight className="h-5 w-5" />
                 </Button>
@@ -202,27 +191,26 @@ export default function CalendarPage() {
             {/* Calendar Grid */}
             {(loading || profileLoading) ? (
                 <div
-                    className="rounded-xl p-8 text-center"
-                    style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
-                    }}
+                    className="rounded-xl p-4"
+                    style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
                 >
-                    <div
-                        className="animate-spin w-8 h-8 border-2 rounded-full mx-auto"
-                        style={{
-                            borderColor: '#8b5cf6',
-                            borderTopColor: 'transparent'
-                        }}
-                    />
-                    <p className="mt-4" style={{ color: '#a1a1aa' }}>Chargement du calendrier...</p>
+                    <div className="grid grid-cols-7 gap-2 mb-2">
+                        {[...Array(7)].map((_, i) => (
+                            <Skeleton key={i} className="h-8 rounded-md" />
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                        {[...Array(35)].map((_, i) => (
+                            <Skeleton key={i} className="aspect-square rounded-lg" />
+                        ))}
+                    </div>
                 </div>
             ) : (
                 <div
                     className="rounded-xl p-4"
                     style={{
-                        background: 'rgba(18, 18, 26, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                        background: '#002928',
+                        border: '1px solid rgba(0, 255, 145, 0.1)'
                     }}
                 >
                     {/* Week days header */}
@@ -231,7 +219,7 @@ export default function CalendarPage() {
                             <div
                                 key={day}
                                 className="text-center p-2 text-sm font-semibold"
-                                style={{ color: '#8b5cf6' }}
+                                style={{ color: '#FFC745' }}
                             >
                                 {day}
                             </div>
@@ -246,7 +234,7 @@ export default function CalendarPage() {
                                     <div
                                         key={`empty-${index}`}
                                         className="aspect-square rounded-lg"
-                                        style={{ background: 'rgba(255, 255, 255, 0.02)' }}
+                                        style={{ background: 'rgba(0, 255, 145, 0.02)' }}
                                     />
                                 );
                             }
@@ -262,29 +250,29 @@ export default function CalendarPage() {
                                     onClick={() => handleDayClick(date)}
                                     style={{
                                         background: isToday
-                                            ? 'rgba(99, 102, 241, 0.15)'
+                                            ? 'rgba(255, 199, 69, 0.12)'
                                             : isPast
-                                                ? 'rgba(255, 255, 255, 0.02)'
-                                                : 'rgba(255, 255, 255, 0.05)',
+                                                ? 'rgba(0, 255, 145, 0.02)'
+                                                : 'rgba(0, 255, 145, 0.05)',
                                         border: isToday
-                                            ? '2px solid rgba(99, 102, 241, 0.5)'
-                                            : '1px solid rgba(255, 255, 255, 0.08)',
+                                            ? '2px solid rgba(255, 199, 69, 0.5)'
+                                            : '1px solid rgba(0, 255, 145, 0.08)',
                                         opacity: isPast ? 0.5 : 1
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
-                                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                                        e.currentTarget.style.background = 'rgba(255, 199, 69, 0.12)';
+                                        e.currentTarget.style.borderColor = 'rgba(255, 199, 69, 0.4)';
                                         e.currentTarget.style.transform = 'scale(1.02)';
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.background = isToday
-                                            ? 'rgba(99, 102, 241, 0.15)'
+                                            ? 'rgba(255, 199, 69, 0.12)'
                                             : isPast
-                                                ? 'rgba(255, 255, 255, 0.02)'
-                                                : 'rgba(255, 255, 255, 0.05)';
+                                                ? 'rgba(0, 255, 145, 0.02)'
+                                                : 'rgba(0, 255, 145, 0.05)';
                                         e.currentTarget.style.borderColor = isToday
-                                            ? 'rgba(99, 102, 241, 0.5)'
-                                            : 'rgba(255, 255, 255, 0.08)';
+                                            ? 'rgba(255, 199, 69, 0.5)'
+                                            : 'rgba(0, 255, 145, 0.08)';
                                         e.currentTarget.style.transform = 'scale(1)';
                                     }}
                                 >
@@ -292,7 +280,7 @@ export default function CalendarPage() {
                                         <div
                                             className="text-sm font-medium"
                                             style={{
-                                                color: isToday ? '#818cf8' : '#ffffff'
+                                                color: isToday ? '#FFC745' : '#ffffff'
                                             }}
                                         >
                                             {date.getDate()}
@@ -302,9 +290,9 @@ export default function CalendarPage() {
                                             <div
                                                 className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                                                 style={{
-                                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                                    color: '#ffffff',
-                                                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+                                                    background: '#FFC745',
+                                                    color: '#001C1C',
+                                                    boxShadow: '0 2px 8px rgba(255, 199, 69, 0.3)'
                                                 }}
                                             >
                                                 {dayReservations.length}
@@ -317,10 +305,10 @@ export default function CalendarPage() {
                                             {dayReservations.slice(0, 2).map((res) => (
                                                 <div
                                                     key={res.id}
-                                                    className="text-xs p-1 rounded truncate"
+                                                    className="text-xs p-1 rounded truncate hidden sm:block"
                                                     style={{
-                                                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))',
-                                                        color: '#c4b5fd'
+                                                        background: 'rgba(255, 199, 69, 0.15)',
+                                                        color: '#FFC745'
                                                     }}
                                                     title={`${res.customer_name} - ${res.customer_mail || res.customer_phone || ''}`}
                                                 >
@@ -329,8 +317,8 @@ export default function CalendarPage() {
                                             ))}
                                             {dayReservations.length > 2 && (
                                                 <div
-                                                    className="text-xs p-1 text-center font-medium"
-                                                    style={{ color: '#a78bfa' }}
+                                                    className="text-xs p-1 text-center font-medium hidden sm:block"
+                                                    style={{ color: '#FFC745' }}
                                                 >
                                                     +{dayReservations.length - 2}
                                                 </div>
@@ -346,43 +334,43 @@ export default function CalendarPage() {
 
             {/* Legend */}
             <div
-                className="flex items-center gap-6 p-4 rounded-xl"
+                className="flex items-center flex-wrap gap-4 p-4 rounded-xl"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
                 <div className="flex items-center gap-2">
                     <div
                         className="w-4 h-4 rounded"
                         style={{
-                            background: 'rgba(99, 102, 241, 0.15)',
-                            border: '2px solid rgba(99, 102, 241, 0.5)'
+                            background: 'rgba(255, 199, 69, 0.12)',
+                            border: '2px solid rgba(255, 199, 69, 0.5)'
                         }}
                     />
-                    <span className="text-sm" style={{ color: '#a1a1aa' }}>Aujourd'hui</span>
+                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Aujourd&apos;hui</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div
                         className="w-4 h-4 rounded"
                         style={{
-                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3))'
+                            background: 'rgba(255, 199, 69, 0.15)'
                         }}
                     />
-                    <span className="text-sm" style={{ color: '#a1a1aa' }}>Réservation</span>
+                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Réservation</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div
                         className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                         style={{
-                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                            color: '#ffffff',
-                            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+                            background: '#FFC745',
+                            color: '#001C1C',
+                            boxShadow: '0 2px 8px rgba(255, 199, 69, 0.3)'
                         }}
                     >
                         3
                     </div>
-                    <span className="text-sm" style={{ color: '#a1a1aa' }}>Nombre de réservations</span>
+                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Nombre de réservations</span>
                 </div>
             </div>
 
@@ -396,9 +384,9 @@ export default function CalendarPage() {
                     <div
                         className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.1)'
+                            background: '#002928',
+                            border: '1px solid rgba(255, 199, 69, 0.3)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 199, 69, 0.1)'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -408,11 +396,11 @@ export default function CalendarPage() {
                                 <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{
-                                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))',
-                                        border: '1px solid rgba(139, 92, 246, 0.3)'
+                                        background: 'rgba(255, 199, 69, 0.15)',
+                                        border: '1px solid rgba(255, 199, 69, 0.3)'
                                     }}
                                 >
-                                    <Calendar className="w-5 h-5" style={{ color: '#a78bfa' }} />
+                                    <Calendar className="w-5 h-5" style={{ color: '#FFC745' }} />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
@@ -423,7 +411,7 @@ export default function CalendarPage() {
                                             year: 'numeric'
                                         })}
                                     </h3>
-                                    <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                    <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                         {selectedDateReservations.length} réservation{selectedDateReservations.length !== 1 ? 's' : ''}
                                     </p>
                                 </div>
@@ -433,7 +421,7 @@ export default function CalendarPage() {
                                 size="icon"
                                 onClick={closeModal}
                                 className="rounded-full"
-                                style={{ color: '#a1a1aa' }}
+                                style={{ color: '#c3c3d4' }}
                             >
                                 <X className="w-5 h-5" />
                             </Button>
@@ -444,12 +432,12 @@ export default function CalendarPage() {
                             <div
                                 className="text-center py-12 rounded-xl"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.02)',
-                                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                                    background: 'rgba(0, 255, 145, 0.03)',
+                                    border: '1px solid rgba(0, 255, 145, 0.08)'
                                 }}
                             >
-                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#4b5563' }} />
-                                <p className="text-sm" style={{ color: '#71717a' }}>
+                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#14524F' }} />
+                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                     Aucune réservation pour ce jour
                                 </p>
                             </div>
@@ -459,20 +447,10 @@ export default function CalendarPage() {
                                     <Link
                                         key={res.id}
                                         href={`/reservations/${res.id}`}
-                                        className="block rounded-xl p-4 transition-all duration-200"
+                                        className="card-hover block rounded-xl p-4"
                                         style={{
-                                            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))',
-                                            border: '1px solid rgba(139, 92, 246, 0.2)'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))';
-                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-                                            e.currentTarget.style.transform = 'translateX(4px)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1))';
-                                            e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.2)';
-                                            e.currentTarget.style.transform = 'translateX(0)';
+                                            background: 'rgba(255, 199, 69, 0.05)',
+                                            border: '1px solid rgba(255, 199, 69, 0.15)'
                                         }}
                                     >
                                         <div className="flex items-start justify-between">
@@ -482,20 +460,20 @@ export default function CalendarPage() {
                                                 </h4>
                                                 <div className="space-y-1">
                                                     {res.customer_mail && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
-                                                            <Mail className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
                                                             {res.customer_mail}
                                                         </div>
                                                     )}
                                                     {res.customer_phone && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
-                                                            <Phone className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
                                                             {res.customer_phone}
                                                         </div>
                                                     )}
                                                     {res.date && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#a1a1aa' }}>
-                                                            <Clock className="w-4 h-4" style={{ color: '#8b5cf6' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Clock className="w-4 h-4" style={{ color: '#FFC745' }} />
                                                             {new Date(res.date).toLocaleTimeString('fr-FR', {
                                                                 hour: '2-digit',
                                                                 minute: '2-digit'
@@ -504,7 +482,7 @@ export default function CalendarPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: '#6366f1' }} />
+                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: '#FFC745' }} />
                                         </div>
                                     </Link>
                                 ))}

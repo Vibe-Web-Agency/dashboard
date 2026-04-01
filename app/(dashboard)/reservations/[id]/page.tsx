@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Reservation {
     id: string;
@@ -27,6 +28,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     const [reservationId, setReservationId] = useState<string>("");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
         const getParams = async () => {
@@ -58,8 +60,6 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         setLoading(false);
     };
 
-
-
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString("fr-FR", {
@@ -74,39 +74,46 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
 
     const deleteReservation = async () => {
         setDeleting(true);
-        console.log("Tentative de suppression de la réservation:", reservationId);
-
-        const { error, status, statusText } = await supabase
+        const { error } = await supabase
             .from("reservations")
             .delete()
             .eq("id", reservationId);
 
-        console.log("Résultat suppression - Status:", status, statusText);
-
         if (error) {
             console.error("Erreur lors de la suppression:", error);
-            console.error("Message d'erreur:", error.message);
-            console.error("Code d'erreur:", error.code);
-            console.error("Détails:", error.details);
-            console.error("Hint:", error.hint);
-            alert(`Erreur lors de la suppression: ${error.message}\n\nCode: ${error.code}\n\nVeuillez vérifier les politiques RLS dans Supabase.`);
+            setDeleteError(error.message);
             setDeleting(false);
         } else {
-            console.log("Suppression réussie, redirection...");
             router.push("/reservations");
         }
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div
-                    className="animate-spin w-8 h-8 border-2 rounded-full"
-                    style={{
-                        borderColor: '#8b5cf6',
-                        borderTopColor: 'transparent'
-                    }}
-                />
+            <div className="flex flex-col gap-6 max-w-3xl mx-auto">
+                <Skeleton className="h-5 w-48" />
+                <div className="space-y-2">
+                    <Skeleton className="h-9 w-72" />
+                    <Skeleton className="h-4 w-48" />
+                </div>
+                <div className="rounded-xl p-6 space-y-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                    <div className="flex items-center gap-4 pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <Skeleton className="w-16 h-16 rounded-full shrink-0" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-6 w-40" />
+                            <Skeleton className="h-4 w-64" />
+                        </div>
+                    </div>
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                            <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-3 w-24" />
+                                <Skeleton className="h-5 w-48" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -114,21 +121,21 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     if (!reservation) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p style={{ color: '#a1a1aa' }}>Réservation non trouvée</p>
+                <p style={{ color: '#c3c3d4' }}>Réservation non trouvée</p>
                 <Link href="/reservations">
-                    <Button>Retour aux réservations</Button>
+                    <Button style={{ background: '#FFC745', color: '#001C1C' }}>Retour aux réservations</Button>
                 </Link>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-6 p-6 max-w-3xl mx-auto">
+        <div className="flex flex-col gap-6 max-w-3xl mx-auto">
             {/* Back Button */}
             <Link
                 href="/reservations"
                 className="flex items-center gap-2 w-fit transition-colors"
-                style={{ color: '#8b5cf6' }}
+                style={{ color: '#FFC745' }}
             >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm font-medium">Retour aux réservations</span>
@@ -137,17 +144,12 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
             {/* Header */}
             <div>
                 <h1
-                    className="text-3xl font-bold mb-2"
-                    style={{
-                        background: 'linear-gradient(135deg, #6366f1, #a855f7, #ec4899)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text'
-                    }}
+                    className="text-2xl sm:text-3xl font-bold mb-2"
+                    style={{ color: '#FFC745' }}
                 >
                     Détails de la réservation
                 </h1>
-                <p style={{ color: '#a1a1aa' }}>
+                <p style={{ color: '#c3c3d4' }}>
                     Informations complètes et gestion
                 </p>
             </div>
@@ -156,15 +158,15 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: 'rgba(18, 18, 26, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                    background: '#002928',
+                    border: '1px solid rgba(0, 255, 145, 0.1)'
                 }}
             >
                 {/* Customer Info */}
-                <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
                     <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-semibold"
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899)' }}
+                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold"
+                        style={{ background: '#FFC745', color: '#001C1C' }}
                     >
                         {reservation.customer_name?.charAt(0).toUpperCase() || "?"}
                     </div>
@@ -172,7 +174,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
                             {reservation.customer_name}
                         </h2>
-                        <p className="text-sm" style={{ color: '#71717a' }}>
+                        <p className="text-sm" style={{ color: '#a1a1aa' }}>
                             Réservation créée le {formatDate(reservation.created_at)}
                         </p>
                     </div>
@@ -184,12 +186,12 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(139, 92, 246, 0.15)' }}
+                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
                             >
-                                <Calendar className="w-5 h-5" style={{ color: '#a78bfa' }} />
+                                <Calendar className="w-5 h-5" style={{ color: '#FFC745' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#a1a1aa' }}>Date de réservation</p>
+                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Date de réservation</p>
                                 <p className="font-semibold" style={{ color: '#ffffff' }}>
                                     {formatDate(reservation.date)}
                                 </p>
@@ -201,12 +203,12 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(99, 102, 241, 0.15)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
                             >
-                                <Mail className="w-5 h-5" style={{ color: '#818cf8' }} />
+                                <Mail className="w-5 h-5" style={{ color: '#00ff91' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#a1a1aa' }}>Email</p>
+                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Email</p>
                                 <p className="font-semibold" style={{ color: '#ffffff' }}>
                                     {reservation.customer_mail}
                                 </p>
@@ -218,12 +220,12 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(99, 102, 241, 0.15)' }}
+                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
                             >
-                                <Phone className="w-5 h-5" style={{ color: '#818cf8' }} />
+                                <Phone className="w-5 h-5" style={{ color: '#00ff91' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#a1a1aa' }}>Téléphone</p>
+                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Téléphone</p>
                                 <p className="font-semibold" style={{ color: '#ffffff' }}>
                                     {reservation.customer_phone}
                                 </p>
@@ -235,12 +237,12 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(236, 72, 153, 0.15)' }}
+                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
                             >
-                                <MessageSquare className="w-5 h-5" style={{ color: '#f472b6' }} />
+                                <MessageSquare className="w-5 h-5" style={{ color: '#FFC745' }} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: '#a1a1aa' }}>Message</p>
+                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Message</p>
                                 <p className="italic" style={{ color: '#ffffff' }}>
                                     &quot;{reservation.message}&quot;
                                 </p>
@@ -248,7 +250,6 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                         </div>
                     )}
                 </div>
-
 
                 {/* Danger Zone */}
                 <div
@@ -286,7 +287,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                     <div
                         className="w-full max-w-md rounded-2xl p-6"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(24, 24, 36, 0.98), rgba(18, 18, 26, 0.98))',
+                            background: '#002928',
                             border: '1px solid rgba(239, 68, 68, 0.3)',
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.1)'
                         }}
@@ -303,25 +304,38 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                                 <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
                                     Confirmer la suppression
                                 </h3>
-                                <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
                                     Cette action est irréversible
                                 </p>
                             </div>
                         </div>
 
-                        <p className="mb-6" style={{ color: '#a1a1aa' }}>
+                        <p className="mb-4" style={{ color: '#c3c3d4' }}>
                             Êtes-vous sûr de vouloir supprimer la réservation de <strong style={{ color: '#ffffff' }}>{reservation.customer_name}</strong> ?
                             Cette action ne peut pas être annulée.
                         </p>
+
+                        {deleteError && (
+                            <div
+                                className="p-3 mb-4 rounded-lg text-sm"
+                                style={{
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: '#fca5a5'
+                                }}
+                            >
+                                {deleteError}
+                            </div>
+                        )}
 
                         <div className="flex gap-3">
                             <Button
                                 onClick={() => setShowDeleteModal(false)}
                                 className="flex-1"
                                 style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    color: '#a1a1aa',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                    background: 'rgba(0, 255, 145, 0.05)',
+                                    color: '#c3c3d4',
+                                    border: '1px solid rgba(0, 255, 145, 0.1)'
                                 }}
                             >
                                 Annuler

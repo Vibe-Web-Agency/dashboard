@@ -44,15 +44,14 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // 3. Créer le compte Supabase Auth SANS confirmation automatique
-        // L'utilisateur devra confirmer son email avant de pouvoir se connecter
+        // 3. Créer le compte Supabase Auth avec confirmation email requise
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: false, // Email doit être confirmé par l'utilisateur
+            email_confirm: true,
             user_metadata: {
                 business_name: user.business_name,
-                user_id: user.id // Stocké pour rattachement après confirmation
+                user_id: user.id
             }
         })
 
@@ -79,17 +78,6 @@ export async function POST(request: NextRequest) {
                 { error: 'Erreur lors de l\'activation du compte' },
                 { status: 500 }
             )
-        }
-
-        // 5. Envoyer l'email d'invitation/confirmation
-        // Utiliser inviteUserByEmail pour envoyer un email de confirmation
-        const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            redirectTo: `${request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
-        })
-
-        if (inviteError) {
-            console.error('Erreur envoi invitation:', inviteError)
-            // Continuer quand même, l'utilisateur a déjà un compte créé
         }
 
         return NextResponse.json({
