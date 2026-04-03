@@ -57,32 +57,39 @@ export default function AnalyticsPage() {
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
     const [period, setPeriod] = useState<Period>("6months");
 
     useEffect(() => {
         if (!profileLoading) {
-            if (profile?.id) fetchData();
+            if (profile?.business_id) fetchData();
             else setLoading(false);
         }
-    }, [profile?.id, profileLoading]);
+    }, [profile?.business_id, profileLoading]);
 
     const fetchData = async () => {
-        if (!profile?.id) return;
+        if (!profile?.business_id) return;
         setLoading(true);
+        setFetchError(false);
 
-        const [{ data: resData }, { data: quotesData }] = await Promise.all([
+        const [{ data: resData, error: e1 }, { data: quotesData, error: e2 }] = await Promise.all([
             supabase
                 .from("reservations")
                 .select("id, date, created_at")
-                .eq("user_id", profile.id),
+                .eq("business_id", profile.business_id),
             supabase
                 .from("quotes")
                 .select("id, status, created_at")
-                .eq("user_id", profile.id),
+                .eq("business_id", profile.business_id),
         ]);
 
-        setReservations((resData as Reservation[]) || []);
-        setQuotes((quotesData as Quote[]) || []);
+        if (e1 || e2) {
+            console.error("Erreur récupération analytics:", e1 || e2);
+            setFetchError(true);
+        } else {
+            setReservations((resData as Reservation[]) || []);
+            setQuotes((quotesData as Quote[]) || []);
+        }
         setLoading(false);
     };
 
@@ -270,6 +277,13 @@ export default function AnalyticsPage() {
                     ))}
                 </div>
             </div>
+
+            {fetchError && (
+                <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}>
+                    <span>Impossible de charger les données. Vérifiez votre connexion.</span>
+                    <button onClick={fetchData} className="shrink-0 font-medium underline" style={{ color: '#fca5a5' }}>Réessayer</button>
+                </div>
+            )}
 
             {/* Stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

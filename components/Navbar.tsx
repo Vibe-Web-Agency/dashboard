@@ -9,26 +9,62 @@ import {
     CalendarDays,
     FileText,
     BarChart3,
-    Clock,
     Settings,
     LogOut,
     Menu,
     X,
     User,
+    Scissors,
+    Users,
+    Globe,
+    Package,
+    UserSquare2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, type FeatureKey } from "@/lib/businessConfig";
 
-const navItems = [
-    { title: "Accueil", href: "/", icon: Home },
-    { title: "Calendrier", href: "/calendar", icon: Calendar },
-    { title: "Réservations", href: "/reservations", icon: CalendarDays },
-    { title: "Historique", href: "/history", icon: Clock },
-    { title: "Devis", href: "/quotes", icon: FileText },
-    { title: "Analytics", href: "/analytics", icon: BarChart3 },
-];
+function usePendingQuotesCount(businessId: string | null | undefined) {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        if (!businessId) return;
+
+        const fetch = async () => {
+            const { count: c } = await supabase
+                .from("quotes")
+                .select("*", { count: "exact", head: true })
+                .eq("business_id", businessId)
+                .eq("status", "pending");
+            setCount(c || 0);
+        };
+
+        fetch();
+
+        const channel = supabase
+            .channel(`navbar-quotes-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "quotes", filter: `business_id=eq.${businessId}` }, fetch)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [businessId]);
+
+    return count;
+}
+
+const CATALOG_ICONS = {
+    services: Scissors,
+    people: UserSquare2,
+    products: Package,
+};
+
+const CATALOG_HREFS = {
+    services: "/services",
+    people: "/people",
+    products: "/products",
+};
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -36,6 +72,26 @@ export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { profile: userProfile } = useUserProfile();
+
+    const catalog = userProfile?.business_type?.catalog ?? DEFAULT_CATALOG;
+    const catalogLabel = userProfile?.business_type?.catalog_label ?? DEFAULT_CATALOG_LABEL;
+    const features: FeatureKey[] = userProfile?.business_type?.features ?? ALL_FEATURES;
+
+    const ALL_NAV_ITEMS: { key: FeatureKey; title: string; href: string; icon: React.ElementType }[] = [
+        { key: "calendar", title: "Calendrier", href: "/calendar", icon: Calendar },
+        { key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
+        { key: "quotes", title: "Devis", href: "/quotes", icon: FileText },
+        { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
+        { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
+        { key: "team", title: "Équipe", href: "/team", icon: Users },
+        { key: "content", title: "Mon site", href: "/content", icon: Globe },
+    ];
+
+    const navItems = [
+        { title: "Accueil", href: "/", icon: Home },
+        ...ALL_NAV_ITEMS.filter(item => features.includes(item.key)),
+    ];
+    const pendingQuotes = usePendingQuotesCount(userProfile?.business_id);
 
     // Fermer le menu mobile lors d'un changement de route
     useEffect(() => {
@@ -121,6 +177,17 @@ export default function Navbar() {
                             >
                                 <Icon className="h-4 w-4" />
                                 {item.title}
+                                {item.href === "/quotes" && pendingQuotes > 0 && (
+                                    <span
+                                        className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{
+                                            background: isActive ? "#001C1C" : "#FFC745",
+                                            color: isActive ? "#FFC745" : "#001C1C",
+                                        }}
+                                    >
+                                        {pendingQuotes}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}
@@ -242,6 +309,17 @@ export default function Navbar() {
                             >
                                 <Icon className="h-5 w-5" />
                                 {item.title}
+                                {item.href === "/quotes" && pendingQuotes > 0 && (
+                                    <span
+                                        className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{
+                                            background: isActive ? "#001C1C" : "#FFC745",
+                                            color: isActive ? "#FFC745" : "#001C1C",
+                                        }}
+                                    >
+                                        {pendingQuotes}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}

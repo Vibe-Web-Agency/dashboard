@@ -68,23 +68,24 @@ export default function SettingsPage() {
 
     const handleSaveProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!profile?.id) return;
+        if (!profile?.id || !profile?.business_id) return;
 
         setSaving(true);
         setSaveSuccess(false);
         setSaveError(null);
 
-        const { error } = await supabase
-            .from("users")
-            .update({
-                business_name: formData.business_name || null,
-                business_type: formData.business_type || null,
-                email: formData.email,
-                phone: formData.phone || null,
-                address: formData.address || null
-            })
-            .eq("id", profile.id);
+        const [{ error: userError }, { error: bizError }] = await Promise.all([
+            supabase
+                .from("users")
+                .update({ email: formData.email, phone: formData.phone || null })
+                .eq("id", profile.id),
+            supabase
+                .from("businesses")
+                .update({ name: formData.business_name || null, address: formData.address || null })
+                .eq("id", profile.business_id),
+        ]);
 
+        const error = userError || bizError;
         if (error) {
             console.error("Erreur lors de la sauvegarde:", error);
             setSaveError(error.message);
@@ -357,17 +358,18 @@ export default function SettingsPage() {
                                     <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} />
                                     Type d&apos;activité
                                 </Label>
-                                <Input
-                                    value={formData.business_type}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, business_type: e.target.value }))}
-                                    placeholder="Coiffure, Restaurant, etc."
-                                    className="mt-1"
+                                <div
+                                    className="mt-1 px-3 py-2 rounded-md text-sm flex items-center gap-2"
                                     style={{
-                                        background: 'rgba(0, 255, 145, 0.05)',
-                                        border: '1px solid rgba(0, 255, 145, 0.1)',
-                                        color: '#ffffff'
+                                        background: 'rgba(0, 255, 145, 0.02)',
+                                        border: '1px solid rgba(0, 255, 145, 0.06)',
+                                        color: '#71717a'
                                     }}
-                                />
+                                >
+                                    <Lock className="w-3 h-3 shrink-0" />
+                                    <span>{formData.business_type || "Non renseigné"}</span>
+                                    <span className="ml-auto text-xs" style={{ color: '#52525b' }}>Non modifiable</span>
+                                </div>
                             </div>
                         </div>
 

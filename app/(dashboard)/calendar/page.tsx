@@ -26,22 +26,22 @@ export default function CalendarPage() {
 
     useEffect(() => {
         if (!profileLoading) {
-            if (profile?.id) {
+            if (profile?.business_id) {
                 fetchReservations();
             } else {
                 setLoading(false);
             }
         }
-    }, [profile?.id, profileLoading]);
+    }, [profile?.business_id, profileLoading]);
 
     const fetchReservations = async () => {
-        if (!profile?.id) return;
+        if (!profile?.business_id) return;
 
         setLoading(true);
         const { data, error } = await supabase
             .from("reservations")
             .select("id, customer_name, date, customer_phone, customer_mail")
-            .eq("user_id", profile.id)
+            .eq("business_id", profile.business_id)
             .order("date", { ascending: true });
 
         if (error) {

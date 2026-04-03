@@ -2,10 +2,11 @@
 
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { ALL_FEATURES } from "@/lib/businessConfig";
 import { useEffect, useState } from "react";
 import { Calendar, FileText, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
 import Link from "next/link";
 
 interface Reservation {
@@ -29,42 +30,57 @@ type TimeRange = '7days' | '1month' | '2months';
 export default function HomePage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
+    const [todayReservations, setTodayReservations] = useState<Reservation[]>([]);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
     const [timeRange, setTimeRange] = useState<TimeRange>('7days');
+
+    const features = profile?.business_type?.features ?? ALL_FEATURES;
+    const hasReservations = features.includes("reservations");
+    const hasQuotes = features.includes("quotes");
 
     useEffect(() => {
         if (!profileLoading) {
-            if (profile?.id) {
+            if (profile?.business_id) {
                 fetchData();
             } else {
                 setLoading(false);
             }
         }
-    }, [profile?.id, profileLoading]);
+    }, [profile?.business_id, profileLoading]);
 
     const fetchData = async () => {
-        if (!profile?.id) return;
+        if (!profile?.business_id) return;
 
         setLoading(true);
+        setFetchError(false);
 
-        // Fetch all reservations for graph data - filtered by user_id
-        const { data: resData } = await supabase
-            .from("reservations")
-            .select("id, customer_name, date, customer_mail, created_at")
-            .eq("user_id", profile.id)
-            .order("date", { ascending: false });
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
 
-        // Fetch recent quotes - filtered by user_id
-        const { data: quotesData } = await supabase
-            .from("quotes")
-            .select("id, customer_name, customer_email, status, created_at")
-            .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
-            .limit(3);
+        const feats = profile?.business_type?.features ?? ALL_FEATURES;
+        const fetchRes = feats.includes("reservations");
+        const fetchQuotes = feats.includes("quotes");
 
-        setReservations((resData as unknown as Reservation[]) || []);
-        setQuotes((quotesData as unknown as Quote[]) || []);
+        const promises = await Promise.all([
+            fetchRes ? supabase.from("reservations").select("id, customer_name, date, customer_mail, created_at").eq("business_id", profile.business_id).order("date", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+            fetchRes ? supabase.from("reservations").select("id, customer_name, date, customer_mail, created_at").eq("business_id", profile.business_id).gte("date", todayStart.toISOString()).lte("date", todayEnd.toISOString()).order("date", { ascending: true }) : Promise.resolve({ data: [], error: null }),
+            fetchQuotes ? supabase.from("quotes").select("id, customer_name, customer_email, status, created_at").eq("business_id", profile.business_id).order("created_at", { ascending: false }).limit(3) : Promise.resolve({ data: [], error: null }),
+        ]);
+
+        const [{ data: resData, error: e1 }, { data: todayData, error: e2 }, { data: quotesData, error: e3 }] = promises;
+
+        if (e1 || e2 || e3) {
+            console.error("Erreur récupération données home:", e1 || e2 || e3);
+            setFetchError(true);
+        } else {
+            setReservations((resData as unknown as Reservation[]) || []);
+            setTodayReservations((todayData as unknown as Reservation[]) || []);
+            setQuotes((quotesData as unknown as Quote[]) || []);
+        }
         setLoading(false);
     };
 
@@ -140,12 +156,23 @@ export default function HomePage() {
                     Bienvenue sur le Dashboard
                 </h1>
                 <p style={{ color: '#c3c3d4' }}>
-                    Gérez vos réservations, devis et analytics depuis cette interface.
+                    {[
+                        hasReservations && "réservations",
+                        hasQuotes && "devis",
+                        features.includes("analytics") && "analytics",
+                    ].filter(Boolean).join(", ").replace(/,([^,]*)$/, " et$1") || "Gérez votre activité"} depuis cette interface.
                 </p>
             </div>
 
-            {/* Graph Section */}
-            <div
+            {fetchError && (
+                <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}>
+                    <span>Impossible de charger les données. Vérifiez votre connexion.</span>
+                    <button onClick={fetchData} className="shrink-0 font-medium underline" style={{ color: '#fca5a5' }}>Réessayer</button>
+                </div>
+            )}
+
+            {/* Graph Section — réservations uniquement */}
+            {hasReservations && <div
                 className="rounded-xl p-6"
                 style={{
                     background: '#002928',
@@ -242,12 +269,12 @@ export default function HomePage() {
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
-            </div>
+            </div>}
 
             {/* Recent Items Grid */}
             <div className="grid md:grid-cols-2 gap-6">
                 {/* Recent Reservations */}
-                <div
+                {hasReservations && <div
                     className="rounded-xl p-6"
                     style={{
                         background: '#002928',
@@ -263,7 +290,7 @@ export default function HomePage() {
                                 <Calendar style={{ color: '#FFC745' }} className="w-5 h-5" />
                             </div>
                             <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
-                                Réservations récentes
+                                Aujourd&apos;hui
                             </h2>
                         </div>
                         <Link
@@ -288,13 +315,13 @@ export default function HomePage() {
                                 </div>
                             ))}
                         </div>
-                    ) : reservations.length === 0 ? (
+                    ) : todayReservations.length === 0 ? (
                         <p className="text-center py-8" style={{ color: '#a1a1aa' }}>
-                            Aucune réservation récente
+                            Aucune réservation aujourd&apos;hui
                         </p>
                     ) : (
                         <div className="space-y-3">
-                            {reservations.slice(0, 3).map((res) => (
+                            {todayReservations.map((res) => (
                                 <Link
                                     key={res.id}
                                     href={`/reservations/${res.id}`}
@@ -337,10 +364,10 @@ export default function HomePage() {
                             ))}
                         </div>
                     )}
-                </div>
+                </div>}
 
                 {/* Recent Quotes */}
-                <div
+                {hasQuotes && <div
                     className="rounded-xl p-6"
                     style={{
                         background: '#002928',
@@ -444,7 +471,7 @@ export default function HomePage() {
                             })}
                         </div>
                     )}
-                </div>
+                </div>}
             </div>
         </div>
     );

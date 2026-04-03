@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Quote {
     id: string;
-    user_id: string | null;
+    business_id: string | null;
     customer_name: string;
     customer_email: string | null;
     customer_phone: string | null;
@@ -58,7 +58,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             .from("quotes")
             .select("*")
             .eq("id", quoteId)
-            .eq("user_id", profile.id)
+            .eq("business_id", profile.business_id)
             .single();
 
         if (error) {

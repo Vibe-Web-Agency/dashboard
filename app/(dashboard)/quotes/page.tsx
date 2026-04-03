@@ -5,13 +5,14 @@ import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Quote {
     id: string;
-    user_id: string | null;
+    business_id: string | null;
     customer_name: string;
     customer_email: string | null;
     customer_phone: string | null;
@@ -21,17 +22,20 @@ interface Quote {
 }
 
 export default function QuotesPage() {
+    const router = useRouter();
     const { profile, loading: profileLoading } = useUserProfile();
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(0);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
     const PAGE_SIZE = 20;
 
     useEffect(() => {
         if (profileLoading) return;
 
-        if (!profile?.id) {
+        if (!profile?.business_id) {
             setLoading(false);
             return;
         }
@@ -39,29 +43,31 @@ export default function QuotesPage() {
         fetchQuotes();
 
         const channel = supabase
-            .channel(`quotes-${profile.id}`)
+            .channel(`quotes-${profile.business_id}`)
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'quotes', filter: `user_id=eq.${profile.id}` },
+                { event: '*', schema: 'public', table: 'quotes', filter: `business_id=eq.${profile.business_id}` },
                 () => { fetchQuotes(); }
             )
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [profile?.id, profileLoading]);
+    }, [profile?.business_id, profileLoading]);
 
     const fetchQuotes = async () => {
-        if (!profile?.id) return;
+        if (!profile?.business_id) return;
 
         setLoading(true);
+        setFetchError(false);
         const { data, error } = await supabase
             .from("quotes")
             .select("*")
-            .eq("user_id", profile.id)
+            .eq("business_id", profile.business_id)
             .order("created_at", { ascending: false });
 
         if (error) {
             console.error("Erreur lors de la récupération des devis:", error);
+            setFetchError(true);
         } else {
             setQuotes((data as unknown as Quote[]) || []);
         }
@@ -134,6 +140,17 @@ export default function QuotesPage() {
                     </span>
                 );
         }
+    };
+
+    const updateStatus = async (e: React.MouseEvent, quoteId: string, status: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setUpdatingId(quoteId);
+        const { error } = await supabase.from("quotes").update({ status }).eq("id", quoteId);
+        if (!error) {
+            setQuotes(prev => prev.map(q => q.id === quoteId ? { ...q, status } : q));
+        }
+        setUpdatingId(null);
     };
 
     const handleSearch = (q: string) => { setSearchQuery(q); setPage(0); };
@@ -222,6 +239,13 @@ export default function QuotesPage() {
                 </div>
             )}
 
+            {fetchError && (
+                <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}>
+                    <span>Impossible de charger les devis. Vérifiez votre connexion.</span>
+                    <button onClick={fetchQuotes} className="shrink-0 font-medium underline" style={{ color: '#fca5a5' }}>Réessayer</button>
+                </div>
+            )}
+
             {(loading || profileLoading) ? (
                 <div className="grid gap-4">
                     {[...Array(5)].map((_, i) => (
@@ -268,75 +292,93 @@ export default function QuotesPage() {
             ) : (
                 <div className="grid gap-4">
                     {filteredQuotes.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((quote) => (
-                        <Link
+                        <div
                             key={quote.id}
-                            href={`/quotes/${quote.id}`}
+                            className="card-hover rounded-xl p-6 cursor-pointer"
+                            style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
+                            onClick={() => router.push(`/quotes/${quote.id}`)}
                         >
-                            <div
-                                className="card-hover rounded-xl p-6 cursor-pointer"
-                                style={{
-                                    background: '#002928',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)'
-                                }}
-                            >
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <div
-                                                className="w-10 h-10 rounded-full flex items-center justify-center font-semibold"
-                                                style={{ background: '#FFC745', color: '#001C1C' }}
-                                            >
-                                                {quote.customer_name?.charAt(0).toUpperCase() || "?"}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold" style={{ color: '#ffffff' }}>
-                                                    {quote.customer_name || "Client inconnu"}
-                                                </h3>
-                                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
-                                                    {quote.customer_email || "Pas d'email"}
-                                                </p>
-                                            </div>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div
+                                            className="w-10 h-10 rounded-full flex items-center justify-center font-semibold"
+                                            style={{ background: '#FFC745', color: '#001C1C' }}
+                                        >
+                                            {quote.customer_name?.charAt(0).toUpperCase() || "?"}
                                         </div>
-                                        <div className="flex flex-wrap gap-2 mt-3">
-                                            <span
-                                                className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full"
-                                                style={{
-                                                    background: 'rgba(255, 199, 69, 0.08)',
-                                                    color: '#FFC745'
-                                                }}
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                                {formatDate(quote.created_at)}
-                                            </span>
-                                            {quote.customer_phone && (
-                                                <span
-                                                    className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full"
-                                                    style={{
-                                                        background: 'rgba(0, 255, 145, 0.08)',
-                                                        color: '#c3c3d4'
-                                                    }}
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                                    </svg>
-                                                    {quote.customer_phone}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {quote.message && (
-                                            <p className="text-sm mt-3 italic" style={{ color: '#a1a1aa' }}>
-                                                &quot;{quote.message}&quot;
+                                        <div>
+                                            <h3 className="font-semibold" style={{ color: '#ffffff' }}>
+                                                {quote.customer_name || "Client inconnu"}
+                                            </h3>
+                                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                                {quote.customer_email || "Pas d'email"}
                                             </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'rgba(255, 199, 69, 0.08)', color: '#FFC745' }}>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            {formatDate(quote.created_at)}
+                                        </span>
+                                        {quote.customer_phone && (
+                                            <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                                {quote.customer_phone}
+                                            </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {getStatusBadge(quote.status)}
+                                    {quote.message && (
+                                        <p className="text-sm mt-3 italic" style={{ color: '#a1a1aa' }}>
+                                            &quot;{quote.message}&quot;
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex flex-col items-end gap-3">
+                                    {getStatusBadge(quote.status)}
+                                    {/* Boutons statut rapide */}
+                                    <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={(e) => updateStatus(e, quote.id, 'pending')}
+                                            disabled={updatingId === quote.id}
+                                            className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
+                                            style={quote.status === 'pending'
+                                                ? { background: '#FFC745', color: '#001C1C' }
+                                                : { background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }
+                                            }
+                                        >
+                                            Attente
+                                        </button>
+                                        <button
+                                            onClick={(e) => updateStatus(e, quote.id, 'approved')}
+                                            disabled={updatingId === quote.id}
+                                            className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
+                                            style={quote.status === 'approved'
+                                                ? { background: '#22c55e', color: '#ffffff' }
+                                                : { background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }
+                                            }
+                                        >
+                                            Approuver
+                                        </button>
+                                        <button
+                                            onClick={(e) => updateStatus(e, quote.id, 'rejected')}
+                                            disabled={updatingId === quote.id}
+                                            className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
+                                            style={quote.status === 'rejected'
+                                                ? { background: '#ef4444', color: '#ffffff' }
+                                                : { background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }
+                                            }
+                                        >
+                                            Refuser
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </Link>
+                        </div>
                     ))}
 
                     {Math.ceil(filteredQuotes.length / PAGE_SIZE) > 1 && (
