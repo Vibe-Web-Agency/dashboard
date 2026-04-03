@@ -68,11 +68,11 @@ export default function ContentPage() {
         if (!profile?.business_id) return;
         setSaving(section);
 
-        const payload = section === "hours"
-            ? { hours: hours as unknown as Record<string, unknown> }
-            : { address: contact.address || null, contact_email: contact.email || null, contact_phone: contact.phone || null, maps_url: contact.maps_url || null };
-
-        await supabase.from("businesses").update(payload).eq("id", profile.business_id);
+        if (section === "hours") {
+            await supabase.from("businesses").update({ hours: hours as any }).eq("id", profile.business_id);
+        } else {
+            await supabase.from("businesses").update({ address: contact.address || null, contact_email: contact.email || null, contact_phone: contact.phone || null, maps_url: contact.maps_url || null }).eq("id", profile.business_id);
+        }
 
         setSaving(null);
         setSaved(section);
