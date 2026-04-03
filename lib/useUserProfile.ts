@@ -72,7 +72,7 @@ export function useUserProfile() {
                     contact_email: bizData?.contact_email ?? null,
                     contact_phone: bizData?.contact_phone ?? null,
                     maps_url: bizData?.maps_url ?? null,
-                    hours: bizData?.hours ?? null,
+                    hours: (bizData?.hours ?? null) as Record<string, { open: boolean; from: string; to: string }> | null,
                 });
             } catch (err) {
                 console.error('❌ Erreur:', err);
