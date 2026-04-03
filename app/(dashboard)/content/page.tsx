@@ -69,7 +69,7 @@ export default function ContentPage() {
         setSaving(section);
 
         const payload = section === "hours"
-            ? { hours }
+            ? { hours: hours as unknown as Record<string, unknown> }
             : { address: contact.address || null, contact_email: contact.email || null, contact_phone: contact.phone || null, maps_url: contact.maps_url || null };
 
         await supabase.from("businesses").update(payload).eq("id", profile.business_id);
