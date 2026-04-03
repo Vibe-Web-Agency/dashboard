@@ -58,7 +58,7 @@ export default function SettingsPage() {
         if (profile) {
             setFormData({
                 business_name: profile.business_name || "",
-                business_type: profile.business_type || "",
+                business_type: profile.business_type?.label || "",
                 email: profile.email || "",
                 phone: profile.phone || "",
                 address: profile.address || ""
@@ -101,7 +101,7 @@ export default function SettingsPage() {
         if (profile) {
             setFormData({
                 business_name: profile.business_name || "",
-                business_type: profile.business_type || "",
+                business_type: profile.business_type?.label || "",
                 email: profile.email || "",
                 phone: profile.phone || "",
                 address: profile.address || ""
