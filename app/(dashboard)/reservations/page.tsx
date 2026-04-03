@@ -110,7 +110,7 @@ export default function ReservationsPage() {
         const { error } = await supabase
             .from("reservations")
             .insert({
-                user_id: profile.id,
+                business_id: profile.business_id,
                 customer_name: newReservation.customer_name,
                 customer_mail: newReservation.customer_mail || null,
                 customer_phone: newReservation.customer_phone || null,
