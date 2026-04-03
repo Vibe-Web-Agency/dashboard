@@ -58,7 +58,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             .from("quotes")
             .select("*")
             .eq("id", quoteId)
-            .eq("business_id", profile.business_id)
+            .eq("business_id", profile.business_id!)
             .single();
 
         if (error) {
