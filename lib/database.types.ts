@@ -285,6 +285,8 @@ export interface Database {
           name: string
           role: string | null
           bio: string | null
+          email: string | null
+          phone: string | null
           photo_url: string | null
           active: boolean
           display_order: number
@@ -296,6 +298,8 @@ export interface Database {
           name: string
           role?: string | null
           bio?: string | null
+          email?: string | null
+          phone?: string | null
           photo_url?: string | null
           active?: boolean
           display_order?: number
@@ -307,6 +311,8 @@ export interface Database {
           name?: string
           role?: string | null
           bio?: string | null
+          email?: string | null
+          phone?: string | null
           photo_url?: string | null
           active?: boolean
           display_order?: number
