@@ -332,11 +332,22 @@ export interface Database {
           id: string
           business_id: string
           name: string
+          first_name: string | null
+          last_name: string | null
           specialty: string | null
           description: string | null
           age: number | null
+          date_of_birth: string | null
+          gender: string | null
+          height: string | null
+          eye_color: string | null
+          hair_color: string | null
+          languages: string[]
+          skills: string[]
+          projects: string[]
           portfolio_url: string | null
           photo_url: string | null
+          photos: string[]
           active: boolean
           display_order: number
           created_at: string
@@ -345,11 +356,22 @@ export interface Database {
           id?: string
           business_id: string
           name: string
+          first_name?: string | null
+          last_name?: string | null
           specialty?: string | null
           description?: string | null
           age?: number | null
+          date_of_birth?: string | null
+          gender?: string | null
+          height?: string | null
+          eye_color?: string | null
+          hair_color?: string | null
+          languages?: string[]
+          skills?: string[]
+          projects?: string[]
           portfolio_url?: string | null
           photo_url?: string | null
+          photos?: string[]
           active?: boolean
           display_order?: number
           created_at?: string
@@ -358,11 +380,22 @@ export interface Database {
           id?: string
           business_id?: string
           name?: string
+          first_name?: string | null
+          last_name?: string | null
           specialty?: string | null
           description?: string | null
           age?: number | null
+          date_of_birth?: string | null
+          gender?: string | null
+          height?: string | null
+          eye_color?: string | null
+          hair_color?: string | null
+          languages?: string[]
+          skills?: string[]
+          projects?: string[]
           portfolio_url?: string | null
           photo_url?: string | null
+          photos?: string[]
           active?: boolean
           display_order?: number
           created_at?: string
@@ -372,6 +405,92 @@ export interface Database {
             foreignKeyName: "people_business_id_fkey"
             columns: ["business_id"]
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      projects: {
+        Row: {
+          id: string
+          business_id: string
+          title: string
+          type: string | null
+          year: number | null
+          description: string | null
+          photo_url: string | null
+          video_url: string | null
+          display_order: number
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          business_id: string
+          title: string
+          type?: string | null
+          year?: number | null
+          description?: string | null
+          photo_url?: string | null
+          video_url?: string | null
+          display_order?: number
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          business_id?: string
+          title?: string
+          type?: string | null
+          year?: number | null
+          description?: string | null
+          photo_url?: string | null
+          video_url?: string | null
+          display_order?: number
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_business_id_fkey"
+            columns: ["business_id"]
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      people_projects: {
+        Row: {
+          id: string
+          person_id: string
+          project_id: string
+          role: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          person_id: string
+          project_id: string
+          role?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          person_id?: string
+          project_id?: string
+          role?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_projects_person_id_fkey"
+            columns: ["person_id"]
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_projects_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           }
         ]

@@ -22,8 +22,28 @@ import {
     EyeOff,
     Briefcase,
     Pencil,
-    X
+    X,
+    Clock,
 } from "lucide-react";
+
+type DayKey = "lundi" | "mardi" | "mercredi" | "jeudi" | "vendredi" | "samedi" | "dimanche";
+interface DaySchedule { open: boolean; from: string; to: string; }
+type HoursContent = Record<DayKey, DaySchedule>;
+const DAYS: DayKey[] = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+const DEFAULT_HOURS: HoursContent = {
+    lundi:    { open: true,  from: "09:00", to: "19:00" },
+    mardi:    { open: true,  from: "09:00", to: "19:00" },
+    mercredi: { open: true,  from: "09:00", to: "19:00" },
+    jeudi:    { open: true,  from: "09:00", to: "19:00" },
+    vendredi: { open: true,  from: "09:00", to: "19:00" },
+    samedi:   { open: true,  from: "10:00", to: "18:00" },
+    dimanche: { open: false, from: "",      to: ""      },
+};
+const inputStyle: React.CSSProperties = {
+    background: "rgba(0,255,145,0.05)",
+    border: "1px solid rgba(0,255,145,0.1)",
+    color: "#ffffff",
+};
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -34,7 +54,10 @@ export default function SettingsPage() {
         business_type: "",
         email: "",
         phone: "",
-        address: ""
+        address: "",
+        contact_email: "",
+        contact_phone: "",
+        maps_url: "",
     });
     const [saving, setSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
@@ -54,14 +77,22 @@ export default function SettingsPage() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
 
+    const [hours, setHours] = useState<HoursContent>(DEFAULT_HOURS);
+    const [savingHours, setSavingHours] = useState(false);
+    const [savedHours, setSavedHours] = useState(false);
+
     useEffect(() => {
         if (profile) {
+            if ((profile as any).hours) setHours((profile as any).hours as HoursContent);
             setFormData({
                 business_name: profile.business_name || "",
                 business_type: profile.business_type?.label || "",
                 email: profile.email || "",
                 phone: profile.phone || "",
-                address: profile.address || ""
+                address: profile.address || "",
+                contact_email: (profile as any).contact_email || "",
+                contact_phone: (profile as any).contact_phone || "",
+                maps_url: (profile as any).maps_url || "",
             });
         }
     }, [profile]);
@@ -81,7 +112,13 @@ export default function SettingsPage() {
                 .eq("id", profile.id),
             supabase
                 .from("businesses")
-                .update({ name: formData.business_name || null, address: formData.address || null })
+                .update({
+                    name: formData.business_name || null,
+                    address: formData.address || null,
+                    contact_email: formData.contact_email || null,
+                    phone: formData.contact_phone || null,
+                    maps_url: formData.maps_url || null,
+                })
                 .eq("id", profile.business_id),
         ]);
 
@@ -104,7 +141,10 @@ export default function SettingsPage() {
                 business_type: profile.business_type?.label || "",
                 email: profile.email || "",
                 phone: profile.phone || "",
-                address: profile.address || ""
+                address: profile.address || "",
+                contact_email: (profile as any).contact_email || "",
+                contact_phone: (profile as any).contact_phone || "",
+                maps_url: (profile as any).maps_url || "",
             });
         }
         setIsEditing(false);
@@ -172,6 +212,15 @@ export default function SettingsPage() {
         setChangingPassword(false);
     };
 
+    const handleSaveHours = async () => {
+        if (!profile?.business_id) return;
+        setSavingHours(true);
+        await supabase.from("businesses").update({ hours: hours as any }).eq("id", profile.business_id);
+        setSavingHours(false);
+        setSavedHours(true);
+        setTimeout(() => setSavedHours(false), 2000);
+    };
+
     const handleLogout = async () => {
         setLoggingOut(true);
         await supabase.auth.signOut();
@@ -207,165 +256,104 @@ export default function SettingsPage() {
                 </p>
             </div>
 
-            {/* Profile Section */}
-            <div
-                className="rounded-xl p-6"
-                style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
-                }}
-            >
+            {/* Section Compte */}
+            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
+                        <User className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon compte</h2>
+                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Identifiants de connexion</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                        { icon: Mail, label: "Email", value: formData.email },
+                        { icon: Phone, label: "Téléphone", value: formData.phone },
+                    ].map(({ icon: Icon, label, value }) => (
+                        <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
+                            </div>
+                            <p className="font-medium" style={{ color: '#ffffff' }}>
+                                {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Section Entreprise */}
+            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
                 <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                        <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ background: 'rgba(255, 199, 69, 0.15)' }}
-                        >
-                            <User className="w-5 h-5" style={{ color: '#FFC745' }} />
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
+                            <Building2 className="w-5 h-5" style={{ color: '#FFC745' }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
-                                Informations du profil
-                            </h2>
+                            <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon entreprise</h2>
                             <p className="text-sm" style={{ color: '#c3c3d4' }}>
-                                {isEditing ? "Modifiez les informations de votre entreprise" : "Informations de votre entreprise"}
+                                {isEditing ? "Modifiez les informations de votre entreprise" : "Informations et coordonnées publiques"}
                             </p>
                         </div>
                     </div>
                     {!isEditing && (
-                        <Button
-                            onClick={() => setIsEditing(true)}
-                            className="flex items-center gap-2"
-                            style={{
-                                background: 'rgba(255, 199, 69, 0.15)',
-                                color: '#FFC745',
-                                border: '1px solid rgba(255, 199, 69, 0.3)'
-                            }}
-                        >
-                            <Pencil className="w-4 h-4" />
-                            Modifier mes informations
+                        <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2"
+                            style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745', border: '1px solid rgba(255, 199, 69, 0.3)' }}>
+                            <Pencil className="w-4 h-4" /> Modifier
                         </Button>
                     )}
                 </div>
 
-                {/* Read-only mode */}
                 {!isEditing ? (
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div
-                                className="p-4 rounded-lg"
-                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Nom de l&apos;entreprise</span>
+                            {[
+                                { icon: Building2, label: "Nom de l'entreprise", value: formData.business_name },
+                                { icon: Briefcase, label: "Type d'activité", value: formData.business_type },
+                                { icon: MapPin, label: "Adresse", value: formData.address },
+                                { icon: Mail, label: "Email de contact", value: formData.contact_email },
+                                { icon: Phone, label: "Téléphone de contact", value: formData.contact_phone },
+                                { icon: MapPin, label: "Lien Google Maps", value: formData.maps_url },
+                            ].map(({ icon: Icon, label, value }) => (
+                                <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                        <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
+                                    </div>
+                                    <p className="font-medium" style={{ color: '#ffffff' }}>
+                                        {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
+                                    </p>
                                 </div>
-                                <p className="font-medium" style={{ color: '#ffffff' }}>
-                                    {formData.business_name || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                                </p>
-                            </div>
-                            <div
-                                className="p-4 rounded-lg"
-                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Type d&apos;activité</span>
-                                </div>
-                                <p className="font-medium" style={{ color: '#ffffff' }}>
-                                    {formData.business_type || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                                </p>
-                            </div>
+                            ))}
                         </div>
-
-                        <div
-                            className="p-4 rounded-lg"
-                            style={{ background: 'rgba(0, 255, 145, 0.03)' }}
-                        >
-                            <div className="flex items-center gap-2 mb-1">
-                                <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                <span className="text-sm" style={{ color: '#c3c3d4' }}>Email</span>
-                            </div>
-                            <p className="font-medium" style={{ color: '#ffffff' }}>
-                                {formData.email || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div
-                                className="p-4 rounded-lg"
-                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Téléphone</span>
-                                </div>
-                                <p className="font-medium" style={{ color: '#ffffff' }}>
-                                    {formData.phone || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                                </p>
-                            </div>
-                            <div
-                                className="p-4 rounded-lg"
-                                style={{ background: 'rgba(0, 255, 145, 0.03)' }}
-                            >
-                                <div className="flex items-center gap-2 mb-1">
-                                    <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Adresse</span>
-                                </div>
-                                <p className="font-medium" style={{ color: '#ffffff' }}>
-                                    {formData.address || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                                </p>
-                            </div>
-                        </div>
-
                         {saveSuccess && (
-                            <div
-                                className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{
-                                    background: 'rgba(34, 197, 94, 0.1)',
-                                    color: '#22c55e',
-                                    border: '1px solid rgba(34, 197, 94, 0.2)'
-                                }}
-                            >
-                                <Check className="w-4 h-4" />
-                                Profil mis à jour avec succès !
+                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
+                                style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                                <Check className="w-4 h-4" /> Entreprise mise à jour avec succès !
                             </div>
                         )}
                     </div>
                 ) : (
-                    /* Edit mode */
                     <form onSubmit={handleSaveProfile} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    Nom de l&apos;entreprise
+                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} /> Nom de l&apos;entreprise
                                 </Label>
-                                <Input
-                                    value={formData.business_name}
+                                <Input value={formData.business_name}
                                     onChange={(e) => setFormData(prev => ({ ...prev, business_name: e.target.value }))}
-                                    placeholder="Mon entreprise"
-                                    className="mt-1"
-                                    style={{
-                                        background: 'rgba(0, 255, 145, 0.05)',
-                                        border: '1px solid rgba(0, 255, 145, 0.1)',
-                                        color: '#ffffff'
-                                    }}
-                                />
+                                    placeholder="Mon entreprise" className="mt-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                             </div>
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    Type d&apos;activité
+                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} /> Type d&apos;activité
                                 </Label>
-                                <div
-                                    className="mt-1 px-3 py-2 rounded-md text-sm flex items-center gap-2"
-                                    style={{
-                                        background: 'rgba(0, 255, 145, 0.02)',
-                                        border: '1px solid rgba(0, 255, 145, 0.06)',
-                                        color: '#71717a'
-                                    }}
-                                >
+                                <div className="mt-1 px-3 py-2 rounded-md text-sm flex items-center gap-2"
+                                    style={{ background: 'rgba(0, 255, 145, 0.02)', border: '1px solid rgba(0, 255, 145, 0.06)', color: '#71717a' }}>
                                     <Lock className="w-3 h-3 shrink-0" />
                                     <span>{formData.business_type || "Non renseigné"}</span>
                                     <span className="ml-auto text-xs" style={{ color: '#52525b' }}>Non modifiable</span>
@@ -375,116 +363,116 @@ export default function SettingsPage() {
 
                         <div>
                             <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                Email
+                                <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} /> Adresse
                             </Label>
-                            <Input
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                placeholder="contact@entreprise.com"
-                                className="mt-1"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
-                                }}
-                            />
+                            <Input value={formData.address}
+                                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                                placeholder="123 Rue Example, 75001 Paris" className="mt-1"
+                                style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    Téléphone
+                                    <Mail className="w-4 h-4" style={{ color: '#FFC745' }} /> Email de contact
                                 </Label>
-                                <Input
-                                    type="tel"
-                                    value={formData.phone}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                    placeholder="06 12 34 56 78"
-                                    className="mt-1"
-                                    style={{
-                                        background: 'rgba(0, 255, 145, 0.05)',
-                                        border: '1px solid rgba(0, 255, 145, 0.1)',
-                                        color: '#ffffff'
-                                    }}
-                                />
+                                <Input type="email" value={formData.contact_email}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+                                    placeholder="contact@monbusiness.com" className="mt-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                             </div>
                             <div>
                                 <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                    Adresse
+                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} /> Téléphone de contact
                                 </Label>
-                                <Input
-                                    value={formData.address}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                                    placeholder="123 Rue Example, 75001 Paris"
-                                    className="mt-1"
-                                    style={{
-                                        background: 'rgba(0, 255, 145, 0.05)',
-                                        border: '1px solid rgba(0, 255, 145, 0.1)',
-                                        color: '#ffffff'
-                                    }}
-                                />
+                                <Input type="tel" value={formData.contact_phone}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
+                                    placeholder="06 12 34 56 78" className="mt-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                             </div>
                         </div>
 
+                        <div>
+                            <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
+                                <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} /> Lien Google Maps
+                            </Label>
+                            <Input value={formData.maps_url}
+                                onChange={(e) => setFormData(prev => ({ ...prev, maps_url: e.target.value }))}
+                                placeholder="https://maps.google.com/..." className="mt-1"
+                                style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                        </div>
+
                         {saveError && (
-                            <div
-                                className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{
-                                    background: 'rgba(239, 68, 68, 0.1)',
-                                    color: '#ef4444',
-                                    border: '1px solid rgba(239, 68, 68, 0.2)'
-                                }}
-                            >
-                                <AlertTriangle className="w-4 h-4" />
-                                {saveError}
+                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                <AlertTriangle className="w-4 h-4" /> {saveError}
                             </div>
                         )}
 
                         <div className="flex gap-3">
-                            <Button
-                                type="button"
-                                onClick={handleCancelEdit}
-                                className="flex items-center gap-2"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    color: '#c3c3d4',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)'
-                                }}
-                            >
-                                <X className="w-4 h-4" />
-                                Annuler
+                            <Button type="button" onClick={handleCancelEdit} className="flex items-center gap-2"
+                                style={{ background: 'rgba(0, 255, 145, 0.05)', color: '#c3c3d4', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                                <X className="w-4 h-4" /> Annuler
                             </Button>
-                            <Button
-                                type="submit"
-                                disabled={saving}
-                                className="flex items-center gap-2 font-semibold"
-                                style={{
-                                    background: '#FFC745',
-                                    color: '#001C1C'
-                                }}
-                            >
+                            <Button type="submit" disabled={saving} className="flex items-center gap-2 font-semibold"
+                                style={{ background: '#FFC745', color: '#001C1C' }}>
                                 {saving ? (
-                                    <>
-                                        <div
-                                            className="animate-spin w-4 h-4 border-2 rounded-full"
-                                            style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }}
-                                        />
-                                        Enregistrement...
-                                    </>
+                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }} /> Enregistrement...</>
                                 ) : (
-                                    <>
-                                        <Save className="w-4 h-4" />
-                                        Enregistrer les modifications
-                                    </>
+                                    <><Save className="w-4 h-4" /> Enregistrer</>
                                 )}
                             </Button>
                         </div>
                     </form>
                 )}
+            </div>
+
+            {/* Section Horaires */}
+            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
+                        <Clock className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Horaires d&apos;ouverture</h2>
+                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Affiché sur votre site</p>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    {DAYS.map(day => (
+                        <div key={day} className="flex items-center gap-3">
+                            <span className="w-24 text-sm capitalize shrink-0" style={{ color: hours[day].open ? "#ffffff" : "#52525b" }}>{day}</span>
+                            <button onClick={() => setHours({ ...hours, [day]: { ...hours[day], open: !hours[day].open } })}
+                                className="text-xs px-2.5 py-1 rounded-lg shrink-0 transition-all"
+                                style={hours[day].open
+                                    ? { background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }
+                                    : { background: "rgba(113,113,122,0.1)", color: "#71717a", border: "1px solid rgba(113,113,122,0.2)" }}>
+                                {hours[day].open ? "Ouvert" : "Fermé"}
+                            </button>
+                            {hours[day].open && (
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Input type="time" value={hours[day].from}
+                                        onChange={e => setHours({ ...hours, [day]: { ...hours[day], from: e.target.value } })}
+                                        className="flex-1 text-xs" style={{ ...inputStyle, padding: "4px 8px" }} />
+                                    <span className="text-xs" style={{ color: "#52525b" }}>–</span>
+                                    <Input type="time" value={hours[day].to}
+                                        onChange={e => setHours({ ...hours, [day]: { ...hours[day], to: e.target.value } })}
+                                        className="flex-1 text-xs" style={{ ...inputStyle, padding: "4px 8px" }} />
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <div className="mt-5">
+                    <Button onClick={handleSaveHours} disabled={savingHours}
+                        className="flex items-center gap-2 text-sm font-semibold px-5 py-2 rounded-lg transition-all"
+                        style={savedHours
+                            ? { background: "rgba(0,255,145,0.15)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.3)" }
+                            : { background: "#FFC745", color: "#001C1C" }}>
+                        {savedHours ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                        {savingHours ? "Enregistrement..." : savedHours ? "Enregistré" : "Enregistrer"}
+                    </Button>
+                </div>
             </div>
 
             {/* Password Section */}

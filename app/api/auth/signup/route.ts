@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         // 1. Vérifier que l'utilisateur existe dans la table users
         const { data: user, error: userError } = await supabaseAdmin
             .from('users')
-            .select('id, dashboard_user_id, business_name, email')
+            .select('id, dashboard_user_id, email')
             .eq('email', email)
             .single()
 
@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true,
+            email_confirm: false,
             user_metadata: {
-                business_name: user.business_name,
                 user_id: user.id
             }
         })
@@ -87,7 +86,6 @@ export async function POST(request: NextRequest) {
             user: {
                 id: user.id,
                 email: user.email,
-                business_name: user.business_name
             }
         })
 

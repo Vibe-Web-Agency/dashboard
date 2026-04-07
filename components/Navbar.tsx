@@ -16,9 +16,9 @@ import {
     User,
     Scissors,
     Users,
-    Globe,
     Package,
     UserSquare2,
+    Clapperboard,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -83,8 +83,8 @@ export default function Navbar() {
         { key: "quotes", title: "Devis", href: "/quotes", icon: FileText },
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
         { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
+        { key: "projects", title: "Projets", href: "/projects", icon: Clapperboard },
         { key: "team", title: "Équipe", href: "/team", icon: Users },
-        { key: "content", title: "Mon site", href: "/content", icon: Globe },
     ];
 
     const navItems = [
