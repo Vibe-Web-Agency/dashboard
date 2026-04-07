@@ -55,6 +55,64 @@ function usePendingQuotesCount(businessId: string | null | undefined) {
     return count;
 }
 
+function useTodayReservationsCount(businessId: string | null | undefined) {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        if (!businessId) return;
+
+        const fetch = async () => {
+            const today = new Date().toISOString().split("T")[0];
+            const { count: c } = await supabase
+                .from("reservations")
+                .select("*", { count: "exact", head: true })
+                .eq("business_id", businessId)
+                .eq("date", today);
+            setCount(c || 0);
+        };
+
+        fetch();
+
+        const channel = supabase
+            .channel(`navbar-reservations-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `business_id=eq.${businessId}` }, fetch)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [businessId]);
+
+    return count;
+}
+
+function useUnrepliedReviewsCount(businessId: string | null | undefined) {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        if (!businessId) return;
+
+        const fetch = async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { count: c } = await (supabase as any)
+                .from("reviews")
+                .select("*", { count: "exact", head: true })
+                .eq("business_id", businessId)
+                .is("reply", null);
+            setCount(c || 0);
+        };
+
+        fetch();
+
+        const channel = supabase
+            .channel(`navbar-reviews-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "reviews", filter: `business_id=eq.${businessId}` }, fetch)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [businessId]);
+
+    return count;
+}
+
 const CATALOG_ICONS = {
     services: Scissors,
     people: UserSquare2,
@@ -94,6 +152,8 @@ export default function Navbar() {
         ...ALL_NAV_ITEMS.filter(item => features.includes(item.key)),
     ];
     const pendingQuotes = usePendingQuotesCount(userProfile?.business_id);
+    const todayReservations = useTodayReservationsCount(userProfile?.business_id);
+    const unrepliedReviews = useUnrepliedReviewsCount(userProfile?.business_id);
 
     // Fermer le menu mobile lors d'un changement de route
     useEffect(() => {
@@ -180,14 +240,21 @@ export default function Navbar() {
                                 <Icon className="h-4 w-4" />
                                 {item.title}
                                 {item.href === "/quotes" && pendingQuotes > 0 && (
-                                    <span
-                                        className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{
-                                            background: isActive ? "#001C1C" : "#FFC745",
-                                            color: isActive ? "#FFC745" : "#001C1C",
-                                        }}
-                                    >
+                                    <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
                                         {pendingQuotes}
+                                    </span>
+                                )}
+                                {item.href === "/reservations" && todayReservations > 0 && (
+                                    <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        {todayReservations}
+                                    </span>
+                                )}
+                                {item.href === "/reviews" && unrepliedReviews > 0 && (
+                                    <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        {unrepliedReviews}
                                     </span>
                                 )}
                             </Link>
@@ -312,14 +379,21 @@ export default function Navbar() {
                                 <Icon className="h-5 w-5" />
                                 {item.title}
                                 {item.href === "/quotes" && pendingQuotes > 0 && (
-                                    <span
-                                        className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{
-                                            background: isActive ? "#001C1C" : "#FFC745",
-                                            color: isActive ? "#FFC745" : "#001C1C",
-                                        }}
-                                    >
+                                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
                                         {pendingQuotes}
+                                    </span>
+                                )}
+                                {item.href === "/reservations" && todayReservations > 0 && (
+                                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        {todayReservations}
+                                    </span>
+                                )}
+                                {item.href === "/reviews" && unrepliedReviews > 0 && (
+                                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        {unrepliedReviews}
                                     </span>
                                 )}
                             </Link>
