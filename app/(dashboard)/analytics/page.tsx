@@ -573,23 +573,71 @@ export default function AnalyticsPage() {
                 </div>}
             </div>}
 
-            {/* En ligne maintenant */}
-            <div className="rounded-xl p-5 flex items-center gap-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}>
-                <div className="relative flex items-center justify-center w-12 h-12 rounded-full shrink-0" style={{ background: "rgba(0,255,145,0.1)" }}>
-                    <span className="absolute w-3 h-3 rounded-full animate-ping" style={{ background: "rgba(0,255,145,0.4)" }} />
-                    <span className="relative w-3 h-3 rounded-full" style={{ background: "#00ff91" }} />
-                </div>
-                <div>
-                    <p className="text-3xl font-bold" style={{ color: "#00ff91" }}>{activeUsers}</p>
-                    <p className="text-sm font-medium" style={{ color: "#c3c3d4" }}>utilisateur{activeUsers !== 1 ? "s" : ""} en ligne maintenant</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>Actifs dans les 5 dernières minutes — rafraîchi toutes les 30s</p>
-                </div>
-            </div>
+            {/* Jour de la semaine */}
+            {hasReservations && <div
+                className="rounded-xl p-6"
+                style={{
+                    background: "#002928",
+                    border: "1px solid rgba(0, 255, 145, 0.1)",
+                }}
+            >
+                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
+                    Réservations par jour de la semaine
+                </h2>
+                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>
+                    Jours les plus demandés — basé sur toutes les réservations
+                </p>
+                <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={dayOfWeekData} barSize={36}>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="rgba(0, 255, 145, 0.08)"
+                            vertical={false}
+                        />
+                        <XAxis
+                            dataKey="jour"
+                            stroke="#a1a1aa"
+                            style={{ fontSize: "12px" }}
+                            axisLine={false}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            stroke="#a1a1aa"
+                            style={{ fontSize: "12px" }}
+                            axisLine={false}
+                            tickLine={false}
+                            allowDecimals={false}
+                        />
+                        <Tooltip {...tooltipStyle} />
+                        <Bar dataKey="réservations" radius={[4, 4, 0, 0]}>
+                            {dayOfWeekData.map((entry, index) => (
+                                <Cell
+                                    key={index}
+                                    fill={
+                                        entry.réservations === maxDayCount && maxDayCount > 0
+                                            ? "#FFC745"
+                                            : "rgba(255, 199, 69, 0.35)"
+                                    }
+                                />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>}
 
             {/* ── TRAFIC SITE WEB ── */}
             <div className="flex items-center justify-between flex-wrap gap-3 mt-2">
                 <div>
-                    <h2 className="text-xl font-semibold" style={{ color: "#FFC745" }}>Trafic site web</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-semibold" style={{ color: "#FFC745" }}>Trafic site web</h2>
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91" }}>
+                            <span className="relative flex w-2 h-2">
+                                <span className="absolute w-2 h-2 rounded-full animate-ping" style={{ background: "rgba(0,255,145,0.5)" }} />
+                                <span className="relative w-2 h-2 rounded-full" style={{ background: "#00ff91" }} />
+                            </span>
+                            {activeUsers} en ligne
+                        </span>
+                    </div>
                     <p className="text-sm mt-0.5" style={{ color: "#a1a1aa" }}>Visites trackées par le script VWA</p>
                 </div>
                 <div className="flex gap-1 p-1 rounded-lg" style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.1)" }}>
