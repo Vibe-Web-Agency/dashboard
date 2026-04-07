@@ -19,6 +19,7 @@ import {
     Package,
     UserSquare2,
     Clapperboard,
+    Star,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export default function Navbar() {
         { key: "calendar", title: "Calendrier", href: "/calendar", icon: Calendar },
         { key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
         { key: "quotes", title: "Devis", href: "/quotes", icon: FileText },
+        { key: "reviews", title: "Avis", href: "/reviews", icon: Star },
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
         { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
         { key: "projects", title: "Projets", href: "/projects", icon: Clapperboard },
