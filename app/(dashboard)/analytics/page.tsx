@@ -103,7 +103,8 @@ export default function AnalyticsPage() {
             feats.includes("quotes")
                 ? supabase.from("quotes").select("id, status, created_at").eq("business_id", profile.business_id)
                 : Promise.resolve({ data: [], error: null }),
-            supabase.from("page_views").select("id, url, referrer, visitor_id, session_id, created_at").eq("business_id", profile.business_id),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (supabase as any).from("page_views").select("id, url, referrer, visitor_id, session_id, created_at").eq("business_id", profile.business_id),
         ]);
 
         if (e1 || e2) {
