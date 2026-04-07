@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, X, Pencil, Phone, Mail, User } from "lucide-react";
+import { Plus, X, Pencil, Phone, Mail, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,11 @@ export default function TeamPage() {
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ name: "", role: "", email: "", phone: "" });
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviting, setInviting] = useState(false);
+    const [inviteError, setInviteError] = useState<string | null>(null);
+    const [inviteSuccess, setInviteSuccess] = useState(false);
 
     useEffect(() => {
         if (!profileLoading) {
@@ -103,6 +108,21 @@ export default function TeamPage() {
         setShowModal(false);
     };
 
+    const handleInvite = async () => {
+        if (!inviteEmail.trim() || !profile?.business_id) return
+        setInviting(true)
+        setInviteError(null)
+        const res = await fetch('/api/invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: inviteEmail, businessId: profile.business_id }),
+        })
+        const data = await res.json()
+        setInviting(false)
+        if (!res.ok) setInviteError(data.error)
+        else { setInviteSuccess(true); setInviteEmail("") }
+    }
+
     const active = employees.filter(e => e.active);
     const inactive = employees.filter(e => !e.active);
 
@@ -115,11 +135,19 @@ export default function TeamPage() {
                         {active.length} membre{active.length > 1 ? "s" : ""} actif{active.length > 1 ? "s" : ""}
                     </p>
                 </div>
-                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Ajouter un membre</span>
-                    <span className="sm:hidden">Ajouter</span>
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => { setShowInviteModal(true); setInviteSuccess(false); setInviteError(null); }}
+                        className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
+                        style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}>
+                        <UserPlus className="w-4 h-4" />
+                        <span className="hidden sm:inline">Inviter</span>
+                    </Button>
+                    <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                        <Plus className="w-4 h-4" />
+                        <span className="hidden sm:inline">Ajouter un membre</span>
+                        <span className="sm:hidden">Ajouter</span>
+                    </Button>
+                </div>
             </div>
 
             {loading ? (
@@ -159,6 +187,62 @@ export default function TeamPage() {
                         </div>
                     )}
                 </>
+            )}
+
+            {showInviteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Inviter un membre</h2>
+                            <button onClick={() => setShowInviteModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                        </div>
+
+                        {inviteSuccess ? (
+                            <div className="text-center py-6">
+                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(0,255,145,0.1)" }}>
+                                    <UserPlus className="w-6 h-6" style={{ color: "#00ff91" }} />
+                                </div>
+                                <p className="font-semibold mb-1" style={{ color: "#ffffff" }}>Invitation envoyée !</p>
+                                <p className="text-sm" style={{ color: "#71717a" }}>
+                                    {inviteEmail || "Le membre"} recevra un email pour créer son compte.
+                                </p>
+                                <Button onClick={() => setShowInviteModal(false)} className="mt-5 w-full text-sm font-semibold py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                                    Fermer
+                                </Button>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>
+                                    La personne recevra un email avec un lien pour créer son compte et accéder au dashboard.
+                                </p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Adresse email *</Label>
+                                        <Input
+                                            type="email"
+                                            value={inviteEmail}
+                                            onChange={e => setInviteEmail(e.target.value)}
+                                            placeholder="prenom@exemple.fr"
+                                            style={inputStyle}
+                                            onKeyDown={e => e.key === 'Enter' && handleInvite()}
+                                        />
+                                    </div>
+                                    {inviteError && (
+                                        <p className="text-sm" style={{ color: "#f87171" }}>{inviteError}</p>
+                                    )}
+                                </div>
+                                <div className="flex gap-2 mt-6">
+                                    <Button onClick={() => setShowInviteModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa" }}>
+                                        Annuler
+                                    </Button>
+                                    <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                                        {inviting ? "Envoi..." : "Envoyer l'invitation"}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
             )}
 
             {showModal && (

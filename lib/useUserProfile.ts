@@ -53,7 +53,7 @@ export function useUserProfile() {
                         id, name, address, email, phone, contact_email, contact_phone, maps_url, hours,
                         business_type:business_types (id, slug, label, catalog, catalog_label, features)
                     `)
-                    .eq('owner_id', userData.id)
+                    .eq('id', userData.business_id ?? '')
                     .single();
 
                 const businessType = bizData?.business_type

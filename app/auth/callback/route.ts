@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { getAdminClient } from '@/lib/supabase-admin'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -30,9 +31,17 @@ export async function GET(request: Request) {
             }
         )
 
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-        if (!error) {
+        if (!error && data.user) {
+            // Lier le dashboard_user_id si pas encore fait (cas invitation)
+            const supabaseAdmin = getAdminClient()
+            await supabaseAdmin
+                .from('users')
+                .update({ dashboard_user_id: data.user.id })
+                .eq('email', data.user.email!)
+                .is('dashboard_user_id', null)
+
             return NextResponse.redirect(`${origin}${next}`)
         }
     }

@@ -103,6 +103,7 @@ export interface Database {
           email: string
           phone: string | null
           dashboard_user_id: string
+          business_id: string | null
           created_at: string
         }
         Insert: {
@@ -110,6 +111,7 @@ export interface Database {
           email: string
           phone?: string | null
           dashboard_user_id: string
+          business_id?: string | null
           created_at?: string
         }
         Update: {
@@ -117,6 +119,7 @@ export interface Database {
           email?: string
           phone?: string | null
           dashboard_user_id?: string
+          business_id?: string | null
           created_at?: string
         }
         Relationships: []
