@@ -783,57 +783,6 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            {/* Jour de la semaine */}
-            {hasReservations && <div
-                className="rounded-xl p-6"
-                style={{
-                    background: "#002928",
-                    border: "1px solid rgba(0, 255, 145, 0.1)",
-                }}
-            >
-                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
-                    Réservations par jour de la semaine
-                </h2>
-                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>
-                    Jours les plus demandés — basé sur toutes les réservations
-                </p>
-                <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={dayOfWeekData} barSize={36}>
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="rgba(0, 255, 145, 0.08)"
-                            vertical={false}
-                        />
-                        <XAxis
-                            dataKey="jour"
-                            stroke="#a1a1aa"
-                            style={{ fontSize: "12px" }}
-                            axisLine={false}
-                            tickLine={false}
-                        />
-                        <YAxis
-                            stroke="#a1a1aa"
-                            style={{ fontSize: "12px" }}
-                            axisLine={false}
-                            tickLine={false}
-                            allowDecimals={false}
-                        />
-                        <Tooltip {...tooltipStyle} />
-                        <Bar dataKey="réservations" radius={[4, 4, 0, 0]}>
-                            {dayOfWeekData.map((entry, index) => (
-                                <Cell
-                                    key={index}
-                                    fill={
-                                        entry.réservations === maxDayCount && maxDayCount > 0
-                                            ? "#FFC745"
-                                            : "rgba(255, 199, 69, 0.35)"
-                                    }
-                                />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>}
         </div>
     );
 }
