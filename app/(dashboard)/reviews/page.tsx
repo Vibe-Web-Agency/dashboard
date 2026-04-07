@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Review {
     id: string;
     author_name: string;
+    email: string | null;
     rating: number;
     comment: string;
     reply: string | null;
@@ -46,7 +47,7 @@ export default function ReviewsPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data } = await (supabase as any)
             .from("reviews")
-            .select("id, author_name, rating, comment, reply, created_at")
+            .select("id, author_name, email, rating, comment, reply, created_at")
             .eq("business_id", profile.business_id)
             .order("created_at", { ascending: false });
         setReviews((data as Review[]) || []);
@@ -128,9 +129,14 @@ export default function ReviewsPage() {
                                         <p className="font-semibold text-white">{review.author_name}</p>
                                         <StarRating rating={review.rating} />
                                     </div>
-                                    <p className="text-sm" style={{ color: "#71717a" }}>
-                                        {new Date(review.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                                    </p>
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <p className="text-sm" style={{ color: "#71717a" }}>
+                                            {new Date(review.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                                        </p>
+                                        {review.email && (
+                                            <p className="text-sm" style={{ color: "#52525b" }}>{review.email}</p>
+                                        )}
+                                    </div>
                                 </div>
                                 {!review.reply && replyingId !== review.id && (
                                     <button
