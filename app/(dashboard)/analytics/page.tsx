@@ -42,12 +42,15 @@ interface Quote {
     created_at: string;
 }
 
-interface PageView {
+interface Session {
     id: string;
-    url: string;
-    referrer: string | null;
+    session_id: string;
     visitor_id: string | null;
-    session_id: string | null;
+    referrer: string | null;
+    screen_width: number | null;
+    duration_seconds: number | null;
+    pages: string[];
+    page_count: number;
     created_at: string;
 }
 
@@ -72,15 +75,30 @@ export default function AnalyticsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [quotes, setQuotes] = useState<Quote[]>([]);
-    const [pageViews, setPageViews] = useState<PageView[]>([]);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(false);
     const [period, setPeriod] = useState<Period>("6months");
     const [trafficPeriod, setTrafficPeriod] = useState<TrafficPeriod>("30days");
+    const [activeUsers, setActiveUsers] = useState<number>(0);
 
     const features = profile?.business_type?.features ?? ALL_FEATURES;
     const hasReservations = features.includes("reservations");
     const hasQuotes = features.includes("quotes");
+
+    const fetchActiveUsers = async () => {
+        if (!profile?.business_id) return;
+        const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any)
+            .from("sessions")
+            .select("session_id")
+            .eq("business_id", profile.business_id)
+            .gte("updated_at", since);
+        if (data) {
+            setActiveUsers(data.length);
+        }
+    };
 
     useEffect(() => {
         if (!profileLoading) {
@@ -88,6 +106,14 @@ export default function AnalyticsPage() {
             else setLoading(false);
         }
     }, [profile?.business_id, profileLoading]);
+
+    useEffect(() => {
+        if (!profile?.business_id) return;
+        fetchActiveUsers();
+        const interval = setInterval(fetchActiveUsers, 30000);
+        return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profile?.business_id]);
 
     const fetchData = async () => {
         if (!profile?.business_id) return;
@@ -104,7 +130,7 @@ export default function AnalyticsPage() {
                 ? supabase.from("quotes").select("id, status, created_at").eq("business_id", profile.business_id)
                 : Promise.resolve({ data: [], error: null }),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (supabase as any).from("page_views").select("id, url, referrer, visitor_id, session_id, created_at").eq("business_id", profile.business_id),
+            (supabase as any).from("sessions").select("id, session_id, visitor_id, referrer, screen_width, duration_seconds, pages, page_count, created_at").eq("business_id", profile.business_id),
         ]);
 
         if (e1 || e2) {
@@ -114,7 +140,7 @@ export default function AnalyticsPage() {
             setReservations((resData as Reservation[]) || []);
             setQuotes((quotesData as Quote[]) || []);
         }
-        if (!e3) setPageViews((pvData as PageView[]) || []);
+        if (!e3) setSessions((pvData as Session[]) || []);
         setLoading(false);
     };
 
@@ -274,46 +300,49 @@ export default function AnalyticsPage() {
     // Traffic helpers
     const trafficDays = trafficPeriod === "7days" ? 7 : trafficPeriod === "30days" ? 30 : 90;
     const trafficStart = new Date(now.getTime() - trafficDays * 24 * 60 * 60 * 1000);
-    const pvInPeriod = pageViews.filter((p) => new Date(p.created_at) >= trafficStart);
-    const uniqueVisitors = new Set(pvInPeriod.map((p) => p.visitor_id).filter(Boolean)).size;
-    const uniqueSessions = new Set(pvInPeriod.map((p) => p.session_id).filter(Boolean)).size;
+    const sessionsInPeriod = sessions.filter((s) => new Date(s.created_at) >= trafficStart);
+    const totalPageViews = sessionsInPeriod.reduce((acc, s) => acc + s.page_count, 0);
+    const uniqueVisitors = new Set(sessionsInPeriod.map((s) => s.visitor_id).filter(Boolean)).size;
+    const uniqueSessions = sessionsInPeriod.length;
 
     const getTrafficChartData = () => {
-        const data: { date: string; vues: number }[] = [];
+        const data: { date: string; sessions: number }[] = [];
         for (let i = trafficDays - 1; i >= 0; i--) {
             const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
             const label = trafficDays <= 30
                 ? `${d.getDate()} ${MONTHS_FR[d.getMonth()]}`
                 : MONTHS_FR[d.getMonth()];
-            const count = pvInPeriod.filter((p) => {
-                const pd = new Date(p.created_at);
-                return pd.getDate() === d.getDate() && pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear();
+            const count = sessionsInPeriod.filter((s) => {
+                const sd = new Date(s.created_at);
+                return sd.getDate() === d.getDate() && sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear();
             }).length;
             const existing = data.find((x) => x.date === label);
-            if (existing) existing.vues += count;
-            else data.push({ date: label, vues: count });
+            if (existing) existing.sessions += count;
+            else data.push({ date: label, sessions: count });
         }
         return data;
     };
 
     const getTopPages = () => {
         const counts: Record<string, number> = {};
-        pvInPeriod.forEach((p) => {
-            try {
-                const path = new URL(p.url).pathname;
-                counts[path] = (counts[path] || 0) + 1;
-            } catch { counts[p.url] = (counts[p.url] || 0) + 1; }
+        sessionsInPeriod.forEach((s) => {
+            (s.pages || []).forEach((url) => {
+                try {
+                    const path = new URL(url).pathname;
+                    counts[path] = (counts[path] || 0) + 1;
+                } catch { counts[url] = (counts[url] || 0) + 1; }
+            });
         });
         return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
     };
 
     const getTopReferrers = () => {
         const counts: Record<string, number> = {};
-        pvInPeriod.filter((p) => p.referrer).forEach((p) => {
+        sessionsInPeriod.filter((s) => s.referrer).forEach((s) => {
             try {
-                const host = new URL(p.referrer!).hostname.replace("www.", "");
+                const host = new URL(s.referrer!).hostname.replace("www.", "");
                 counts[host] = (counts[host] || 0) + 1;
-            } catch { counts[p.referrer!] = (counts[p.referrer!] || 0) + 1; }
+            } catch { counts[s.referrer!] = (counts[s.referrer!] || 0) + 1; }
         });
         return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
     };
@@ -321,6 +350,36 @@ export default function AnalyticsPage() {
     const trafficChartData = getTrafficChartData();
     const topPages = getTopPages();
     const topReferrers = getTopReferrers();
+
+    // Durée moyenne par session
+    const getAvgSessionDuration = () => {
+        const durations = sessionsInPeriod.filter(s => s.duration_seconds).map(s => s.duration_seconds!);
+        if (durations.length === 0) return null;
+        const avg = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+        const m = Math.floor(avg / 60);
+        const s = avg % 60;
+        return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+
+    // Répartition appareils
+    const getDeviceData = () => {
+        let mobile = 0, tablet = 0, desktop = 0;
+        sessionsInPeriod.filter(s => s.screen_width).forEach(s => {
+            if (s.screen_width! < 768) mobile++;
+            else if (s.screen_width! < 1024) tablet++;
+            else desktop++;
+        });
+        const total = mobile + tablet + desktop;
+        if (total === 0) return null;
+        return [
+            { label: "Mobile", count: mobile, pct: Math.round((mobile / total) * 100), color: "#00ff91" },
+            { label: "Tablette", count: tablet, pct: Math.round((tablet / total) * 100), color: "#FFC745" },
+            { label: "Desktop", count: desktop, pct: Math.round((desktop / total) * 100), color: "#818cf8" },
+        ];
+    };
+
+    const avgDuration = getAvgSessionDuration();
+    const deviceData = getDeviceData();
 
     return (
         <div className="flex flex-col gap-6">
@@ -514,6 +573,19 @@ export default function AnalyticsPage() {
                 </div>}
             </div>}
 
+            {/* En ligne maintenant */}
+            <div className="rounded-xl p-5 flex items-center gap-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}>
+                <div className="relative flex items-center justify-center w-12 h-12 rounded-full shrink-0" style={{ background: "rgba(0,255,145,0.1)" }}>
+                    <span className="absolute w-3 h-3 rounded-full animate-ping" style={{ background: "rgba(0,255,145,0.4)" }} />
+                    <span className="relative w-3 h-3 rounded-full" style={{ background: "#00ff91" }} />
+                </div>
+                <div>
+                    <p className="text-3xl font-bold" style={{ color: "#00ff91" }}>{activeUsers}</p>
+                    <p className="text-sm font-medium" style={{ color: "#c3c3d4" }}>utilisateur{activeUsers !== 1 ? "s" : ""} en ligne maintenant</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>Actifs dans les 5 dernières minutes — rafraîchi toutes les 30s</p>
+                </div>
+            </div>
+
             {/* ── TRAFIC SITE WEB ── */}
             <div className="flex items-center justify-between flex-wrap gap-3 mt-2">
                 <div>
@@ -534,7 +606,7 @@ export default function AnalyticsPage() {
             {/* Stat cards trafic */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: "Pages vues", value: pvInPeriod.length, icon: MousePointerClick },
+                    { label: "Pages vues", value: totalPageViews, icon: MousePointerClick },
                     { label: "Visiteurs uniques", value: uniqueVisitors, icon: Users },
                     { label: "Sessions", value: uniqueSessions, icon: Globe },
                 ].map(({ label, value, icon: Icon }) => (
@@ -550,9 +622,9 @@ export default function AnalyticsPage() {
 
             {/* Courbe trafic */}
             <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Pages vues par jour</h3>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Sessions par jour</h3>
                 <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Sur les {trafficDays} derniers jours</p>
-                {pvInPeriod.length === 0 ? (
+                {sessionsInPeriod.length === 0 ? (
                     <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
                         Aucune donnée — intégrez le script de tracking sur votre site
                     </div>
@@ -564,7 +636,7 @@ export default function AnalyticsPage() {
                                 interval={trafficDays <= 30 ? Math.floor(trafficDays / 7) : 0} />
                             <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip {...tooltipStyle} />
-                            <Line type="monotone" dataKey="vues" stroke="#00ff91" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#00ff91" }} />
+                            <Line type="monotone" dataKey="sessions" stroke="#00ff91" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#00ff91" }} />
                         </LineChart>
                     </ResponsiveContainer>
                 )}
@@ -618,6 +690,46 @@ export default function AnalyticsPage() {
                                     </div>
                                 );
                             })}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Durée moyenne + Appareils */}
+            <div className="grid lg:grid-cols-2 gap-6">
+                {/* Durée moyenne */}
+                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Durée moyenne par session</h3>
+                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Temps total passé sur le site par session</p>
+                    {avgDuration === null ? (
+                        <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de données — disponible après le prochain déploiement du tracker</p>
+                    ) : (
+                        <div className="flex items-end gap-3">
+                            <p className="text-5xl font-bold" style={{ color: "#00ff91" }}>{avgDuration}</p>
+                            <p className="text-sm mb-2" style={{ color: "#a1a1aa" }}>en moyenne</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Répartition appareils */}
+                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Appareils</h3>
+                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Répartition des sessions par type d&apos;appareil</p>
+                    {deviceData === null ? (
+                        <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée</p>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            {deviceData.map(({ label, count, pct, color }) => (
+                                <div key={label}>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{label}</span>
+                                        <span className="text-sm font-semibold" style={{ color }}>{pct}% <span className="font-normal text-xs" style={{ color: "#71717a" }}>({count})</span></span>
+                                    </div>
+                                    <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                                        <div className="h-2 rounded-full transition-all duration-500" style={{ background: color, width: `${pct}%` }} />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
