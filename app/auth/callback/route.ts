@@ -31,6 +31,7 @@ export async function GET(request: Request) {
             }
         )
 
+        const isInvite = searchParams.get('type') === 'invite'
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error && data.user) {
@@ -41,6 +42,11 @@ export async function GET(request: Request) {
                 .update({ dashboard_user_id: data.user.id })
                 .eq('email', data.user.email!)
                 .is('dashboard_user_id', null)
+
+            // Invitation → rediriger vers création de mot de passe
+            if (isInvite) {
+                return NextResponse.redirect(`${origin}/set-password`)
+            }
 
             return NextResponse.redirect(`${origin}${next}`)
         }
