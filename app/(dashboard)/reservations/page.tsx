@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, X, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ interface GroupedReservations {
     [date: string]: Reservation[];
 }
 
-type Tab = "upcoming" | "history";
+type Tab = "upcoming" | "history" | "calendar";
 
 export default function ReservationsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
@@ -50,6 +50,11 @@ export default function ReservationsPage() {
         time: "",
         message: ""
     });
+
+    // Calendar state
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
     useEffect(() => {
         if (profileLoading) return;
@@ -154,6 +159,29 @@ export default function ReservationsPage() {
 
     const handleSearch = (q: string) => { setSearchQuery(q); setPage(0); };
 
+    const exportCSV = () => {
+        const data = tab === "upcoming" ? filteredUpcoming : filteredHistory;
+        const headers = ["Nom", "Email", "Téléphone", "Date", "Statut", "Message"];
+        const rows = data.map((r) => [
+            r.customer_name || "",
+            r.customer_mail || "",
+            r.customer_phone || "",
+            r.date ? new Date(r.date).toLocaleString("fr-FR") : "",
+            r.status || "",
+            r.message || "",
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `reservations-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleTabChange = (t: Tab) => { setTab(t); setSearchQuery(""); setPage(0); };
 
     // --- Upcoming tab logic ---
@@ -195,6 +223,47 @@ export default function ReservationsPage() {
     const paginatedHistory = filteredHistory.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     const totalPagesHistory = Math.ceil(filteredHistory.length / PAGE_SIZE);
     const totalPagesUpcoming = Math.ceil(filteredUpcoming.length / PAGE_SIZE);
+
+    // --- Calendar logic ---
+    const allReservations = [...upcoming, ...history];
+
+    const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getReservationsForDate = (date: Date) => {
+        const dateStr = getLocalDateString(date);
+        return allReservations.filter(res => {
+            if (!res.date) return false;
+            return getLocalDateString(new Date(res.date)) === dateStr;
+        });
+    };
+
+    const getDaysInMonth = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+        return { daysInMonth, startingDayOfWeek, year, month };
+    };
+
+    const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentDate);
+    const monthName = currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const calendarDays: (Date | null)[] = [];
+    const adjustedStartDay = startingDayOfWeek === 0 ? 6 : startingDayOfWeek - 1;
+    for (let i = 0; i < adjustedStartDay; i++) calendarDays.push(null);
+    for (let day = 1; day <= daysInMonth; day++) calendarDays.push(new Date(year, month, day));
+
+    const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const selectedDateReservations = selectedDate ? getReservationsForDate(selectedDate) : [];
 
     const skeletons = (
         <div className="flex flex-col gap-3">
@@ -240,6 +309,17 @@ export default function ReservationsPage() {
                             <span className="sm:hidden">Nouveau</span>
                         </Button>
                     )}
+                    {tab !== "calendar" && (
+                        <Button
+                            onClick={exportCSV}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                            style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                        >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Exporter CSV</span>
+                        </Button>
+                    )}
                     <div
                         className="flex items-center gap-2 rounded-lg px-4 py-2"
                         style={{ background: 'rgba(255, 199, 69, 0.1)', border: '1px solid rgba(255, 199, 69, 0.2)' }}
@@ -248,7 +328,9 @@ export default function ReservationsPage() {
                         <span className="font-medium" style={{ color: '#FFC745' }}>
                             {tab === "upcoming"
                                 ? `${upcoming.length} planifiée${upcoming.length > 1 ? "s" : ""}`
-                                : `${history.length} passée${history.length > 1 ? "s" : ""}`}
+                                : tab === "history"
+                                    ? `${history.length} passée${history.length > 1 ? "s" : ""}`
+                                    : `${allReservations.length} au total`}
                         </span>
                     </div>
                 </div>
@@ -262,6 +344,7 @@ export default function ReservationsPage() {
                 {([
                     { key: "upcoming", label: "À venir" },
                     { key: "history", label: "Historique" },
+                    { key: "calendar", label: "Calendrier" },
                 ] as { key: Tab; label: string }[]).map(({ key, label }) => (
                     <button
                         key={key}
@@ -278,32 +361,36 @@ export default function ReservationsPage() {
                 ))}
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#a1a1aa' }} />
-                <Input
-                    type="text"
-                    placeholder="Rechercher par nom, email, téléphone ou message..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-10 w-full"
-                    style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }}
-                />
-                {searchQuery && (
-                    <button
-                        onClick={() => handleSearch("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
-                        style={{ color: '#a1a1aa' }}
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
-            </div>
+            {/* Search Bar — hidden on calendar tab */}
+            {tab !== "calendar" && (
+                <>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#a1a1aa' }} />
+                        <Input
+                            type="text"
+                            placeholder="Rechercher par nom, email, téléphone ou message..."
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                            className="pl-10 w-full"
+                            style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }}
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => handleSearch("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
+                                style={{ color: '#a1a1aa' }}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
 
-            {searchQuery && (
-                <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745' }}>
-                    {(tab === "upcoming" ? filteredUpcoming : filteredHistory).length} résultat{(tab === "upcoming" ? filteredUpcoming : filteredHistory).length > 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
-                </div>
+                    {searchQuery && (
+                        <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745' }}>
+                            {(tab === "upcoming" ? filteredUpcoming : filteredHistory).length} résultat{(tab === "upcoming" ? filteredUpcoming : filteredHistory).length > 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Modal nouvelle réservation */}
@@ -463,7 +550,7 @@ export default function ReservationsPage() {
                         )}
                     </div>
                 )
-            ) : (
+            ) : tab === "history" ? (
                 /* ---- HISTORIQUE ---- */
                 filteredHistory.length === 0 ? (
                     <div className="rounded-xl p-8 text-center" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
@@ -510,6 +597,174 @@ export default function ReservationsPage() {
                         )}
                     </div>
                 )
+            ) : (
+                /* ---- CALENDRIER ---- */
+                <div className="flex flex-col gap-4">
+                    {/* Calendar Controls */}
+                    <div className="flex items-center justify-between p-4 rounded-xl"
+                        style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="rounded-lg" style={{ color: '#c3c3d4' }}>
+                            <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-semibold capitalize" style={{ color: '#ffffff' }}>{monthName}</h2>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="text-xs"
+                                style={{ background: 'rgba(255, 199, 69, 0.1)', border: '1px solid rgba(255, 199, 69, 0.3)', color: '#FFC745' }}>
+                                Aujourd&apos;hui
+                            </Button>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="rounded-lg" style={{ color: '#c3c3d4' }}>
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="rounded-xl p-4" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <div className="grid grid-cols-7 gap-2 mb-2">
+                            {weekDays.map((day) => (
+                                <div key={day} className="text-center p-2 text-sm font-semibold" style={{ color: '#FFC745' }}>{day}</div>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-7 gap-2">
+                            {calendarDays.map((date, index) => {
+                                if (!date) return (
+                                    <div key={`empty-${index}`} className="aspect-square rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.02)' }} />
+                                );
+                                const dayReservations = getReservationsForDate(date);
+                                const isToday = date.toDateString() === today.toDateString();
+                                const isPast = date < today;
+                                return (
+                                    <div
+                                        key={date.toISOString()}
+                                        className="aspect-square rounded-lg p-2 flex flex-col transition-all duration-200 cursor-pointer"
+                                        onClick={() => { setSelectedDate(date); setIsCalendarModalOpen(true); }}
+                                        style={{
+                                            background: isToday ? 'rgba(255, 199, 69, 0.12)' : isPast ? 'rgba(0, 255, 145, 0.02)' : 'rgba(0, 255, 145, 0.05)',
+                                            border: isToday ? '2px solid rgba(255, 199, 69, 0.5)' : '1px solid rgba(0, 255, 145, 0.08)',
+                                            opacity: isPast ? 0.5 : 1
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 199, 69, 0.12)'; e.currentTarget.style.borderColor = 'rgba(255, 199, 69, 0.4)'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.background = isToday ? 'rgba(255, 199, 69, 0.12)' : isPast ? 'rgba(0, 255, 145, 0.02)' : 'rgba(0, 255, 145, 0.05)'; e.currentTarget.style.borderColor = isToday ? 'rgba(255, 199, 69, 0.5)' : 'rgba(0, 255, 145, 0.08)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                                    >
+                                        <div className="flex items-start justify-between mb-1">
+                                            <div className="text-sm font-medium" style={{ color: isToday ? '#FFC745' : '#ffffff' }}>{date.getDate()}</div>
+                                            {dayReservations.length > 0 && (
+                                                <div className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                                                    style={{ background: '#FFC745', color: '#001C1C', boxShadow: '0 2px 8px rgba(255, 199, 69, 0.3)' }}>
+                                                    {dayReservations.length}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {dayReservations.length > 0 && (
+                                            <div className="flex-1 flex flex-col gap-0.5 overflow-hidden">
+                                                {dayReservations.slice(0, 2).map((res) => (
+                                                    <div key={res.id} className="text-xs p-1 rounded truncate hidden sm:block"
+                                                        style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745' }}
+                                                        title={`${res.customer_name} - ${res.customer_mail || res.customer_phone || ''}`}>
+                                                        {res.customer_name}
+                                                    </div>
+                                                ))}
+                                                {dayReservations.length > 2 && (
+                                                    <div className="text-xs p-1 text-center font-medium hidden sm:block" style={{ color: '#FFC745' }}>
+                                                        +{dayReservations.length - 2}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex items-center flex-wrap gap-4 p-4 rounded-xl" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded" style={{ background: 'rgba(255, 199, 69, 0.12)', border: '2px solid rgba(255, 199, 69, 0.5)' }} />
+                            <span className="text-sm" style={{ color: '#c3c3d4' }}>Aujourd&apos;hui</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded" style={{ background: 'rgba(255, 199, 69, 0.15)' }} />
+                            <span className="text-sm" style={{ color: '#c3c3d4' }}>Réservation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center" style={{ background: '#FFC745', color: '#001C1C' }}>3</div>
+                            <span className="text-sm" style={{ color: '#c3c3d4' }}>Nombre de réservations</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Calendar day modal */}
+            {isCalendarModalOpen && selectedDate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
+                    onClick={() => { setIsCalendarModalOpen(false); setSelectedDate(null); }}>
+                    <div className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
+                        style={{ background: '#002928', border: '1px solid rgba(255, 199, 69, 0.3)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 199, 69, 0.1)' }}
+                        onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                    style={{ background: 'rgba(255, 199, 69, 0.15)', border: '1px solid rgba(255, 199, 69, 0.3)' }}>
+                                    <Calendar className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                        {selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </h3>
+                                    <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                        {selectedDateReservations.length} réservation{selectedDateReservations.length !== 1 ? 's' : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => { setIsCalendarModalOpen(false); setSelectedDate(null); }} className="rounded-full" style={{ color: '#c3c3d4' }}>
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </div>
+
+                        {selectedDateReservations.length === 0 ? (
+                            <div className="text-center py-12 rounded-xl" style={{ background: 'rgba(0, 255, 145, 0.03)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
+                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#14524F' }} />
+                                <p className="text-sm" style={{ color: '#c3c3d4' }}>Aucune réservation pour ce jour</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {selectedDateReservations.map((res) => (
+                                    <Link key={res.id} href={`/reservations/${res.id}`} className="card-hover block rounded-xl p-4"
+                                        style={{ background: 'rgba(255, 199, 69, 0.05)', border: '1px solid rgba(255, 199, 69, 0.15)' }}>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <h4 className="font-medium mb-2" style={{ color: '#ffffff' }}>{res.customer_name}</h4>
+                                                <div className="space-y-1">
+                                                    {res.customer_mail && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                            {res.customer_mail}
+                                                        </div>
+                                                    )}
+                                                    {res.customer_phone && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                            {res.customer_phone}
+                                                        </div>
+                                                    )}
+                                                    {res.date && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Clock className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                            {new Date(res.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: '#FFC745' }} />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );

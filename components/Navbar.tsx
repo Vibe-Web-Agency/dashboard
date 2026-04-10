@@ -4,8 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-    Home,
-    Calendar,
     CalendarDays,
     FileText,
     BarChart3,
@@ -20,12 +18,52 @@ import {
     UserSquare2,
     Clapperboard,
     Star,
+    Contact,
+    MessageCircle,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, type FeatureKey } from "@/lib/businessConfig";
+
+function useUnreadMessagesCount(businessId: string | null | undefined) {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        if (!businessId) return;
+
+        const fetchCount = async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data } = await (supabase as any)
+                .from("tickets")
+                .select("id, ticket_messages(sender, created_at)")
+                .eq("business_id", businessId)
+                .neq("status", "resolved");
+
+            if (!data) return;
+            let c = 0;
+            for (const ticket of data) {
+                const msgs = (ticket.ticket_messages as { sender: string; created_at: string }[]);
+                if (!msgs || msgs.length === 0) continue;
+                const last = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).at(-1);
+                if (last?.sender === "admin") c++;
+            }
+            setCount(c);
+        };
+
+        fetchCount();
+
+        const channel = supabase
+            .channel(`navbar-messages-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "ticket_messages" }, fetchCount)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [businessId]);
+
+    return count;
+}
 
 function usePendingQuotesCount(businessId: string | null | undefined) {
     const [count, setCount] = useState(0);
@@ -137,10 +175,10 @@ export default function Navbar() {
     const features: FeatureKey[] = userProfile?.business_type?.features ?? ALL_FEATURES;
 
     const ALL_NAV_ITEMS: { key: FeatureKey; title: string; href: string; icon: React.ElementType }[] = [
-        { key: "calendar", title: "Calendrier", href: "/calendar", icon: Calendar },
-        { key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
+{ key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
         { key: "quotes", title: "Devis", href: "/quotes", icon: FileText },
         { key: "reviews", title: "Avis", href: "/reviews", icon: Star },
+        { key: "clients", title: "Clients", href: "/clients", icon: Contact },
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
         { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
         { key: "projects", title: "Projets", href: "/projects", icon: Clapperboard },
@@ -148,12 +186,13 @@ export default function Navbar() {
     ];
 
     const navItems = [
-        { title: "Accueil", href: "/", icon: Home },
         ...ALL_NAV_ITEMS.filter(item => features.includes(item.key)),
+        { title: "Messages", href: "/messages", icon: MessageCircle },
     ];
     const pendingQuotes = usePendingQuotesCount(userProfile?.business_id);
     const todayReservations = useTodayReservationsCount(userProfile?.business_id);
     const unrepliedReviews = useUnrepliedReviewsCount(userProfile?.business_id);
+    const unreadMessages = useUnreadMessagesCount(userProfile?.business_id);
 
     // Fermer le menu mobile lors d'un changement de route
     useEffect(() => {
@@ -256,6 +295,10 @@ export default function Navbar() {
                                         style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
                                         {unrepliedReviews}
                                     </span>
+                                )}
+                                {item.href === "/messages" && unreadMessages > 0 && (
+                                    <span className="ml-1 w-2 h-2 rounded-full shrink-0"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745" }} />
                                 )}
                             </Link>
                         );
@@ -395,6 +438,10 @@ export default function Navbar() {
                                         style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
                                         {unrepliedReviews}
                                     </span>
+                                )}
+                                {item.href === "/messages" && unreadMessages > 0 && (
+                                    <span className="ml-auto w-2 h-2 rounded-full shrink-0"
+                                        style={{ background: isActive ? "#001C1C" : "#FFC745" }} />
                                 )}
                             </Link>
                         );
