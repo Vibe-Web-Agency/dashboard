@@ -20,7 +20,6 @@ import {
     Star,
     Contact,
     MessageCircle,
-    CreditCard,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -189,7 +188,6 @@ export default function Navbar() {
     const navItems = [
         ...ALL_NAV_ITEMS.filter(item => features.includes(item.key)),
         { title: "Support", href: "/messages", icon: MessageCircle },
-        { title: "Facturation", href: "/billing", icon: CreditCard },
     ];
     const pendingQuotes = usePendingQuotesCount(userProfile?.business_id);
     const todayReservations = useTodayReservationsCount(userProfile?.business_id);

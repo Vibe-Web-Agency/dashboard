@@ -29,6 +29,39 @@ interface GroupedReservations {
 
 type Tab = "upcoming" | "history" | "calendar";
 
+const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
+    scheduled: { label: "Planifié",  bg: "rgba(255,199,69,0.1)",  color: "#FFC745" },
+    attended:  { label: "Venu",      bg: "rgba(0,255,145,0.1)",   color: "#00ff91" },
+    no_show:   { label: "No Show",   bg: "rgba(239,68,68,0.1)",   color: "#f87171" },
+};
+
+function StatusButtons({ id, status, onUpdate }: { id: string; status: string; onUpdate: (id: string, status: string, e: React.MouseEvent) => void }) {
+    const current = STATUS_CONFIG[status] || STATUS_CONFIG.scheduled;
+    return (
+        <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
+                style={{ background: current.bg, color: current.color }}>
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: current.color }} />
+                {current.label}
+            </span>
+            {status !== "attended" && (
+                <button onClick={e => onUpdate(id, "attended", e)}
+                    className="text-xs px-2 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{ background: "rgba(0,255,145,0.08)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}>
+                    Venu
+                </button>
+            )}
+            {status !== "no_show" && (
+                <button onClick={e => onUpdate(id, "no_show", e)}
+                    className="text-xs px-2 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{ background: "rgba(239,68,68,0.08)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                    No Show
+                </button>
+            )}
+        </div>
+    );
+}
+
 export default function ReservationsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [tab, setTab] = useState<Tab>("upcoming");
@@ -134,6 +167,13 @@ export default function ReservationsPage() {
             fetchAll();
         }
         setCreating(false);
+    };
+
+    const updateStatus = async (id: string, status: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await supabase.from("reservations").update({ status }).eq("id", id);
+        fetchAll();
     };
 
     const formatDateHeader = (dateString: string) => {
@@ -520,11 +560,8 @@ export default function ReservationsPage() {
                                                             <p className="text-sm mt-3 italic" style={{ color: '#a1a1aa' }}>&quot;{reservation.message}&quot;</p>
                                                         )}
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium" style={{ background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745' }}>
-                                                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#FFC745' }} />
-                                                            Planifié
-                                                        </span>
+                                                    <div className="flex items-center gap-2" onClick={e => e.preventDefault()}>
+                                                        <StatusButtons id={reservation.id} status={reservation.status} onUpdate={updateStatus} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -576,6 +613,9 @@ export default function ReservationsPage() {
                                         {res.customer_mail && (
                                             <p className="text-sm truncate hidden sm:block max-w-[200px]" style={{ color: '#a1a1aa' }}>{res.customer_mail}</p>
                                         )}
+                                        <div onClick={e => e.preventDefault()}>
+                                            <StatusButtons id={res.id} status={res.status} onUpdate={updateStatus} />
+                                        </div>
                                     </div>
                                 </div>
                             </Link>

@@ -16,7 +16,6 @@ interface Reservation {
     date: string | null;
     message: string | null;
     status: string;
-    attended: boolean | null;
     created_at: string;
 }
 
@@ -29,7 +28,7 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [updatingAttended, setUpdatingAttended] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
         const getParams = async () => {
@@ -73,17 +72,17 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
         });
     };
 
-    const toggleAttended = async (value: boolean) => {
-        setUpdatingAttended(true);
+    const updateStatus = async (status: string) => {
+        setUpdatingStatus(true);
         const { error } = await supabase
             .from("reservations")
-            .update({ attended: value })
+            .update({ status })
             .eq("id", reservationId);
 
         if (!error) {
-            setReservation(prev => prev ? { ...prev, attended: value } : null);
+            setReservation(prev => prev ? { ...prev, status } : null);
         }
-        setUpdatingAttended(false);
+        setUpdatingStatus(false);
     };
 
     const deleteReservation = async () => {
@@ -265,45 +264,45 @@ export default function ReservationDetailPage({ params }: { params: Promise<{ id
                     )}
                 </div>
 
-                {/* Présence — seulement si réservation passée */}
-                {reservation.date && new Date(reservation.date) < new Date() && (
-                    <div
-                        className="p-4 rounded-lg mt-4"
-                        style={{ background: 'rgba(0, 255, 145, 0.03)', border: '1px solid rgba(0, 255, 145, 0.1)' }}
-                    >
-                        <p className="text-sm font-medium mb-3" style={{ color: '#c3c3d4' }}>
-                            Présence du client
-                        </p>
-                        <div className="flex gap-3">
+                {/* Statut de présence */}
+                <div className="p-4 rounded-lg mt-4"
+                    style={{ background: 'rgba(0, 255, 145, 0.03)', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: '#c3c3d4' }}>Statut de présence</p>
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={() => updateStatus("attended")}
+                            disabled={updatingStatus}
+                            className="flex-1 flex items-center justify-center gap-2"
+                            style={reservation.status === "attended"
+                                ? { background: 'linear-gradient(135deg, #00ff91, #00cc73)', color: '#001C1C', fontWeight: 600 }
+                                : { background: 'rgba(0,255,145,0.08)', color: '#00ff91', border: '1px solid rgba(0,255,145,0.2)' }}
+                        >
+                            <UserCheck className="w-4 h-4" />
+                            Venu
+                        </Button>
+                        <Button
+                            onClick={() => updateStatus("no_show")}
+                            disabled={updatingStatus}
+                            className="flex-1 flex items-center justify-center gap-2"
+                            style={reservation.status === "no_show"
+                                ? { background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff', fontWeight: 600 }
+                                : { background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+                        >
+                            <UserX className="w-4 h-4" />
+                            No Show
+                        </Button>
+                        {reservation.status !== "scheduled" && (
                             <Button
-                                onClick={() => toggleAttended(true)}
-                                disabled={updatingAttended}
+                                onClick={() => updateStatus("scheduled")}
+                                disabled={updatingStatus}
                                 className="flex-1 flex items-center justify-center gap-2"
-                                style={
-                                    reservation.attended === true
-                                        ? { background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#ffffff', fontWeight: 600 }
-                                        : { background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.3)' }
-                                }
+                                style={{ background: 'rgba(255,199,69,0.08)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }}
                             >
-                                <UserCheck className="w-4 h-4" />
-                                Présent
+                                Planifié
                             </Button>
-                            <Button
-                                onClick={() => toggleAttended(false)}
-                                disabled={updatingAttended}
-                                className="flex-1 flex items-center justify-center gap-2"
-                                style={
-                                    reservation.attended === false
-                                        ? { background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff', fontWeight: 600 }
-                                        : { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }
-                                }
-                            >
-                                <UserX className="w-4 h-4" />
-                                Absent
-                            </Button>
-                        </div>
+                        )}
                     </div>
-                )}
+                </div>
 
                 {/* Danger Zone */}
                 <div

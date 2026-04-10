@@ -3,9 +3,10 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState, useMemo } from "react";
-import { Search, X, Download, ChevronDown, ChevronUp, FileText, CalendarDays, Star } from "lucide-react";
+import { Search, X, Download, ChevronDown, ChevronUp, FileText, CalendarDays, Star, Megaphone, Send, Loader2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Quote {
@@ -110,6 +111,13 @@ export default function ClientsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
+    const [showCampaignModal, setShowCampaignModal] = useState(false);
+    const [campaignSubject, setCampaignSubject] = useState("");
+    const [campaignBody, setCampaignBody] = useState("");
+    const [sending, setSending] = useState(false);
+    const [campaignResult, setCampaignResult] = useState<{ sent: number; total: number } | null>(null);
+    const [campaignError, setCampaignError] = useState<string | null>(null);
+
     useEffect(() => {
         if (profileLoading) return;
         if (!profile?.business_id) { setLoading(false); return; }
@@ -145,6 +153,29 @@ export default function ClientsPage() {
             c.phone?.toLowerCase().includes(q)
         );
     }, [clients, searchQuery]);
+
+    const recipientCount = clients.filter(c => c.email).length;
+
+    const handleSendCampaign = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSending(true);
+        setCampaignError(null);
+        setCampaignResult(null);
+        const res = await fetch("/api/campaigns/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subject: campaignSubject, body: campaignBody }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            setCampaignError(data.error || "Erreur lors de l'envoi");
+        } else {
+            setCampaignResult({ sent: data.sent, total: data.total });
+            setCampaignSubject("");
+            setCampaignBody("");
+        }
+        setSending(false);
+    };
 
     const exportCSV = () => {
         const headers = ["Nom", "Email", "Téléphone", "Devis", "Réservations", "Avis", "Premier contact", "Dernier contact"];
@@ -200,6 +231,14 @@ export default function ClientsPage() {
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <Button
+                        onClick={() => { setShowCampaignModal(true); setCampaignResult(null); setCampaignError(null); }}
+                        className="flex items-center gap-2"
+                        style={{ background: '#FFC745', color: '#001C1C' }}
+                    >
+                        <Megaphone className="w-4 h-4" />
+                        <span className="hidden sm:inline">Campagne email</span>
+                    </Button>
+                    <Button
                         onClick={exportCSV}
                         variant="outline"
                         className="flex items-center gap-2"
@@ -224,13 +263,13 @@ export default function ClientsPage() {
             {!loading && clients.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                        { label: "Total clients", value: clients.length},
-                        { label: "Avec email", value: clients.filter(c => c.email).length},
+                        { label: "Total clients", value: clients.length },
+                        { label: "Avec email", value: clients.filter(c => c.email).length },
                         { label: "Avec réservation", value: clients.filter(c => c.reservations.length > 0).length },
-                        { label: "Ont laissé un avis", value: clients.filter(c => c.reviews.length > 0).length},
-                    ].map(({ label, value }) => (
-                        <div key={label} className="rounded-xl p-4" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                            <p className="text-xl font-bold" style={{ color: '#ffffff' }}> {value}</p>
+                        { label: "No Shows", value: clients.reduce((sum, c) => sum + c.reservations.filter(r => r.status === "no_show").length, 0), danger: true },
+                    ].map(({ label, value, danger }) => (
+                        <div key={label} className="rounded-xl p-4" style={{ background: '#002928', border: `1px solid ${danger ? 'rgba(239,68,68,0.2)' : 'rgba(0, 255, 145, 0.1)'}` }}>
+                            <p className="text-xl font-bold" style={{ color: danger ? '#f87171' : '#ffffff' }}>{value}</p>
                             <p className="text-xs mt-1" style={{ color: '#a1a1aa' }}>{label}</p>
                         </div>
                     ))}
@@ -277,6 +316,7 @@ export default function ClientsPage() {
                     {filtered.map((client) => {
                         const isExpanded = expandedKey === client.key;
                         const total = client.quotes.length + client.reservations.length + client.reviews.length;
+                        const noShows = client.reservations.filter(r => r.status === "no_show").length;
                         return (
                             <div key={client.key} className="rounded-xl overflow-hidden" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
                                 {/* Row */}
@@ -314,6 +354,12 @@ export default function ClientsPage() {
                                                 style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
                                                 <Star className="w-3 h-3" />
                                                 {client.reviews.length}
+                                            </span>
+                                        )}
+                                        {noShows > 0 && (
+                                            <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                                                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                                                {noShows} no show{noShows > 1 ? 's' : ''}
                                             </span>
                                         )}
                                         <span className="flex sm:hidden text-xs px-2.5 py-1 rounded-full"
@@ -383,18 +429,26 @@ export default function ClientsPage() {
                                                     Réservations ({client.reservations.length})
                                                 </p>
                                                 <div className="flex flex-col gap-2">
-                                                    {client.reservations.map((r) => (
-                                                        <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                                                            style={{ background: 'rgba(0, 255, 145, 0.04)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
-                                                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
-                                                                {r.date ? new Date(r.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Date non spécifiée"}
-                                                            </p>
-                                                            <span className="text-xs px-2 py-0.5 rounded-full shrink-0"
-                                                                style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745' }}>
-                                                                {r.status}
-                                                            </span>
-                                                        </div>
-                                                    ))}
+                                                    {client.reservations.map((r) => {
+                                                        const statusMap: Record<string, { label: string; bg: string; color: string }> = {
+                                                            scheduled: { label: "Planifié",  bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
+                                                            attended:  { label: "Venu",      bg: "rgba(0,255,145,0.1)",    color: "#00ff91" },
+                                                            no_show:   { label: "No Show",   bg: "rgba(239,68,68,0.1)",    color: "#f87171" },
+                                                        };
+                                                        const s = statusMap[r.status] || statusMap.scheduled;
+                                                        return (
+                                                            <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                                                                style={{ background: 'rgba(0, 255, 145, 0.04)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
+                                                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                                                    {r.date ? new Date(r.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Date non spécifiée"}
+                                                                </p>
+                                                                <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
+                                                                    style={{ background: s.bg, color: s.color }}>
+                                                                    {s.label}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
@@ -428,6 +482,90 @@ export default function ClientsPage() {
                     })}
                 </div>
             )}
+
+            {/* Modale campagne */}
+            {showCampaignModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+                    onClick={() => !sending && setShowCampaignModal(false)}>
+                    <div className="w-full max-w-lg rounded-2xl p-6 space-y-5"
+                        style={{ background: 'rgba(0,41,40,0.98)', border: '1px solid rgba(0,255,145,0.15)' }}
+                        onClick={e => e.stopPropagation()}>
+
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-lg font-bold" style={{ color: '#FFC745' }}>Campagne email</h2>
+                                <p className="text-xs mt-0.5" style={{ color: '#71717a' }}>
+                                    {recipientCount} destinataire{recipientCount !== 1 ? 's' : ''} disponible{recipientCount !== 1 ? 's' : ''}
+                                </p>
+                            </div>
+                            <button onClick={() => setShowCampaignModal(false)} disabled={sending}
+                                style={{ color: '#71717a' }}>
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {campaignResult ? (
+                            <div className="text-center py-6 space-y-3">
+                                <CheckCircle className="w-12 h-12 mx-auto" style={{ color: '#00ff91' }} />
+                                <p className="font-semibold" style={{ color: '#e4e4e7' }}>
+                                    {campaignResult?.sent} email{(campaignResult?.sent ?? 0) > 1 ? 's' : ''} envoyé{(campaignResult?.sent ?? 0) > 1 ? 's' : ''} sur {campaignResult?.total}
+                                </p>
+                                <Button onClick={() => setShowCampaignModal(false)}
+                                    className="w-full" style={{ background: '#FFC745', color: '#001C1C' }}>
+                                    Fermer
+                                </Button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSendCampaign} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label style={{ color: '#c3c3d4' }}>Objet</Label>
+                                    <Input
+                                        value={campaignSubject}
+                                        onChange={e => setCampaignSubject(e.target.value)}
+                                        placeholder="Ex: Promotion -20% ce weekend 🎉"
+                                        required
+                                        disabled={sending}
+                                        style={{ background: 'rgba(0,255,145,0.05)', border: '1px solid rgba(0,255,145,0.1)', color: '#ffffff' }}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label style={{ color: '#c3c3d4' }}>Message</Label>
+                                    <textarea
+                                        value={campaignBody}
+                                        onChange={e => setCampaignBody(e.target.value)}
+                                        placeholder={"Bonjour,\n\nNous avons une offre spéciale pour vous..."}
+                                        required
+                                        disabled={sending}
+                                        rows={6}
+                                        className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-[rgba(0,255,145,0.3)]"
+                                        style={{ background: 'rgba(0,255,145,0.05)', border: '1px solid rgba(0,255,145,0.1)', color: '#ffffff' }}
+                                    />
+                                </div>
+                                {campaignError && (
+                                    <p className="text-sm" style={{ color: '#f87171' }}>{campaignError}</p>
+                                )}
+                                <Button type="submit" disabled={sending || !campaignSubject || !campaignBody || recipientCount === 0}
+                                    className="w-full font-semibold py-2.5 disabled:opacity-50"
+                                    style={{ background: '#FFC745', color: '#001C1C' }}>
+                                    {sending ? (
+                                        <span className="flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Envoi en cours...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <Send className="w-4 h-4" />
+                                            Envoyer à {recipientCount} client{recipientCount !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </Button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
