@@ -24,6 +24,8 @@ import {
     Pencil,
     X,
     Clock,
+    CreditCard,
+    ExternalLink,
 } from "lucide-react";
 
 type DayKey = "lundi" | "mardi" | "mercredi" | "jeudi" | "vendredi" | "samedi" | "dimanche";
@@ -75,6 +77,18 @@ export default function SettingsPage() {
     const [passwordError, setPasswordError] = useState<string | null>(null);
 
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [openingPortal, setOpeningPortal] = useState(false);
+    const [portalError, setPortalError] = useState(false);
+
+    const handlePortal = async () => {
+        setOpeningPortal(true);
+        setPortalError(false);
+        const res = await fetch("/api/billing/portal", { method: "POST" });
+        const { url } = await res.json();
+        if (url) window.open(url, "_blank");
+        else setPortalError(true);
+        setOpeningPortal(false);
+    };
     const [loggingOut, setLoggingOut] = useState(false);
 
     const [hours, setHours] = useState<HoursContent>(DEFAULT_HOURS);
@@ -614,6 +628,30 @@ export default function SettingsPage() {
                         )}
                     </Button>
                 </form>
+            </div>
+
+            {/* Facturation */}
+            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0,255,145,0.1)' }}>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,199,69,0.15)' }}>
+                        <CreditCard className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Facturation</h2>
+                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Gérez votre abonnement, vos moyens de paiement et téléchargez vos factures</p>
+                    </div>
+                </div>
+                {portalError && (
+                    <p className="text-sm mb-4 px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                        Aucune facturation active sur ce compte.
+                    </p>
+                )}
+                <Button onClick={handlePortal} disabled={openingPortal}
+                    className="flex items-center gap-2"
+                    style={{ background: 'rgba(255,199,69,0.1)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }}>
+                    <ExternalLink className="w-4 h-4" />
+                    {openingPortal ? "Chargement..." : "Accéder au portail de facturation"}
+                </Button>
             </div>
 
             {/* Danger Zone */}

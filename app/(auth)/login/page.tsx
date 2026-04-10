@@ -51,7 +51,22 @@ export default function LoginPage() {
                 throw error
             }
 
-            router.push("/")
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data: profile } = await (supabase as any)
+                    .from("users")
+                    .select("is_admin")
+                    .eq("dashboard_user_id", user.id)
+                    .single()
+                if (profile?.is_admin) {
+                    router.push("/admin")
+                } else {
+                    router.push("/")
+                }
+            } else {
+                router.push("/")
+            }
             router.refresh()
         } catch (err) {
             setError(err instanceof Error ? err.message : "Une erreur est survenue")

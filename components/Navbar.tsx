@@ -20,6 +20,7 @@ import {
     Star,
     Contact,
     MessageCircle,
+    CreditCard,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -176,7 +177,7 @@ export default function Navbar() {
 
     const ALL_NAV_ITEMS: { key: FeatureKey; title: string; href: string; icon: React.ElementType }[] = [
 { key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
-        { key: "quotes", title: "Devis", href: "/quotes", icon: FileText },
+        { key: "quotes", title: "Messages", href: "/quotes", icon: FileText },
         { key: "reviews", title: "Avis", href: "/reviews", icon: Star },
         { key: "clients", title: "Clients", href: "/clients", icon: Contact },
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -187,7 +188,8 @@ export default function Navbar() {
 
     const navItems = [
         ...ALL_NAV_ITEMS.filter(item => features.includes(item.key)),
-        { title: "Messages", href: "/messages", icon: MessageCircle },
+        { title: "Support", href: "/messages", icon: MessageCircle },
+        { title: "Facturation", href: "/billing", icon: CreditCard },
     ];
     const pendingQuotes = usePendingQuotesCount(userProfile?.business_id);
     const todayReservations = useTodayReservationsCount(userProfile?.business_id);

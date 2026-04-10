@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, Settings, BarChart3, LineChart, MessageCircle } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings, BarChart3, LineChart, MessageCircle, Package } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -53,6 +53,7 @@ export default function AdminNavbar() {
         { title: "Clients", href: "/admin", icon: LayoutDashboard },
         { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
         { title: "Stats clients", href: "/admin/stats", icon: LineChart },
+        { title: "Plans", href: "/admin/plans", icon: Package },
         { title: "Messages", href: "/admin/messages", icon: MessageCircle },
     ];
 
