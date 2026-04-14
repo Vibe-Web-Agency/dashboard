@@ -216,6 +216,7 @@ Enzo`;
     }, {} as Record<string, number>);
 
     return (
+        <>
         <div className="flex flex-col gap-6 max-w-5xl mx-auto">
             {/* Header */}
             <div>
@@ -565,5 +566,83 @@ Enzo`;
                 </>
             )}
         </div>
+
+            {/* Email Modal */}
+            {emailModalProspect && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                    onClick={() => setEmailModalProspect(null)}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4"
+                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-white">Email pour {emailModalProspect.name}</p>
+                                <p className="text-xs mt-0.5" style={{ color: "#a1a1aa" }}>
+                                    Copiez et envoyez via votre client email
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setEmailModalProspect(null)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                                style={{ color: "#a1a1aa" }}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Email text */}
+                        <textarea
+                            readOnly
+                            value={generateEmail(emailModalProspect)}
+                            rows={12}
+                            className="w-full rounded-lg px-3 py-2.5 text-sm outline-none resize-none"
+                            style={{
+                                background: "rgba(0,0,0,0.3)",
+                                border: "1px solid rgba(0,255,145,0.12)",
+                                color: "#e5e5e5",
+                                lineHeight: 1.6,
+                                fontFamily: "monospace",
+                            }}
+                        />
+
+                        {/* Preview link */}
+                        <div
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                            style={{ background: "rgba(255,199,69,0.08)", border: "1px solid rgba(255,199,69,0.15)", color: "#FFC745" }}
+                        >
+                            <Globe className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">
+                                https://vibewebagency.fr/preview/{emailModalProspect.id}
+                            </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => setEmailModalProspect(null)}
+                                className="flex-1 text-sm"
+                                style={{ background: "rgba(0,255,145,0.05)", color: "#c3c3d4", border: "1px solid rgba(0,255,145,0.1)" }}
+                            >
+                                Fermer
+                            </Button>
+                            <Button
+                                onClick={copyEmail}
+                                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold"
+                                style={{ background: copied ? "rgba(0,255,145,0.15)" : "#FFC745", color: copied ? "#00ff91" : "#001C1C" }}
+                            >
+                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copied ? "Copié !" : "Copier l'email"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
