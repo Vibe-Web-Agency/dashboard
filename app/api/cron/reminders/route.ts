@@ -14,12 +14,9 @@ export async function GET(req: NextRequest) {
     const admin = getAdminClient() as any;
 
     // Récupérer tous les RDV de demain (non rappelés, non annulés)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const start = new Date(tomorrow);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(tomorrow);
-    end.setHours(23, 59, 59, 999);
+    const today = new Date();
+    const start = new Date(today); start.setHours(0, 0, 0, 0);
+    const end = new Date(today); end.setHours(23, 59, 59, 999);
 
     const { data: reservations, error } = await admin
         .from("reservations")
@@ -35,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!reservations?.length) {
-        return NextResponse.json({ sent: 0, message: "Aucun RDV demain" });
+        return NextResponse.json({ sent: 0, message: "Aucun RDV aujourd'hui" });
     }
 
     // Récupérer les noms et types des businesses
@@ -73,7 +70,7 @@ export async function GET(req: NextRequest) {
         const customerName = reservation.customer_name || "Client";
         const rdvWordCap = rdvWord.charAt(0).toUpperCase() + rdvWord.slice(1);
 
-        const smsText = `Rappel ${rdvWordCap} 📅 Bonjour ${customerName}, votre ${rdvWord} chez ${businessName} est demain ${dateStr} à ${timeStr}. À bientôt !`;
+        const smsText = `Rappel ${rdvWordCap} 📅 Bonjour ${customerName}, votre ${rdvWord} chez ${businessName} est aujourd'hui à ${timeStr}. À bientôt !`;
 
         try {
             // Envoi SMS si numéro présent
@@ -92,11 +89,11 @@ export async function GET(req: NextRequest) {
                 await resend.emails.send({
                     from: FROM_EMAIL,
                     to: reservation.customer_mail,
-                    subject: reminderEmailSubject(businessName, timeStr, rdvWord),
+                    subject: `Rappel — Votre ${rdvWord} aujourd'hui à ${timeStr} chez ${businessName}`,
                     html: reminderEmailHtml({
                         customerName,
                         businessName,
-                        date: dateStr,
+                        date: `aujourd'hui`,
                         time: timeStr,
                         rdvWord,
                         service: reservation.message || undefined,
