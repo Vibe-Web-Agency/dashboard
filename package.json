@@ -18,6 +18,7 @@
     "@supabase/supabase-js": "^2.87.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "googleapis": "^171.4.0",
     "lucide-react": "^0.560.0",
     "next": "^16.0.10",
     "react": "19.2.1",
