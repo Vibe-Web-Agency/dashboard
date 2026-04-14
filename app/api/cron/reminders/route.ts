@@ -14,9 +14,12 @@ export async function GET(req: NextRequest) {
     const admin = getAdminClient() as any;
 
     // Récupérer tous les RDV de demain (non rappelés, non annulés)
-    const today = new Date();
-    const start = new Date(today); start.setHours(0, 0, 0, 0);
-    const end = new Date(today); end.setHours(23, 59, 59, 999);
+    // UTC+2 (heure française en été)
+    const now = new Date();
+    const offset = 2 * 60 * 60 * 1000;
+    const localNow = new Date(now.getTime() + offset);
+    const start = new Date(localNow); start.setUTCHours(0 - 2, 0, 0, 0);
+    const end = new Date(localNow); end.setUTCHours(23 - 2, 59, 59, 999);
 
     const { data: reservations, error } = await admin
         .from("reservations")
@@ -64,8 +67,9 @@ export async function GET(req: NextRequest) {
 
     for (const reservation of reservations) {
         const rdvDate = new Date(reservation.date);
-        const dateStr = `${DAYS_FR[rdvDate.getDay()]} ${rdvDate.getDate()} ${MONTHS_FR[rdvDate.getMonth()]}`;
-        const timeStr = `${rdvDate.getHours()}h${String(rdvDate.getMinutes()).padStart(2, "0")}`;
+        const rdvLocal = new Date(rdvDate.getTime() + 2 * 60 * 60 * 1000);
+        const dateStr = `${DAYS_FR[rdvLocal.getUTCDay()]} ${rdvLocal.getUTCDate()} ${MONTHS_FR[rdvLocal.getUTCMonth()]}`;
+        const timeStr = `${rdvLocal.getUTCHours()}h${String(rdvLocal.getUTCMinutes()).padStart(2, "0")}`;
         const { name: businessName, rdvWord } = bizMap[reservation.business_id] || { name: "Votre prestataire", rdvWord: "rendez-vous" };
         const customerName = reservation.customer_name || "Client";
         const rdvWordCap = rdvWord.charAt(0).toUpperCase() + rdvWord.slice(1);
