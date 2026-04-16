@@ -59,27 +59,34 @@ const BUSINESS_TYPES = [
 // weekday_text format: "lundi: 09:00 – 18:00" or "lundi: Fermé"
 function isOpenNow(weekdayText: string[] | null): boolean | null {
     if (!weekdayText || weekdayText.length === 0) return null;
-    const now = new Date();
-    // getDay() 0=dim, Google weekday_text 0=lundi...6=dim
-    const dayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+
+    // Extraire les composantes Paris directement via sv-SE (format "YYYY-MM-DD HH:MM:SS")
+    const parisStr = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Paris" });
+    const [datePart, timePart] = parisStr.split(" ");
+    const [h, m] = timePart.split(":").map(Number);
+    const currentMinutes = h * 60 + m;
+    // getDay() sur la date Paris (sv-SE donne YYYY-MM-DD, parseable)
+    const parisDay = new Date(datePart).getDay(); // 0=dim, 1=lun...
+    const dayIndex = parisDay === 0 ? 6 : parisDay - 1; // Google: 0=lun...6=dim
+
     const line = weekdayText[dayIndex];
     if (!line) return null;
     const hoursStr = line.split(": ").slice(1).join(": ").trim();
     if (hoursStr === "Fermé" || hoursStr === "Closed") return false;
     if (hoursStr === "Ouvert en permanence" || hoursStr === "Open 24 hours") return true;
-    // "09:00 – 18:00" or multiple ranges "09:00 – 12:00, 14:00 – 18:00"
+
     const ranges = hoursStr.split(", ");
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
     for (const range of ranges) {
-        const parts = range.split(/\s*[–-]\s*/);
+        const parts = range.split(/\s*[\u2013\u2014-]\s*/); // en-dash, em-dash, hyphen
         if (parts.length !== 2) continue;
-        const [startStr, endStr] = parts;
         const toMin = (s: string) => {
-            const [h, m] = s.trim().split(":").map(Number);
-            return h * 60 + (m || 0);
+            const clean = s.trim().replace(/\u00a0/g, ""); // remove non-breaking spaces
+            const [hh, mm] = clean.split(":").map(Number);
+            return hh * 60 + (mm || 0);
         };
-        const start = toMin(startStr);
-        const end = toMin(endStr);
+        const start = toMin(parts[0]);
+        const end = toMin(parts[1]);
+        if (isNaN(start) || isNaN(end)) continue;
         if (end < start) { // overnight
             if (currentMinutes >= start || currentMinutes < end) return true;
         } else {
@@ -113,6 +120,8 @@ export default function ProspectsPage() {
     const [emailModalProspect, setEmailModalProspect] = useState<Prospect | null>(null);
     const [copied, setCopied] = useState(false);
     const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
+    const [backfilling, setBackfilling] = useState(false);
+    const [backfillResult, setBackfillResult] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProspects();
@@ -214,6 +223,20 @@ Vous pouvez avoir un aperçu du site ici : ${previewUrl}
 Si ça vous intéresse, vous pouvez me contacter au 0651483757 ou sur https://vibewebagency.fr
 
 Enzo`;
+    };
+
+    const backfillHours = async () => {
+        setBackfilling(true);
+        setBackfillResult(null);
+        const res = await fetch("/api/admin/prospects/backfill-hours", { method: "POST" });
+        const data = await res.json();
+        if (data.updated !== undefined) {
+            setBackfillResult(`${data.updated} prospect${data.updated > 1 ? "s" : ""} mis à jour`);
+            if (data.updated > 0) fetchProspects();
+        } else {
+            setBackfillResult(data.reason ?? data.error ?? "Erreur");
+        }
+        setBackfilling(false);
     };
 
     const copyPreviewLink = async (id: string) => {
@@ -453,7 +476,19 @@ Enzo`;
                 <>
                     {/* Export button */}
                     {prospects.length > 0 && (
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                            {backfillResult && (
+                                <span className="text-xs" style={{ color: "#a1a1aa" }}>{backfillResult}</span>
+                            )}
+                            <Button
+                                onClick={backfillHours}
+                                disabled={backfilling}
+                                className="flex items-center gap-2 text-sm"
+                                style={{ background: "rgba(255,199,69,0.08)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
+                            >
+                                {backfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                                Récupérer les horaires
+                            </Button>
                             <Button
                                 onClick={exportCSV}
                                 className="flex items-center gap-2 text-sm"
@@ -542,16 +577,29 @@ Enzo`;
                                                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                                     {prospect.address}
                                                 </p>
-                                                {prospect.phone && (
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    {prospect.phone && (
+                                                        <a
+                                                            href={`tel:${prospect.phone}`}
+                                                            className="text-sm flex items-center gap-1 w-fit"
+                                                            style={{ color: "#00ff91" }}
+                                                        >
+                                                            <Phone className="w-3.5 h-3.5 shrink-0" />
+                                                            {prospect.phone}
+                                                        </a>
+                                                    )}
                                                     <a
-                                                        href={`tel:${prospect.phone}`}
-                                                        className="text-sm flex items-center gap-1 mb-0.5 w-fit"
-                                                        style={{ color: "#00ff91" }}
+                                                        href={`https://www.google.com/maps/place/?q=place_id:${prospect.place_id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        title="Voir la fiche Google"
+                                                        className="text-xs flex items-center gap-0.5"
+                                                        style={{ color: "#71717a" }}
                                                     >
-                                                        <Phone className="w-3.5 h-3.5 shrink-0" />
-                                                        {prospect.phone}
+                                                        <MapPin className="w-3 h-3" />
+                                                        Maps
                                                     </a>
-                                                )}
+                                                </div>
                                                 {prospect.notes && !isEditing && (
                                                     <p className="text-sm mt-2 italic" style={{ color: "#c3c3d4" }}>
                                                         &quot;{prospect.notes}&quot;
