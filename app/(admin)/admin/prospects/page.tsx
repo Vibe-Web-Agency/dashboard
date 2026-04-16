@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, BookmarkPlus, BookmarkCheck, Star, MapPin, Phone, Globe, Trash2, StickyNote, ChevronRight, Download, Mail, Copy, Check, X } from "lucide-react";
+import { Search, Loader2, BookmarkPlus, BookmarkCheck, Star, MapPin, Phone, Globe, Trash2, StickyNote, ChevronRight, Download, Mail, Copy, Check, X, Eye, Link } from "lucide-react";
 
 interface PlaceResult {
     place_id: string;
@@ -27,6 +27,8 @@ interface Prospect {
     status: ProspectStatus;
     notes: string | null;
     created_at: string;
+    preview_open_count: number | null;
+    preview_opened_at: string | null;
 }
 
 type ProspectStatus = "nouveau" | "contacté" | "en_discussion" | "signé" | "perdu";
@@ -75,6 +77,7 @@ export default function ProspectsPage() {
 
     const [emailModalProspect, setEmailModalProspect] = useState<Prospect | null>(null);
     const [copied, setCopied] = useState(false);
+    const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProspects();
@@ -176,6 +179,12 @@ Vous pouvez avoir un aperçu du site ici : ${previewUrl}
 Si ça vous intéresse, vous pouvez me contacter au 0651483757 ou sur https://vibewebagency.fr
 
 Enzo`;
+    };
+
+    const copyPreviewLink = async (id: string) => {
+        await navigator.clipboard.writeText(`https://vibewebagency.fr/preview/${id}`);
+        setCopiedLinkId(id);
+        setTimeout(() => setCopiedLinkId(null), 2000);
     };
 
     const copyEmail = async () => {
@@ -471,11 +480,27 @@ Enzo`;
                                                             {prospect.rating}
                                                         </span>
                                                     )}
+                                                    {(prospect.preview_open_count ?? 0) > 0 && (
+                                                        <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91" }}>
+                                                            <Eye className="w-3 h-3" />
+                                                            {prospect.preview_open_count}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <p className="text-sm flex items-start gap-1 mb-1" style={{ color: "#a1a1aa" }}>
+                                                <p className="text-sm flex items-start gap-1 mb-0.5" style={{ color: "#a1a1aa" }}>
                                                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                                     {prospect.address}
                                                 </p>
+                                                {prospect.phone && (
+                                                    <a
+                                                        href={`tel:${prospect.phone}`}
+                                                        className="text-sm flex items-center gap-1 mb-0.5 w-fit"
+                                                        style={{ color: "#00ff91" }}
+                                                    >
+                                                        <Phone className="w-3.5 h-3.5 shrink-0" />
+                                                        {prospect.phone}
+                                                    </a>
+                                                )}
                                                 {prospect.notes && !isEditing && (
                                                     <p className="text-sm mt-2 italic" style={{ color: "#c3c3d4" }}>
                                                         &quot;{prospect.notes}&quot;
@@ -483,6 +508,14 @@ Enzo`;
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
+                                                <button
+                                                    onClick={() => copyPreviewLink(prospect.id)}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                                                    style={{ color: copiedLinkId === prospect.id ? "#00ff91" : "#a1a1aa" }}
+                                                    title="Copier le lien preview"
+                                                >
+                                                    {copiedLinkId === prospect.id ? <Check className="w-4 h-4" /> : <Link className="w-4 h-4" />}
+                                                </button>
                                                 <button
                                                     onClick={() => { setEmailModalProspect(prospect); setCopied(false); }}
                                                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
