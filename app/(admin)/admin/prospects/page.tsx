@@ -491,7 +491,7 @@ Enzo`;
                                 style={{ background: "rgba(255,199,69,0.08)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
                             >
                                 {backfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-                                Récupérer les horaires
+                                Synchroniser (tél. + horaires)
                             </Button>
                             <Button
                                 onClick={exportCSV}
