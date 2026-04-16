@@ -13,6 +13,7 @@ interface PlaceResult {
     phone: string | null;
     website: string | null;
     has_website: boolean | null;
+    opening_hours: string[] | null;
 }
 
 interface Prospect {
@@ -29,6 +30,7 @@ interface Prospect {
     created_at: string;
     preview_open_count: number | null;
     preview_opened_at: string | null;
+    opening_hours: string[] | null;
 }
 
 type ProspectStatus = "nouveau" | "contacté" | "en_discussion" | "signé" | "perdu";
@@ -53,6 +55,39 @@ const BUSINESS_TYPES = [
     { value: "agence immobilière", label: "Agence immobilière" },
     { value: "boutique", label: "Boutique" },
 ];
+
+// weekday_text format: "lundi: 09:00 – 18:00" or "lundi: Fermé"
+function isOpenNow(weekdayText: string[] | null): boolean | null {
+    if (!weekdayText || weekdayText.length === 0) return null;
+    const now = new Date();
+    // getDay() 0=dim, Google weekday_text 0=lundi...6=dim
+    const dayIndex = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const line = weekdayText[dayIndex];
+    if (!line) return null;
+    const hoursStr = line.split(": ").slice(1).join(": ").trim();
+    if (hoursStr === "Fermé" || hoursStr === "Closed") return false;
+    if (hoursStr === "Ouvert en permanence" || hoursStr === "Open 24 hours") return true;
+    // "09:00 – 18:00" or multiple ranges "09:00 – 12:00, 14:00 – 18:00"
+    const ranges = hoursStr.split(", ");
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    for (const range of ranges) {
+        const parts = range.split(/\s*[–-]\s*/);
+        if (parts.length !== 2) continue;
+        const [startStr, endStr] = parts;
+        const toMin = (s: string) => {
+            const [h, m] = s.trim().split(":").map(Number);
+            return h * 60 + (m || 0);
+        };
+        const start = toMin(startStr);
+        const end = toMin(endStr);
+        if (end < start) { // overnight
+            if (currentMinutes >= start || currentMinutes < end) return true;
+        } else {
+            if (currentMinutes >= start && currentMinutes < end) return true;
+        }
+    }
+    return false;
+}
 
 export default function ProspectsPage() {
     const [query, setQuery] = useState("");
@@ -324,6 +359,7 @@ Enzo`;
                             {results.map(place => {
                                 const isSaved = savedPlaceIds.has(place.place_id);
                                 const isSaving = savingIds.has(place.place_id);
+                                const openStatus = isOpenNow(place.opening_hours ?? null);
                                 return (
                                     <div
                                         key={place.place_id}
@@ -338,6 +374,13 @@ Enzo`;
                                                         <Star className="w-3 h-3 fill-current" />
                                                         {place.rating}
                                                         {place.user_ratings_total && <span style={{ color: "#a1a1aa" }}>({place.user_ratings_total})</span>}
+                                                    </span>
+                                                )}
+                                                {openStatus !== null && (
+                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium shrink-0" style={openStatus
+                                                        ? { background: "rgba(0,255,145,0.1)", color: "#00ff91" }
+                                                        : { background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
+                                                        {openStatus ? "Ouvert" : "Fermé"}
                                                     </span>
                                                 )}
                                             </div>
@@ -458,6 +501,7 @@ Enzo`;
                             {filteredProspects.map(prospect => {
                                 const cfg = STATUS_CONFIG[prospect.status];
                                 const isEditing = editingId === prospect.id;
+                                const openStatus = isOpenNow(prospect.opening_hours ?? null);
                                 return (
                                     <div
                                         key={prospect.id}
@@ -478,6 +522,13 @@ Enzo`;
                                                         <span className="flex items-center gap-1 text-xs" style={{ color: "#FFC745" }}>
                                                             <Star className="w-3 h-3 fill-current" />
                                                             {prospect.rating}
+                                                        </span>
+                                                    )}
+                                                    {openStatus !== null && (
+                                                        <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={openStatus
+                                                            ? { background: "rgba(0,255,145,0.1)", color: "#00ff91" }
+                                                            : { background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
+                                                            {openStatus ? "Ouvert" : "Fermé"}
                                                         </span>
                                                     )}
                                                     {(prospect.preview_open_count ?? 0) > 0 && (

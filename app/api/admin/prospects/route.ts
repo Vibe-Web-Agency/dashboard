@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
             business_type: body.business_type,
             city: body.city,
             status: "nouveau",
+            opening_hours: body.opening_hours ?? null,
         }, { onConflict: "place_id", ignoreDuplicates: true })
         .select()
         .single();

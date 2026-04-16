@@ -10,14 +10,15 @@ interface GooglePlace {
     types?: string[];
 }
 
-async function getPlaceDetails(placeId: string, apiKey: string): Promise<{ hasWebsite: boolean; website: string | null; phone: string | null }> {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website,formatted_phone_number&key=${apiKey}`;
+async function getPlaceDetails(placeId: string, apiKey: string): Promise<{ hasWebsite: boolean; website: string | null; phone: string | null; opening_hours: string[] | null }> {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=website,formatted_phone_number,opening_hours&key=${apiKey}`;
     const res = await fetch(url);
     const data = await res.json();
     return {
         hasWebsite: !!data.result?.website,
         website: data.result?.website ?? null,
         phone: data.result?.formatted_phone_number ?? null,
+        opening_hours: data.result?.opening_hours?.weekday_text ?? null,
     };
 }
 
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest) {
                 phone: details[i].phone,
                 website: null,
                 has_website: false,
+                opening_hours: details[i].opening_hours,
             }));
     } else {
         const details = await Promise.all(
@@ -89,6 +91,7 @@ export async function GET(req: NextRequest) {
             phone: details[i].phone,
             website: details[i].website,
             has_website: details[i].hasWebsite,
+            opening_hours: details[i].opening_hours,
         }));
     }
 
