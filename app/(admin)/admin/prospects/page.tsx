@@ -111,6 +111,7 @@ export default function ProspectsPage() {
 
     const [activeTab, setActiveTab] = useState<"search" | "saved">("search");
     const [filterStatus, setFilterStatus] = useState<ProspectStatus | "all">("all");
+    const [filterCategory, setFilterCategory] = useState<string>("all");
 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editNotes, setEditNotes] = useState("");
@@ -202,9 +203,12 @@ export default function ProspectsPage() {
 
     const savedPlaceIds = new Set(prospects.map(p => p.place_id));
 
-    const filteredProspects = filterStatus === "all"
-        ? prospects
-        : prospects.filter(p => p.status === filterStatus);
+    const categories = Array.from(new Set(prospects.map(p => p.business_type).filter(Boolean))).sort();
+
+    const filteredProspects = prospects.filter(p =>
+        (filterStatus === "all" || p.status === filterStatus) &&
+        (filterCategory === "all" || p.business_type === filterCategory)
+    );
 
     const generateEmail = (p: Prospect) => {
         const metier = p.business_type || "professionnel";
@@ -524,6 +528,33 @@ Enzo`;
                             </button>
                         ))}
                     </div>
+
+                    {/* Category filter */}
+                    {categories.length > 1 && (
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setFilterCategory("all")}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                                style={filterCategory === "all"
+                                    ? { background: "rgba(0,255,145,0.2)", color: "#00ff91" }
+                                    : { background: "rgba(255,255,255,0.05)", color: "#c3c3d4" }}
+                            >
+                                Toutes catégories
+                            </button>
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setFilterCategory(cat)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize"
+                                    style={filterCategory === cat
+                                        ? { background: "rgba(0,255,145,0.2)", color: "#00ff91" }
+                                        : { background: "rgba(255,255,255,0.05)", color: "#c3c3d4" }}
+                                >
+                                    {cat} ({prospects.filter(p => p.business_type === cat).length})
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Prospects list */}
                     {filteredProspects.length === 0 ? (
