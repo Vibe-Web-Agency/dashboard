@@ -1,14 +1,5 @@
-import { Document, Page, Text, View, StyleSheet, Image, Font } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { ReportStats, formatDuration, delta } from "@/lib/reportStats";
-
-// Enregistrer une police système
-Font.register({
-    family: "Inter",
-    fonts: [
-        { src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2" },
-        { src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuGKYAZ9hiA.woff2", fontWeight: 700 },
-    ],
-});
 
 const C = {
     bg: "#0a0f0a",
@@ -23,28 +14,28 @@ const C = {
 };
 
 const s = StyleSheet.create({
-    page: { backgroundColor: C.bg, padding: 40, fontFamily: "Inter", color: C.text },
+    page: { backgroundColor: C.bg, padding: 40, fontFamily: "Helvetica", color: C.text },
     // Header
     header: { marginBottom: 32 },
     headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 },
     badge: { backgroundColor: "#001C1C", borderWidth: 1, borderColor: "#1a3a2a", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6 },
-    badgeText: { color: C.gold, fontSize: 11, fontWeight: 700 },
-    title: { fontSize: 26, fontWeight: 700, color: C.white, marginBottom: 4 },
+    badgeText: { color: C.gold, fontSize: 11, fontFamily: "Helvetica-Bold" },
+    title: { fontSize: 26, fontFamily: "Helvetica-Bold", color: C.white, marginBottom: 4 },
     subtitle: { fontSize: 11, color: C.muted },
     divider: { height: 1, backgroundColor: C.border, marginVertical: 20 },
     // Stats grid
     statsRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
     statCard: { flex: 1, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 14 },
     statLabel: { fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
-    statValue: { fontSize: 22, fontWeight: 700, color: C.white, marginBottom: 4 },
+    statValue: { fontSize: 22, fontFamily: "Helvetica-Bold", color: C.white, marginBottom: 4 },
     statDelta: { fontSize: 9 },
     // Chart
     chartContainer: { marginBottom: 24 },
-    chartTitle: { fontSize: 12, fontWeight: 700, color: C.white, marginBottom: 10 },
+    chartTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: C.white, marginBottom: 10 },
     chartImg: { width: "100%", height: 160, borderRadius: 8 },
     // Table
     tableContainer: { marginBottom: 20 },
-    tableTitle: { fontSize: 12, fontWeight: 700, color: C.white, marginBottom: 8 },
+    tableTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: C.white, marginBottom: 8 },
     tableRow: { flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.border },
     tableRowHeader: { backgroundColor: "#0d1a0d" },
     tableCell: { flex: 1, fontSize: 10, color: C.text },
@@ -52,7 +43,7 @@ const s = StyleSheet.create({
     tableCellRight: { flex: 1, fontSize: 10, color: C.gold, textAlign: "right" },
     // Analysis
     analysisBox: { backgroundColor: "#0d1a0d", borderWidth: 1, borderColor: C.border, borderRadius: 8, padding: 16, marginBottom: 20 },
-    analysisTitle: { fontSize: 11, fontWeight: 700, color: C.gold, marginBottom: 8 },
+    analysisTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: C.gold, marginBottom: 8 },
     analysisBullet: { flexDirection: "row", gap: 6, marginBottom: 5 },
     analysisDot: { fontSize: 10, color: C.gold, marginTop: 1 },
     analysisText: { flex: 1, fontSize: 10, color: C.text, lineHeight: 1.5 },
