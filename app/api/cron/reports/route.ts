@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
             sent++;
         } catch (err) {
             console.error(`Erreur rapport ${biz.name}:`, err);
-            errors.push(biz.name);
+            errors.push(`${biz.name}: ${err instanceof Error ? err.message : String(err)}`);
         }
     }
 
