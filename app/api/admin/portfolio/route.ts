@@ -6,6 +6,16 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+async function revalidatePortfolio() {
+    const url = process.env.VWA_SITE_URL;
+    const secret = process.env.REVALIDATE_SECRET;
+    if (!url || !secret) return;
+    await fetch(`${url}/api/revalidate`, {
+        method: "POST",
+        headers: { "x-revalidate-secret": secret },
+    }).catch(() => { /* silently ignore if site is down */ });
+}
+
 export async function GET() {
     const { data, error } = await supabase
         .from("portfolio_projects")
@@ -33,5 +43,6 @@ export async function POST(req: Request) {
         .select()
         .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await revalidatePortfolio();
     return NextResponse.json({ project: data });
 }
