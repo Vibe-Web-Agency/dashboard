@@ -9,6 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 
+async function revalidateIconik() {
+    try {
+        await fetch("/api/revalidate-iconik", { method: "POST" });
+    } catch { /* silently ignore */ }
+}
+
 interface Project {
     id: string;
     title: string;
@@ -188,6 +194,7 @@ export default function ProjectsPage() {
         }
 
         await fetchAll();
+        await revalidateIconik();
         setSaving(false);
         setShowModal(false);
     };
@@ -196,6 +203,7 @@ export default function ProjectsPage() {
         if (!confirm("Supprimer ce projet ?")) return;
         await supabase.from("projects").delete().eq("id", id);
         setProjects(prev => prev.filter(p => p.id !== id));
+        await revalidateIconik();
         setProjectAssignments(prev => { const n = { ...prev }; delete n[id]; return n; });
     };
 

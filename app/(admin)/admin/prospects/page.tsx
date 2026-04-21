@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, BookmarkPlus, BookmarkCheck, Star, MapPin, Phone, Globe, Trash2, StickyNote, ChevronRight, Download, Mail, Copy, Check, X, Eye, Link } from "lucide-react";
+import { Search, Loader2, BookmarkPlus, BookmarkCheck, Star, MapPin, Phone, Globe, Trash2, StickyNote, ChevronRight, Download, Mail, Copy, Check, X, Eye, Link, MessageSquare } from "lucide-react";
 
 interface PlaceResult {
     place_id: string;
@@ -119,7 +119,9 @@ export default function ProspectsPage() {
     const [saving, setSaving] = useState(false);
 
     const [emailModalProspect, setEmailModalProspect] = useState<Prospect | null>(null);
+    const [smsModalProspect, setSmsModalProspect] = useState<Prospect | null>(null);
     const [copied, setCopied] = useState(false);
+    const [copiedSms, setCopiedSms] = useState(false);
     const [copiedLinkId, setCopiedLinkId] = useState<string | null>(null);
     const [backfilling, setBackfilling] = useState(false);
     const [backfillResult, setBackfillResult] = useState<string | null>(null);
@@ -241,6 +243,27 @@ Enzo`;
             setBackfillResult(data.reason ?? data.error ?? "Erreur");
         }
         setBackfilling(false);
+    };
+
+    const generateSms = (p: Prospect) => {
+        const metier = p.business_type || "votre activité";
+        const ville = p.city || "votre ville";
+        return `Bonjour, je suis Enzo de Vibe Web Agency. J'ai remarqué que ${p.name} n'a pas encore de site web.
+
+Je crée des sites pour les ${metier} à ${ville} en 48h, à partir de 99€/mois tout compris (réservation en ligne, Google, etc.).
+
+Vous pouvez voir un aperçu ici : https://vibewebagency.fr/preview/${p.id}
+
+Dispo pour en parler ? Mon numéro : 06 51 48 37 57
+
+Enzo – Vibe Web Agency`;
+    };
+
+    const copySms = async () => {
+        if (!smsModalProspect) return;
+        await navigator.clipboard.writeText(generateSms(smsModalProspect));
+        setCopiedSms(true);
+        setTimeout(() => setCopiedSms(false), 2000);
     };
 
     const copyPreviewLink = async (id: string) => {
@@ -655,6 +678,14 @@ Enzo`;
                                                     <Mail className="w-4 h-4" />
                                                 </button>
                                                 <button
+                                                    onClick={() => { setSmsModalProspect(prospect); setCopiedSms(false); }}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                                                    style={{ color: "#60a5fa" }}
+                                                    title="Générer le SMS"
+                                                >
+                                                    <MessageSquare className="w-4 h-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => {
                                                         setEditingId(prospect.id);
                                                         setEditStatus(prospect.status);
@@ -729,6 +760,79 @@ Enzo`;
                 </>
             )}
         </div>
+
+            {/* SMS Modal */}
+            {smsModalProspect && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                    onClick={() => setSmsModalProspect(null)}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4"
+                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-semibold text-white">SMS pour {smsModalProspect.name}</p>
+                                <p className="text-xs mt-0.5" style={{ color: "#a1a1aa" }}>
+                                    Copiez et envoyez depuis votre téléphone
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSmsModalProspect(null)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                                style={{ color: "#a1a1aa" }}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <textarea
+                            readOnly
+                            value={generateSms(smsModalProspect)}
+                            rows={9}
+                            className="w-full rounded-lg px-3 py-2.5 text-sm outline-none resize-none"
+                            style={{
+                                background: "rgba(0,0,0,0.3)",
+                                border: "1px solid rgba(96,165,250,0.15)",
+                                color: "#e5e5e5",
+                                lineHeight: 1.6,
+                                fontFamily: "monospace",
+                            }}
+                        />
+
+                        {smsModalProspect.phone && (
+                            <div
+                                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                                style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.15)", color: "#60a5fa" }}
+                            >
+                                <Phone className="w-3.5 h-3.5 shrink-0" />
+                                <span>{smsModalProspect.phone}</span>
+                            </div>
+                        )}
+
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => setSmsModalProspect(null)}
+                                className="flex-1 text-sm"
+                                style={{ background: "rgba(0,255,145,0.05)", color: "#c3c3d4", border: "1px solid rgba(0,255,145,0.1)" }}
+                            >
+                                Fermer
+                            </Button>
+                            <Button
+                                onClick={copySms}
+                                className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold"
+                                style={{ background: copiedSms ? "rgba(0,255,145,0.15)" : "#60a5fa", color: copiedSms ? "#00ff91" : "#001C1C" }}
+                            >
+                                {copiedSms ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copiedSms ? "Copié !" : "Copier le SMS"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Email Modal */}
             {emailModalProspect && (

@@ -32,6 +32,12 @@ interface Person {
     display_order: number;
 }
 
+async function revalidateIconik() {
+    try {
+        await fetch("/api/revalidate-iconik", { method: "POST" });
+    } catch { /* silently ignore */ }
+}
+
 function getInitials(name: string) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 }
@@ -178,10 +184,11 @@ export default function PeoplePage() {
 
         if (editingPerson) {
             const { error } = await supabase.from("people").update(payload).eq("id", editingPerson.id);
-            if (!error) setPeople(people.map(p => p.id === editingPerson.id ? { ...p, ...payload } : p));
+            if (!error) { setPeople(people.map(p => p.id === editingPerson.id ? { ...p, ...payload } : p)); await revalidateIconik(); }
         } else {
-            const { data, error } = await supabase.from("people").insert({ ...payload, business_id: profile.business_id, active: true }).select().single();
-            if (!error && data) setPeople([...people, data as Person]);
+            const maxOrder = people.length > 0 ? Math.max(...people.map(p => p.display_order ?? 0)) + 1 : 0;
+            const { data, error } = await supabase.from("people").insert({ ...payload, business_id: profile.business_id, active: true, display_order: maxOrder }).select().single();
+            if (!error && data) { setPeople([...people, data as Person]); await revalidateIconik(); }
         }
 
         setSaving(false);
@@ -190,12 +197,12 @@ export default function PeoplePage() {
 
     const toggleActive = async (person: Person) => {
         const { error } = await supabase.from("people").update({ active: !person.active }).eq("id", person.id);
-        if (!error) setPeople(people.map(p => p.id === person.id ? { ...p, active: !p.active } : p));
+        if (!error) { setPeople(people.map(p => p.id === person.id ? { ...p, active: !p.active } : p)); await revalidateIconik(); }
     };
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase.from("people").delete().eq("id", id);
-        if (!error) setPeople(people.filter(p => p.id !== id));
+        if (!error) { setPeople(people.filter(p => p.id !== id)); await revalidateIconik(); }
         setShowModal(false);
     };
 
@@ -284,7 +291,12 @@ export default function PeoplePage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Catégorie</Label>
-                                    <Input value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })} placeholder="Ex: Enfant" style={inputStyle} />
+                                    <select value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
+                                        <option value="">Choisir...</option>
+                                        <option value="Enfant">Enfant</option>
+                                        <option value="Adolescent">Adolescent</option>
+                                        <option value="Jeune Adulte">Jeune Adulte</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Genre</Label>

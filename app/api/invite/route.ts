@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Pré-créer l'entrée dans users avec le business_id
     const { error: insertError } = await supabaseAdmin
         .from('users')
-        .insert({ email, business_id: businessId })
+        .insert({ email, business_id: businessId, is_owner: true })
 
     if (insertError) {
         console.error('Erreur insertion user:', insertError)

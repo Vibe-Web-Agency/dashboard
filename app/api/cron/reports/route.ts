@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
         .from("users")
         .select("business_id, email")
         .in("business_id", businessIds)
+        .eq("is_owner", true)
         .not("email", "is", null);
 
     const emailMap: Record<string, string> = {};
