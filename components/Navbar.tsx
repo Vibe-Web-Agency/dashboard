@@ -20,6 +20,7 @@ import {
     Star,
     Contact,
     MessageCircle,
+    Newspaper,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,7 @@ export default function Navbar() {
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
         { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
         { key: "projects", title: "Projets", href: "/projects", icon: Clapperboard },
+        { key: "blog", title: "Actualités", href: "/blog", icon: Newspaper },
         { key: "team", title: "Équipe", href: "/team", icon: Users },
     ];
 
