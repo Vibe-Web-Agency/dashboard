@@ -92,7 +92,7 @@ export default function PeoplePage() {
             .order("display_order", { ascending: true })
             .order("created_at", { ascending: true });
 
-        if (!error) setPeople((data as Person[]) || []);
+        if (!error) setPeople((data as unknown as Person[]) || []);
         setLoading(false);
     };
 
