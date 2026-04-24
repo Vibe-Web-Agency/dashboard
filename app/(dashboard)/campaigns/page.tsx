@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { formatDateNumeric } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,11 +90,6 @@ export default function CampaignsPage() {
         setSending(false);
     };
 
-    const MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "jun", "jul", "aoû", "sep", "oct", "nov", "déc"];
-    const formatDate = (iso: string) => {
-        const d = new Date(iso);
-        return `${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
-    };
 
     return (
         <div className="max-w-3xl mx-auto space-y-8 pb-16">
@@ -199,7 +195,7 @@ export default function CampaignsPage() {
                                     <Mail className="w-4 h-4 shrink-0" style={{ color: "#71717a" }} />
                                     <div>
                                         <p className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{c.subject}</p>
-                                        <p className="text-xs" style={{ color: "#71717a" }}>{formatDate(c.created_at)}</p>
+                                        <p className="text-xs" style={{ color: "#71717a" }}>{formatDateNumeric(c.created_at)}</p>
                                     </div>
                                 </div>
                                 <span className="text-xs px-2 py-1 rounded-full font-medium"

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 async function revalidateIconik() {
@@ -45,11 +46,6 @@ interface Assignment {
 const emptyForm = { title: "", type: "", year: "", description: "", photo_url: "", video_url: "" };
 const PROJECT_TYPES = ["Court-métrage", "Long-métrage", "Série", "Publicité", "Clip musical", "Documentaire", "Théâtre", "Autre"];
 
-const inputStyle: React.CSSProperties = {
-    background: "#002928",
-    border: "1px solid rgba(0,255,145,0.15)",
-    color: "#ffffff",
-};
 
 function getPersonName(p: Person) {
     return p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.name;

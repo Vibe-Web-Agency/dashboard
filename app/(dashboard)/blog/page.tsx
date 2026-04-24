@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 async function revalidateIconik() {
@@ -31,11 +32,6 @@ const CATEGORIES = ["Presse", "Festival", "Projet", "Agence"];
 
 const emptyForm = { slug: "", title: "", date: "", category: "Agence", excerpt: "", content: "" };
 
-const inputStyle: React.CSSProperties = {
-    background: "#002928",
-    border: "1px solid rgba(0,255,145,0.15)",
-    color: "#ffffff",
-};
 
 function slugify(str: string) {
     return str

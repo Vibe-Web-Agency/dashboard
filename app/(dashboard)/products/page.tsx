@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 interface Product {
@@ -275,8 +276,3 @@ function ProductCard({ product, onEdit, onToggle }: { product: Product; onEdit: 
     );
 }
 
-const inputStyle: React.CSSProperties = {
-    background: "#002928",
-    border: "1px solid rgba(0,255,145,0.15)",
-    color: "#ffffff",
-};

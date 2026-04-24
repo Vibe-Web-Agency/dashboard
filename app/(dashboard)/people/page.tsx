@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
 
 interface Person {
     id: string;
+    slug: string | null;
     name: string;
     first_name: string | null;
     last_name: string | null;
@@ -32,6 +34,15 @@ interface Person {
     display_order: number;
 }
 
+function slugify(str: string) {
+    return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
 async function revalidateIconik() {
     try {
         await fetch("/api/revalidate-iconik", { method: "POST" });
@@ -45,7 +56,7 @@ function getInitials(name: string) {
 const AVATAR_COLORS = ["#FFC745", "#00ff91", "#a78bfa", "#fb923c", "#38bdf8"];
 
 const emptyForm = {
-    first_name: "", last_name: "", specialty: "", description: "",
+    first_name: "", last_name: "", slug: "", specialty: "", description: "",
     age: "", date_of_birth: "", gender: "", height: "",
     eye_color: "", hair_color: "", languages: "", skills: "", projects: "",
     portfolio_url: "", photo_url: "", photos: [] as string[],
@@ -96,6 +107,7 @@ export default function PeoplePage() {
         setForm({
             first_name: person.first_name || "",
             last_name: person.last_name || "",
+            slug: person.slug || "",
             specialty: person.specialty || "",
             description: person.description || "",
             age: person.age != null ? String(person.age) : "",
@@ -162,10 +174,14 @@ export default function PeoplePage() {
 
         const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
+        const autoSlug = slugify(`${firstName}-${lastName}`);
+        const finalSlug = form.slug.trim() || autoSlug || null;
+
         const payload = {
             name: fullName,
             first_name: firstName || null,
             last_name: lastName || null,
+            slug: finalSlug,
             specialty: form.specialty || null,
             description: form.description || null,
             age: form.age ? parseInt(form.age) : null,
@@ -287,6 +303,23 @@ export default function PeoplePage() {
                                 </div>
                             </div>
 
+                            {/* Slug URL */}
+                            <div>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>
+                                    URL <span style={{ color: "#52525b" }}>(auto-généré si vide)</span>
+                                </Label>
+                                <div className="flex items-center rounded-md overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
+                                    <span className="px-3 py-2 text-xs shrink-0" style={{ background: "rgba(255,255,255,0.04)", color: "#52525b" }}>/talents/</span>
+                                    <input
+                                        value={form.slug}
+                                        onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
+                                        placeholder={slugify(`${form.first_name}-${form.last_name}`) || "prenom-nom"}
+                                        className="flex-1 px-3 py-2 text-sm bg-transparent outline-none"
+                                        style={{ color: "#ffffff" }}
+                                    />
+                                </div>
+                            </div>
+
                             {/* Catégorie + Genre */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -344,10 +377,13 @@ export default function PeoplePage() {
                                 <Input value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} placeholder="Danse, Chant, Sport" style={inputStyle} />
                             </div>
 
-                            {/* Bio */}
+                            {/* Description */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Biographie</Label>
-                                <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Courte biographie..." style={inputStyle} />
+                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Description</Label>
+                                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                                    placeholder="Description du talent..." rows={4}
+                                    className="w-full rounded-md text-sm px-3 py-2 resize-none"
+                                    style={inputStyle} />
                             </div>
 
                             {/* Portfolio + Photo */}
@@ -481,8 +517,3 @@ function PersonCard({ person, color, onEdit, onToggle }: { person: Person; color
     );
 }
 
-const inputStyle: React.CSSProperties = {
-    background: "#002928",
-    border: "1px solid rgba(0,255,145,0.15)",
-    color: "#ffffff",
-};

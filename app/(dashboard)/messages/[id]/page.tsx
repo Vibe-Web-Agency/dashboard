@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
     id: string;
@@ -33,16 +34,34 @@ export default function MessageDetailPage() {
     const [loading, setLoading] = useState(true);
     const [content, setContent] = useState("");
     const [sending, setSending] = useState(false);
+    const [resolving, setResolving] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    const load = () =>
-        fetch(`/api/tickets/${id}`).then((r) => r.json()).then((d) => {
-            setTicket(d.ticket);
-            setMessages(d.messages || []);
-            setLoading(false);
-        });
+    const load = async () => {
+        const r = await fetch(`/api/tickets/${id}`);
+        const d = await r.json();
+        setTicket(d.ticket);
+        setMessages(d.messages || []);
+        setLoading(false);
+    };
 
     useEffect(() => { load(); }, [id]);
+
+    // Real-time updates via Supabase
+    useEffect(() => {
+        if (!id) return;
+        const channel = supabase
+            .channel(`ticket-msgs-${id}`)
+            .on("postgres_changes", {
+                event: "INSERT",
+                schema: "public",
+                table: "ticket_messages",
+                filter: `ticket_id=eq.${id}`,
+            }, () => { load(); })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,6 +79,26 @@ export default function MessageDetailPage() {
         setContent("");
         await load();
         setSending(false);
+    };
+
+    const handleResolve = async () => {
+        setResolving(true);
+        await fetch(`/api/tickets/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "resolved" }),
+        });
+        await load();
+        setResolving(false);
+    };
+
+    const handleReopen = async () => {
+        await fetch(`/api/tickets/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "open" }),
+        });
+        await load();
     };
 
     const isResolved = ticket?.status === "resolved";
@@ -86,19 +125,44 @@ export default function MessageDetailPage() {
                 <p style={{ color: "#f87171" }}>Ticket introuvable.</p>
             ) : (
                 <>
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
                             <h1 className="text-xl font-bold" style={{ color: "#ffffff" }}>{ticket.subject}</h1>
                             <p className="text-xs mt-1" style={{ color: "#71717a" }}>
                                 Ouvert le {new Date(ticket.created_at).toLocaleDateString("fr-FR")}
                             </p>
                         </div>
-                        {(() => { const s = STATUS_LABEL[ticket.status]; return (
-                            <span className="text-xs px-3 py-1.5 rounded-full font-medium"
-                                style={{ color: s.color, background: s.bg }}>
-                                {s.label}
-                            </span>
-                        ); })()}
+                        <div className="flex items-center gap-2">
+                            {(() => { const s = STATUS_LABEL[ticket.status]; return (
+                                <span className="text-xs px-3 py-1.5 rounded-full font-medium"
+                                    style={{ color: s.color, background: s.bg }}>
+                                    {s.label}
+                                </span>
+                            ); })()}
+                            {!isResolved ? (
+                                <button
+                                    onClick={handleResolve}
+                                    disabled={resolving}
+                                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all"
+                                    style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,255,145,0.2)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,255,145,0.1)"; }}
+                                >
+                                    {resolving
+                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        : <CheckCircle className="w-3.5 h-3.5" />}
+                                    Marquer résolu
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleReopen}
+                                    className="text-xs px-3 py-1.5 rounded-full font-medium transition-all"
+                                    style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
+                                >
+                                    Rouvrir
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Conversation */}
@@ -112,6 +176,9 @@ export default function MessageDetailPage() {
                                     style={m.sender === "client"
                                         ? { background: "#FFC745", color: "#001C1C" }
                                         : { background: "rgba(0,255,145,0.08)", color: "#ffffff", border: "1px solid rgba(0,255,145,0.12)" }}>
+                                    {m.sender === "admin" && (
+                                        <p className="text-[10px] font-semibold mb-1 opacity-60">Support VWA</p>
+                                    )}
                                     <p className="text-sm">{m.content}</p>
                                     <p className="text-[10px] mt-1 opacity-60">
                                         {new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · {new Date(m.created_at).toLocaleDateString("fr-FR")}
@@ -124,7 +191,12 @@ export default function MessageDetailPage() {
 
                     {/* Input */}
                     {isResolved ? (
-                        <p className="text-sm text-center py-3" style={{ color: "#71717a" }}>Ce ticket est résolu.</p>
+                        <div className="flex items-center justify-center gap-3 py-3">
+                            <p className="text-sm" style={{ color: "#71717a" }}>Ce ticket est résolu.</p>
+                            <button onClick={handleReopen} className="text-xs underline" style={{ color: "#a1a1aa" }}>
+                                Rouvrir
+                            </button>
+                        </div>
                     ) : (
                         <form onSubmit={handleSend} className="flex gap-3">
                             <input
@@ -136,7 +208,7 @@ export default function MessageDetailPage() {
                             <button type="submit" disabled={sending || !content.trim()}
                                 className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all"
                                 style={{ background: content.trim() ? "#FFC745" : "rgba(255,199,69,0.1)", color: content.trim() ? "#001C1C" : "#71717a" }}>
-                                <Send className="w-4 h-4" />
+                                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                             </button>
                         </form>
                     )}

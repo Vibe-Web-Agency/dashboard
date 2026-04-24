@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
+import { formatDate, formatTime, formatDateHeader } from "@/lib/formatters";
 import Link from "next/link";
 import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -176,26 +177,6 @@ export default function ReservationsPage() {
         fetchAll();
     };
 
-    const formatDateHeader = (dateString: string) => {
-        const date = new Date(dateString);
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        today.setHours(0, 0, 0, 0);
-        tomorrow.setHours(0, 0, 0, 0);
-        const compareDate = new Date(date);
-        compareDate.setHours(0, 0, 0, 0);
-
-        if (compareDate.getTime() === today.getTime()) return "Aujourd'hui";
-        if (compareDate.getTime() === tomorrow.getTime()) return "Demain";
-        return date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-    };
-
-    const formatTime = (dateString: string) =>
-        new Date(dateString).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-
-    const formatDate = (dateString: string) =>
-        new Date(dateString).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
     const handleSearch = (q: string) => { setSearchQuery(q); setPage(0); };
 
@@ -326,7 +307,7 @@ export default function ReservationsPage() {
     );
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -503,9 +484,7 @@ export default function ReservationsPage() {
                 filteredUpcoming.length === 0 ? (
                     <div className="rounded-xl p-8 text-center" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
                         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(255, 199, 69, 0.1)' }}>
-                            <svg className="w-8 h-8" style={{ color: '#FFC745' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+                            <Calendar className="w-8 h-8" style={{ color: '#FFC745' }} />
                         </div>
                         <p style={{ color: '#c3c3d4' }}>Aucune réservation planifiée</p>
                     </div>
@@ -515,9 +494,7 @@ export default function ReservationsPage() {
                             <div key={dateKey} className="flex flex-col gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ background: 'rgba(255, 199, 69, 0.1)', border: '1px solid rgba(255, 199, 69, 0.25)' }}>
-                                        <svg className="w-4 h-4" style={{ color: '#FFC745' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
+                                        <Calendar className="w-4 h-4" style={{ color: '#FFC745' }} />
                                         <span className="font-semibold capitalize" style={{ color: '#FFC745' }}>
                                             {formatDateHeader(groupedUpcomingAll[dateKey][0].date!)}
                                         </span>
@@ -545,13 +522,13 @@ export default function ReservationsPage() {
                                                         <div className="flex flex-wrap gap-2 mt-3">
                                                             {reservation.date && (
                                                                 <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255, 199, 69, 0.12)', color: '#FFC745' }}>
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                    <Clock className="w-4 h-4" />
                                                                     {formatTime(reservation.date)}
                                                                 </span>
                                                             )}
                                                             {reservation.customer_phone && (
                                                                 <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                                                    <Phone className="w-4 h-4" />
                                                                     {reservation.customer_phone}
                                                                 </span>
                                                             )}

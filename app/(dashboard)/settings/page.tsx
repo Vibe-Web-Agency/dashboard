@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ import {
     LogOut,
     Lock,
     Check,
+    CheckCircle,
     AlertTriangle,
     Eye,
     EyeOff,
@@ -41,11 +43,6 @@ const DEFAULT_HOURS: HoursContent = {
     samedi:   { open: true,  from: "10:00", to: "18:00" },
     dimanche: { open: false, from: "",      to: ""      },
 };
-const inputStyle: React.CSSProperties = {
-    background: "rgba(0,255,145,0.05)",
-    border: "1px solid rgba(0,255,145,0.1)",
-    color: "#ffffff",
-};
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -65,6 +62,12 @@ export default function SettingsPage() {
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [isEditingAccount, setIsEditingAccount] = useState(false);
+    const [accountData, setAccountData] = useState({ email: "", phone: "" });
+    const [savingAccount, setSavingAccount] = useState(false);
+    const [saveAccountSuccess, setSaveAccountSuccess] = useState(false);
+    const [saveAccountError, setSaveAccountError] = useState<string | null>(null);
+    const [onboardingReset, setOnboardingReset] = useState(false);
 
     const [passwordData, setPasswordData] = useState({
         currentPassword: "",
@@ -98,6 +101,7 @@ export default function SettingsPage() {
     useEffect(() => {
         if (profile) {
             if ((profile as any).hours) setHours((profile as any).hours as HoursContent);
+            setAccountData({ email: profile.email || "", phone: profile.phone || "" });
             setFormData({
                 business_name: profile.business_name || "",
                 business_type: profile.business_type?.label || "",
@@ -226,6 +230,32 @@ export default function SettingsPage() {
         setChangingPassword(false);
     };
 
+    const handleSaveAccount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!profile?.id) return;
+        setSavingAccount(true);
+        setSaveAccountError(null);
+        const { error } = await supabase
+            .from("users")
+            .update({ email: accountData.email, phone: accountData.phone || null })
+            .eq("id", profile.id);
+        if (error) {
+            setSaveAccountError(error.message);
+        } else {
+            setSaveAccountSuccess(true);
+            setIsEditingAccount(false);
+            setTimeout(() => setSaveAccountSuccess(false), 3000);
+        }
+        setSavingAccount(false);
+    };
+
+    const handleResetOnboarding = () => {
+        if (!profile?.business_id) return;
+        localStorage.removeItem(`onboarding_done_${profile.business_id}`);
+        setOnboardingReset(true);
+        setTimeout(() => setOnboardingReset(false), 3000);
+    };
+
     const handleSaveHours = async () => {
         if (!profile?.business_id) return;
         setSavingHours(true);
@@ -272,31 +302,94 @@ export default function SettingsPage() {
 
             {/* Section Compte */}
             <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
-                        <User className="w-5 h-5" style={{ color: '#FFC745' }} />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon compte</h2>
-                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Identifiants de connexion</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                        { icon: Mail, label: "Email", value: formData.email },
-                        { icon: Phone, label: "Téléphone", value: formData.phone },
-                    ].map(({ icon: Icon, label, value }) => (
-                        <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
-                            </div>
-                            <p className="font-medium" style={{ color: '#ffffff' }}>
-                                {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
-                            </p>
+                <div className="flex items-center justify-between gap-3 mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
+                            <User className="w-5 h-5" style={{ color: '#FFC745' }} />
                         </div>
-                    ))}
+                        <div>
+                            <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon compte</h2>
+                            <p className="text-sm" style={{ color: '#c3c3d4' }}>Identifiants de connexion</p>
+                        </div>
+                    </div>
+                    {!isEditingAccount && (
+                        <Button onClick={() => setIsEditingAccount(true)} className="flex items-center gap-2"
+                            style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745', border: '1px solid rgba(255, 199, 69, 0.3)' }}>
+                            <Pencil className="w-4 h-4" /> Modifier
+                        </Button>
+                    )}
                 </div>
+
+                {!isEditingAccount ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {[
+                                { icon: Mail, label: "Email", value: accountData.email },
+                                { icon: Phone, label: "Téléphone", value: accountData.phone },
+                            ].map(({ icon: Icon, label, value }) => (
+                                <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                        <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
+                                    </div>
+                                    <p className="font-medium" style={{ color: '#ffffff' }}>
+                                        {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        {saveAccountSuccess && (
+                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
+                                style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                                <Check className="w-4 h-4" /> Compte mis à jour avec succès !
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <form onSubmit={handleSaveAccount} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
+                                    <Mail className="w-4 h-4" style={{ color: '#FFC745' }} /> Email
+                                </Label>
+                                <Input type="email" value={accountData.email}
+                                    onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
+                                    placeholder="vous@exemple.com" className="mt-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                            </div>
+                            <div>
+                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
+                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} /> Téléphone
+                                </Label>
+                                <Input type="tel" value={accountData.phone}
+                                    onChange={(e) => setAccountData(prev => ({ ...prev, phone: e.target.value }))}
+                                    placeholder="06 12 34 56 78" className="mt-1"
+                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                            </div>
+                        </div>
+                        {saveAccountError && (
+                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
+                                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                                <AlertTriangle className="w-4 h-4" /> {saveAccountError}
+                            </div>
+                        )}
+                        <div className="flex gap-3">
+                            <Button type="button" onClick={() => { setIsEditingAccount(false); setSaveAccountError(null); setAccountData({ email: profile?.email || "", phone: profile?.phone || "" }); }}
+                                className="flex items-center gap-2"
+                                style={{ background: 'rgba(0, 255, 145, 0.05)', color: '#c3c3d4', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                                <X className="w-4 h-4" /> Annuler
+                            </Button>
+                            <Button type="submit" disabled={savingAccount} className="flex items-center gap-2 font-semibold"
+                                style={{ background: '#FFC745', color: '#001C1C' }}>
+                                {savingAccount ? (
+                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }} /> Enregistrement...</>
+                                ) : (
+                                    <><Save className="w-4 h-4" /> Enregistrer</>
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                )}
             </div>
 
             {/* Section Entreprise */}
@@ -679,18 +772,33 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                <Button
-                    onClick={() => setShowLogoutModal(true)}
-                    className="flex items-center gap-2"
-                    style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        color: '#ef4444',
-                        border: '1px solid rgba(239, 68, 68, 0.3)'
-                    }}
-                >
-                    <LogOut className="w-4 h-4" />
-                    Se déconnecter
-                </Button>
+                <div className="flex flex-col gap-3">
+                    <div>
+                        <Button onClick={handleResetOnboarding}
+                            className="flex items-center gap-2"
+                            style={{ background: 'rgba(0,255,145,0.06)', color: '#00ff91', border: '1px solid rgba(0,255,145,0.2)' }}>
+                            <CheckCircle className="w-4 h-4" />
+                            Rouvrir le guide d&apos;introduction
+                        </Button>
+                        {onboardingReset && (
+                            <p className="text-xs mt-2" style={{ color: '#00ff91' }}>
+                                Guide réinitialisé — il s&apos;affichera au prochain chargement.
+                            </p>
+                        )}
+                    </div>
+                    <Button
+                        onClick={() => setShowLogoutModal(true)}
+                        className="flex items-center gap-2"
+                        style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                        }}
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Se déconnecter
+                    </Button>
+                </div>
             </div>
 
             {/* Logout Confirmation Modal */}

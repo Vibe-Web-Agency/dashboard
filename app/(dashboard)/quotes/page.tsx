@@ -3,8 +3,10 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
+import { formatDate } from "@/lib/formatters";
+import { StatusBadge, QUOTE_STATUS } from "@/lib/statusConfig";
 import Link from "next/link";
-import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,73 +76,6 @@ export default function QuotesPage() {
         setLoading(false);
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("fr-FR", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "pending":
-                return (
-                    <span
-                        className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium"
-                        style={{
-                            background: 'rgba(255, 199, 69, 0.1)',
-                            color: '#FFC745'
-                        }}
-                    >
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#FFC745' }} />
-                        En attente
-                    </span>
-                );
-            case "approved":
-                return (
-                    <span
-                        className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium"
-                        style={{
-                            background: 'rgba(34, 197, 94, 0.1)',
-                            color: '#22c55e'
-                        }}
-                    >
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#22c55e' }} />
-                        Approuvé
-                    </span>
-                );
-            case "rejected":
-                return (
-                    <span
-                        className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium"
-                        style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#ef4444'
-                        }}
-                    >
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#ef4444' }} />
-                        Refusé
-                    </span>
-                );
-            default:
-                return (
-                    <span
-                        className="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full font-medium"
-                        style={{
-                            background: 'rgba(113, 113, 122, 0.1)',
-                            color: '#71717a'
-                        }}
-                    >
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#71717a' }} />
-                        {status}
-                    </span>
-                );
-        }
-    };
 
     const updateStatus = async (e: React.MouseEvent, quoteId: string, status: string) => {
         e.preventDefault();
@@ -155,6 +90,28 @@ export default function QuotesPage() {
 
     const handleSearch = (q: string) => { setSearchQuery(q); setPage(0); };
 
+    const exportCSV = () => {
+        const headers = ["Nom", "Email", "Téléphone", "Statut", "Message", "Date"];
+        const rows = filteredQuotes.map((q) => [
+            q.customer_name || "",
+            q.customer_email || "",
+            q.customer_phone || "",
+            q.status || "",
+            q.message || "",
+            new Date(q.created_at).toLocaleString("fr-FR"),
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `devis-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const filteredQuotes = quotes.filter((quote) => {
         if (!searchQuery.trim()) return true;
         const query = searchQuery.toLowerCase();
@@ -167,7 +124,7 @@ export default function QuotesPage() {
     });
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
             <div className="flex items-center justify-between">
                 <div>
                     <h1
@@ -180,6 +137,15 @@ export default function QuotesPage() {
                         Gérez vos demandes de devis
                     </p>
                 </div>
+                    <Button
+                    onClick={exportCSV}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Exporter CSV</span>
+                </Button>
                 <div
                     className="flex items-center gap-2 rounded-lg px-4 py-2"
                     style={{
@@ -339,7 +305,7 @@ export default function QuotesPage() {
                                     )}
                                 </div>
                                 <div className="flex flex-col items-end gap-3">
-                                    {getStatusBadge(quote.status)}
+                                    <StatusBadge status={quote.status} config={QUOTE_STATUS} />
                                     {/* Boutons statut rapide */}
                                     <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                                         <button

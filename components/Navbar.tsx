@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, type FeatureKey } from "@/lib/businessConfig";
+import NotificationBell from "@/components/NotificationBell";
 
 function useUnreadMessagesCount(businessId: string | null | undefined) {
     const [count, setCount] = useState(0);
@@ -339,6 +340,8 @@ export default function Navbar() {
                             </div>
                         </div>
                     )}
+
+                    <NotificationBell businessId={userProfile?.business_id} features={features} />
 
                     <Link
                         href="/settings"

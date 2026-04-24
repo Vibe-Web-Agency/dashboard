@@ -2,7 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle, UserCheck, UserX } from "lucide-react";
 import Link from "next/link";
@@ -19,29 +19,18 @@ interface Reservation {
     created_at: string;
 }
 
-export default function ReservationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ReservationDetailPage() {
     const router = useRouter();
+    const { id: reservationId } = useParams<{ id: string }>();
     const [reservation, setReservation] = useState<Reservation | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const [reservationId, setReservationId] = useState<string>("");
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
     useEffect(() => {
-        const getParams = async () => {
-            const resolvedParams = await params;
-            setReservationId(resolvedParams.id);
-        };
-        getParams();
-    }, [params]);
-
-    useEffect(() => {
-        if (reservationId) {
-            fetchReservation();
-        }
+        if (reservationId) fetchReservation();
     }, [reservationId]);
 
     const fetchReservation = async () => {

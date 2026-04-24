@@ -50,3 +50,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ success: true });
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const result = await getCurrentUserProfile();
+    if (!result?.profile) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const businessId = (result.profile as any).business_id;
+
+    const { id } = await params;
+    const { status } = await req.json();
+    if (!status) return NextResponse.json({ error: "Statut manquant" }, { status: 400 });
+
+    const admin = getAdminClient();
+    const { data: ticket } = await admin.from("tickets").select("id").eq("id", id).eq("business_id", businessId).single() as any;
+    if (!ticket) return NextResponse.json({ error: "Ticket introuvable" }, { status: 404 });
+
+    await admin.from("tickets").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+    return NextResponse.json({ success: true });
+}
