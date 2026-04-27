@@ -204,7 +204,7 @@ export default function PeoplePage() {
         } else {
             const maxOrder = people.length > 0 ? Math.max(...people.map(p => p.display_order ?? 0)) + 1 : 0;
             const { data, error } = await supabase.from("people").insert({ ...payload, business_id: profile.business_id, active: true, display_order: maxOrder }).select().single();
-            if (!error && data) { setPeople([...people, data as Person]); await revalidateIconik(); }
+            if (!error && data) { setPeople([...people, data as unknown as Person]); await revalidateIconik(); }
         }
 
         setSaving(false);
