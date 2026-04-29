@@ -3,8 +3,10 @@
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useUserProfile } from "@/lib/useUserProfile";
+import { getBusinessTypeUI } from "@/lib/businessConfig";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle, UserCheck, UserX } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle, UserCheck, UserX, Users } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -14,6 +16,7 @@ interface Reservation {
     customer_phone: string | null;
     customer_mail: string | null;
     date: string | null;
+    guests: number | null;
     message: string | null;
     status: string;
     created_at: string;
@@ -22,6 +25,8 @@ interface Reservation {
 export default function ReservationDetailPage() {
     const router = useRouter();
     const { id: reservationId } = useParams<{ id: string }>();
+    const { profile } = useUserProfile();
+    const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
     const [reservation, setReservation] = useState<Reservation | null>(null);
     const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -140,7 +145,7 @@ export default function ReservationDetailPage() {
                 style={{ color: '#FFC745' }}
             >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm font-medium">Retour aux réservations</span>
+                <span className="text-sm font-medium">Retour aux {businessTypeUI.reservationLabel.toLowerCase()}</span>
             </Link>
 
             {/* Header */}
@@ -149,7 +154,7 @@ export default function ReservationDetailPage() {
                     className="text-2xl sm:text-3xl font-bold mb-2"
                     style={{ color: '#FFC745' }}
                 >
-                    Détails de la réservation
+                    Détails du {businessTypeUI.reservationLabel.toLowerCase().replace(/s$/, "")}
                 </h1>
                 <p style={{ color: '#c3c3d4' }}>
                     Informations complètes et gestion
@@ -196,6 +201,23 @@ export default function ReservationDetailPage() {
                                 <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Date de réservation</p>
                                 <p className="font-semibold" style={{ color: '#ffffff' }}>
                                     {formatDate(reservation.date)}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {businessTypeUI.showGuests && reservation.guests != null && (
+                        <div className="flex items-start gap-3">
+                            <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
+                            >
+                                <Users className="w-5 h-5" style={{ color: '#FFC745' }} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>{businessTypeUI.guestsLabel}</p>
+                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                    {reservation.guests} personne{reservation.guests > 1 ? "s" : ""}
                                 </p>
                             </div>
                         </div>

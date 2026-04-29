@@ -23,6 +23,8 @@ interface Service {
 
 export default function ServicesPage() {
     const { profile, loading: profileLoading } = useUserProfile();
+    const catalogLabel = profile?.business_type?.catalog_label ?? "Services";
+    const catalogSingular = catalogLabel.toLowerCase().replace(/s$/, "");
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -110,7 +112,7 @@ export default function ServicesPage() {
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>Services</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>{catalogLabel}</h1>
                     <p className="text-sm mt-1" style={{ color: "#71717a" }}>
                         {services.filter(s => s.active).length} actifs · {services.length} au total
                     </p>
@@ -121,7 +123,7 @@ export default function ServicesPage() {
                     style={{ background: "#FFC745", color: "#001C1C" }}
                 >
                     <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Nouveau service</span>
+                    <span className="hidden sm:inline">Nouveau {catalogSingular}</span>
                     <span className="sm:hidden">Nouveau</span>
                 </Button>
             </div>
@@ -164,9 +166,9 @@ export default function ServicesPage() {
                     {services.length === 0 && (
                         <div className="text-center py-16" style={{ color: "#71717a" }}>
                             <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="text-sm">Aucun service pour le moment</p>
+                            <p className="text-sm">Aucun {catalogSingular} pour le moment</p>
                             <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "#FFC745", color: "#001C1C" }}>
-                                Créer un service
+                                Créer un {catalogSingular}
                             </Button>
                         </div>
                     )}
@@ -178,7 +180,7 @@ export default function ServicesPage() {
                     <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
-                                {editingService ? "Modifier le service" : "Nouveau service"}
+                                {editingService ? `Modifier le ${catalogSingular}` : `Nouveau ${catalogSingular}`}
                             </h2>
                             <button onClick={() => setShowModal(false)} style={{ color: "#71717a" }}>
                                 <X className="w-5 h-5" />

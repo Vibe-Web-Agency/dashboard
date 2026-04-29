@@ -2,10 +2,11 @@
 
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
+import { getBusinessTypeUI } from "@/lib/businessConfig";
 import { useEffect, useState } from "react";
 import { formatDate, formatTime, formatDateHeader } from "@/lib/formatters";
 import Link from "next/link";
-import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock } from "lucide-react";
+import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +21,7 @@ interface Reservation {
     customer_mail: string | null;
     status: string;
     date: string | null;
+    guests: number | null;
     message: string | null;
     created_at: string;
 }
@@ -65,6 +67,7 @@ function StatusButtons({ id, status, onUpdate }: { id: string; status: string; o
 
 export default function ReservationsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
+    const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
     const [tab, setTab] = useState<Tab>("upcoming");
     const [upcoming, setUpcoming] = useState<Reservation[]>([]);
     const [history, setHistory] = useState<Reservation[]>([]);
@@ -82,6 +85,7 @@ export default function ReservationsPage() {
         customer_phone: "",
         date: "",
         time: "",
+        guests: 2,
         message: ""
     });
 
@@ -154,6 +158,7 @@ export default function ReservationsPage() {
                 customer_mail: newReservation.customer_mail || null,
                 customer_phone: newReservation.customer_phone || null,
                 date: dateTime.toISOString(),
+                guests: newReservation.guests || null,
                 message: newReservation.message || null,
                 status: "scheduled"
             })
@@ -164,7 +169,7 @@ export default function ReservationsPage() {
             setCreateError(error.message);
         } else {
             setShowModal(false);
-            setNewReservation({ customer_name: "", customer_mail: "", customer_phone: "", date: "", time: "", message: "" });
+            setNewReservation({ customer_name: "", customer_mail: "", customer_phone: "", date: "", time: "", guests: 2, message: "" });
             fetchAll();
         }
         setCreating(false);
@@ -182,12 +187,13 @@ export default function ReservationsPage() {
 
     const exportCSV = () => {
         const data = tab === "upcoming" ? filteredUpcoming : filteredHistory;
-        const headers = ["Nom", "Email", "Téléphone", "Date", "Statut", "Message"];
+        const headers = ["Nom", "Email", "Téléphone", "Date", ...(businessTypeUI.showGuests ? [businessTypeUI.guestsLabel] : []), "Statut", "Message"];
         const rows = data.map((r) => [
             r.customer_name || "",
             r.customer_mail || "",
             r.customer_phone || "",
             r.date ? new Date(r.date).toLocaleString("fr-FR") : "",
+            ...(businessTypeUI.showGuests ? [r.guests != null ? String(r.guests) : ""] : []),
             r.status || "",
             r.message || "",
         ]);
@@ -312,10 +318,10 @@ export default function ReservationsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#FFC745' }}>
-                        Réservations
+                        {businessTypeUI.reservationLabel}
                     </h1>
                     <p className="mt-1" style={{ color: '#c3c3d4' }}>
-                        Gérez vos réservations clients
+                        Gérez vos {businessTypeUI.reservationLabel.toLowerCase()} clients
                     </p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
@@ -326,7 +332,7 @@ export default function ReservationsPage() {
                             style={{ background: '#FFC745', color: '#001C1C' }}
                         >
                             <Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">Nouvelle réservation</span>
+                            <span className="hidden sm:inline">Nouveau {businessTypeUI.reservationLabel.toLowerCase()}</span>
                             <span className="sm:hidden">Nouveau</span>
                         </Button>
                     )}
@@ -419,7 +425,7 @@ export default function ReservationsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.7)' }}>
                     <div className="w-full max-w-md rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.15)', backdropFilter: 'blur(20px)' }}>
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>Nouvelle réservation</h2>
+                            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>Nouveau {businessTypeUI.reservationLabel.toLowerCase()}</h2>
                             <button onClick={() => { setShowModal(false); setCreateError(null); }} className="p-2 rounded-lg transition-colors hover:bg-white/10" style={{ color: '#a1a1aa' }}>
                                 <X className="w-5 h-5" />
                             </button>
@@ -444,7 +450,7 @@ export default function ReservationsPage() {
                                     <Input type="tel" value={newReservation.customer_phone} onChange={(e) => setNewReservation(prev => ({ ...prev, customer_phone: e.target.value }))} placeholder="06 12 34 56 78" className="mt-1" style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className={`grid grid-cols-1 gap-4 ${businessTypeUI.showGuests ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                                 <div>
                                     <Label style={{ color: '#c3c3d4' }}>Date *</Label>
                                     <Input type="date" value={newReservation.date} onChange={(e) => setNewReservation(prev => ({ ...prev, date: e.target.value }))} required className="mt-1" style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
@@ -453,6 +459,12 @@ export default function ReservationsPage() {
                                     <Label style={{ color: '#c3c3d4' }}>Heure *</Label>
                                     <Input type="time" value={newReservation.time} onChange={(e) => setNewReservation(prev => ({ ...prev, time: e.target.value }))} required className="mt-1" style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
                                 </div>
+                                {businessTypeUI.showGuests && (
+                                    <div>
+                                        <Label style={{ color: '#c3c3d4' }}>{businessTypeUI.guestsLabel}</Label>
+                                        <Input type="number" min={1} max={50} value={newReservation.guests} onChange={(e) => setNewReservation(prev => ({ ...prev, guests: parseInt(e.target.value) || 1 }))} className="mt-1" style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <Label style={{ color: '#c3c3d4' }}>Message / Notes</Label>
@@ -524,6 +536,12 @@ export default function ReservationsPage() {
                                                                 <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255, 199, 69, 0.12)', color: '#FFC745' }}>
                                                                     <Clock className="w-4 h-4" />
                                                                     {formatTime(reservation.date)}
+                                                                </span>
+                                                            )}
+                                                            {businessTypeUI.showGuests && reservation.guests != null && (
+                                                                <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full font-medium" style={{ background: 'rgba(255, 199, 69, 0.12)', color: '#FFC745' }}>
+                                                                    <Users className="w-4 h-4" />
+                                                                    {reservation.guests} {businessTypeUI.guestsLabel.toLowerCase()}
                                                                 </span>
                                                             )}
                                                             {reservation.customer_phone && (
@@ -770,6 +788,12 @@ export default function ReservationsPage() {
                                                         <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
                                                             <Clock className="w-4 h-4" style={{ color: '#FFC745' }} />
                                                             {new Date(res.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    )}
+                                                    {businessTypeUI.showGuests && res.guests != null && (
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
+                                                            <Users className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                            {res.guests} {businessTypeUI.guestsLabel.toLowerCase()}
                                                         </div>
                                                     )}
                                                 </div>

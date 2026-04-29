@@ -11,7 +11,7 @@ import {
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, type FeatureKey } from "@/lib/businessConfig";
+import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, getBusinessTypeUI, type FeatureKey } from "@/lib/businessConfig";
 import NotificationBell from "@/components/NotificationBell";
 
 // ─── Badge hooks ─────────────────────────────────────────────────────────────
@@ -158,6 +158,7 @@ export default function Sidebar() {
     const catalog = profile?.business_type?.catalog ?? DEFAULT_CATALOG;
     const catalogLabel = profile?.business_type?.catalog_label ?? DEFAULT_CATALOG_LABEL;
     const features: FeatureKey[] = profile?.business_type?.features ?? ALL_FEATURES;
+    const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
 
     const pendingQuotes = usePendingQuotes(profile?.business_id);
     const todayRes = useTodayReservations(profile?.business_id);
@@ -193,7 +194,7 @@ export default function Sidebar() {
         {
             label: "Clients",
             items: [
-                features.includes("reservations") && { key: "reservations" as FeatureKey, title: "Réservations", href: "/reservations", icon: CalendarDays, badge: todayRes },
+                features.includes("reservations") && { key: "reservations" as FeatureKey, title: businessTypeUI.reservationLabel, href: "/reservations", icon: CalendarDays, badge: todayRes },
                 features.includes("quotes") && { key: "quotes" as FeatureKey, title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
                 features.includes("reviews") && { key: "reviews" as FeatureKey, title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
                 features.includes("clients") && { key: "clients" as FeatureKey, title: "Clients", href: "/clients", icon: Contact },
