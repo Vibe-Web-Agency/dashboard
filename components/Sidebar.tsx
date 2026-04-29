@@ -175,9 +175,7 @@ export default function Sidebar() {
     const handleLogout = async () => {
         setIsLoggingOut(true);
         await supabase.auth.signOut();
-        router.push("/login");
-        router.refresh();
-        setIsLoggingOut(false);
+        window.location.assign("/login");
     };
 
     // Build groups

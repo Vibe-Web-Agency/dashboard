@@ -40,9 +40,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
 
     useEffect(() => {
         if (!profileLoading && !profile) {
-            router.push("/login");
+            window.location.assign("/login");
         }
-    }, [profile, profileLoading, router]);
+    }, [profile, profileLoading]);
 
     useEffect(() => {
         if (quoteId && profile?.id) {
