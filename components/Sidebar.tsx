@@ -63,6 +63,21 @@ function useUnrepliedReviews(businessId?: string | null) {
     return count;
 }
 
+function usePendingOrders(businessId?: string | null) {
+    const [count, setCount] = useState(0);
+    useEffect(() => {
+        if (!businessId) return;
+        const fetch = async () => {
+            const { count: c } = await (supabase as any).from("orders").select("*", { count: "exact", head: true }).eq("business_id", businessId).in("status", ["pending", "processing", "shipped"]);
+            setCount(c || 0);
+        };
+        fetch();
+        const ch = (supabase as any).channel(`sb-orders-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `business_id=eq.${businessId}` }, fetch).subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [businessId]);
+    return count;
+}
+
 function useUnreadMessages(businessId?: string | null) {
     const [count, setCount] = useState(0);
     useEffect(() => {
@@ -164,6 +179,7 @@ export default function Sidebar() {
     const todayRes = useTodayReservations(profile?.business_id);
     const unrepliedReviews = useUnrepliedReviews(profile?.business_id);
     const unreadMessages = useUnreadMessages(profile?.business_id);
+    const pendingOrders = usePendingOrders(profile?.business_id);
 
     // Close mobile on route change
     useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -194,7 +210,7 @@ export default function Sidebar() {
             items: [
                 features.includes("reservations") && { key: "reservations" as FeatureKey, title: businessTypeUI.reservationLabel, href: "/reservations", icon: CalendarDays, badge: todayRes },
                 features.includes("quotes") && { key: "quotes" as FeatureKey, title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
-                features.includes("orders") && { key: "orders" as FeatureKey, title: "Commandes", href: "/orders", icon: ShoppingCart },
+                features.includes("orders") && { key: "orders" as FeatureKey, title: "Commandes", href: "/orders", icon: ShoppingCart, badge: pendingOrders },
                 features.includes("reviews") && { key: "reviews" as FeatureKey, title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
                 features.includes("clients") && { key: "clients" as FeatureKey, title: "Clients", href: "/clients", icon: Contact },
             ].filter(Boolean) as NavItem[],
