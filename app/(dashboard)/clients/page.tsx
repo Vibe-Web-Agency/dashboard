@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState, useMemo } from "react";
-import { Search, X, Download, ChevronDown, ChevronUp, FileText, CalendarDays, Star, Megaphone, Send, Loader2, CheckCircle } from "lucide-react";
+import { Search, X, Download, ChevronDown, ChevronUp, FileText, CalendarDays, Star, Megaphone, Send, Loader2, CheckCircle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,17 @@ interface Review {
     created_at: string;
 }
 
+interface Order {
+    id: string;
+    customer_name: string | null;
+    customer_email: string | null;
+    customer_phone: string | null;
+    status: string;
+    total_amount: number;
+    items: { name: string; price: number; qty: number }[];
+    created_at: string;
+}
+
 interface Client {
     key: string;
     name: string;
@@ -47,11 +58,13 @@ interface Client {
     quotes: Quote[];
     reservations: Reservation[];
     reviews: Review[];
+    orders: Order[];
+    totalCA: number;
     firstSeen: string;
     lastSeen: string;
 }
 
-function buildClients(quotes: Quote[], reservations: Reservation[], reviews: Review[]): Client[] {
+function buildClients(quotes: Quote[], reservations: Reservation[], reviews: Review[], orders: Order[]): Client[] {
     const map = new Map<string, Client>();
 
     const getKey = (email: string | null, name: string) =>
@@ -59,7 +72,7 @@ function buildClients(quotes: Quote[], reservations: Reservation[], reviews: Rev
 
     const upsert = (key: string, name: string, email: string | null, phone: string | null, date: string) => {
         if (!map.has(key)) {
-            map.set(key, { key, name, email, phone, quotes: [], reservations: [], reviews: [], firstSeen: date, lastSeen: date });
+            map.set(key, { key, name, email, phone, quotes: [], reservations: [], reviews: [], orders: [], totalCA: 0, firstSeen: date, lastSeen: date });
         }
         const c = map.get(key)!;
         if (!c.email && email) c.email = email;
@@ -86,7 +99,20 @@ function buildClients(quotes: Quote[], reservations: Reservation[], reviews: Rev
         map.get(key)!.reviews.push(r);
     });
 
-    return Array.from(map.values()).sort((a, b) => b.reservations.length - a.reservations.length);
+    orders.forEach((o) => {
+        if (!o.customer_name) return;
+        const key = getKey(o.customer_email, o.customer_name);
+        upsert(key, o.customer_name, o.customer_email, o.customer_phone, o.created_at);
+        const c = map.get(key)!;
+        c.orders.push(o);
+        c.totalCA += o.total_amount || 0;
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+        const totalA = a.orders.length + a.reservations.length + a.quotes.length;
+        const totalB = b.orders.length + b.reservations.length + b.quotes.length;
+        return totalB - totalA;
+    });
 }
 
 function Stars({ rating }: { rating: number }) {
@@ -107,6 +133,7 @@ export default function ClientsPage() {
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [reviews, setReviews] = useState<Review[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -129,20 +156,23 @@ export default function ClientsPage() {
         if (!profile?.business_id) return;
         setLoading(true);
 
-        const [{ data: q }, { data: r }, { data: rv }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sb = supabase as any;
+        const [{ data: q }, { data: r }, { data: rv }, { data: ord }] = await Promise.all([
             supabase.from("quotes").select("id, customer_name, customer_email, customer_phone, status, message, created_at").eq("business_id", profile.business_id),
             supabase.from("reservations").select("id, customer_name, customer_mail, customer_phone, date, status, message, created_at").eq("business_id", profile.business_id),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (supabase as any).from("reviews").select("id, author_name, email, rating, comment, created_at").eq("business_id", profile.business_id),
+            sb.from("reviews").select("id, author_name, email, rating, comment, created_at").eq("business_id", profile.business_id),
+            sb.from("orders").select("id, customer_name, customer_email, customer_phone, status, total_amount, items, created_at").eq("business_id", profile.business_id),
         ]);
 
         setQuotes((q as Quote[]) || []);
         setReservations((r as Reservation[]) || []);
         setReviews((rv as Review[]) || []);
+        setOrders((ord as Order[]) || []);
         setLoading(false);
     };
 
-    const clients = useMemo(() => buildClients(quotes, reservations, reviews), [quotes, reservations, reviews]);
+    const clients = useMemo(() => buildClients(quotes, reservations, reviews, orders), [quotes, reservations, reviews, orders]);
 
     const filtered = useMemo(() => {
         if (!searchQuery.trim()) return clients;
@@ -178,7 +208,7 @@ export default function ClientsPage() {
     };
 
     const exportCSV = () => {
-        const headers = ["Nom", "Email", "Téléphone", "Devis", "Réservations", "Avis", "Premier contact", "Dernier contact"];
+        const headers = ["Nom", "Email", "Téléphone", "Devis", "Réservations", "Avis", "Commandes", "CA Total (€)", "Premier contact", "Dernier contact"];
         const rows = filtered.map((c) => [
             c.name,
             c.email || "",
@@ -186,6 +216,8 @@ export default function ClientsPage() {
             c.quotes.length,
             c.reservations.length,
             c.reviews.length,
+            c.orders.length,
+            c.totalCA.toFixed(2),
             new Date(c.firstSeen).toLocaleDateString("fr-FR"),
             new Date(c.lastSeen).toLocaleDateString("fr-FR"),
         ]);
@@ -260,21 +292,30 @@ export default function ClientsPage() {
             </div>
 
             {/* Stats */}
-            {!loading && clients.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                        { label: "Total clients", value: clients.length },
-                        { label: "Avec email", value: clients.filter(c => c.email).length },
-                        { label: "Avec réservation", value: clients.filter(c => c.reservations.length > 0).length },
-                        { label: "No Shows", value: clients.reduce((sum, c) => sum + c.reservations.filter(r => r.status === "no_show").length, 0), danger: true },
-                    ].map(({ label, value, danger }) => (
-                        <div key={label} className="rounded-xl p-4" style={{ background: '#002928', border: `1px solid ${danger ? 'rgba(239,68,68,0.2)' : 'rgba(0, 255, 145, 0.1)'}` }}>
-                            <p className="text-xl font-bold" style={{ color: danger ? '#f87171' : '#ffffff' }}>{value}</p>
-                            <p className="text-xs mt-1" style={{ color: '#a1a1aa' }}>{label}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
+            {!loading && clients.length > 0 && (() => {
+                const hasOrders = clients.some(c => c.orders.length > 0);
+                const totalCA = clients.reduce((s, c) => s + c.totalCA, 0);
+                const baseStats = [
+                    { label: "Total clients", value: clients.length },
+                    { label: "Avec email", value: clients.filter(c => c.email).length },
+                    ...(hasOrders ? [] : [{ label: "Avec réservation", value: clients.filter(c => c.reservations.length > 0).length }]),
+                    ...(hasOrders ? [] : [{ label: "No Shows", value: clients.reduce((sum, c) => sum + c.reservations.filter(r => r.status === "no_show").length, 0), danger: true }]),
+                    ...(hasOrders ? [
+                        { label: "Clients acheteurs", value: clients.filter(c => c.orders.length > 0).length },
+                        { label: "CA total", value: `${totalCA.toFixed(0)} €` },
+                    ] : []),
+                ];
+                return (
+                    <div className={`grid grid-cols-2 sm:grid-cols-${baseStats.length} gap-3`}>
+                        {baseStats.map(({ label, value, danger }) => (
+                            <div key={label} className="rounded-xl p-4" style={{ background: '#002928', border: `1px solid ${danger ? 'rgba(239,68,68,0.2)' : 'rgba(0, 255, 145, 0.1)'}` }}>
+                                <p className="text-xl font-bold" style={{ color: danger ? '#f87171' : '#ffffff' }}>{value}</p>
+                                <p className="text-xs mt-1" style={{ color: '#a1a1aa' }}>{label}</p>
+                            </div>
+                        ))}
+                    </div>
+                );
+            })()}
 
             {/* Search */}
             <div className="relative">
@@ -335,6 +376,13 @@ export default function ClientsPage() {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
+                                        {client.orders.length > 0 && (
+                                            <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
+                                                style={{ background: 'rgba(255, 199, 69, 0.12)', color: '#FFC745' }}>
+                                                <ShoppingCart className="w-3 h-3" />
+                                                {client.orders.length}
+                                            </span>
+                                        )}
                                         {client.quotes.length > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
                                                 style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
@@ -475,6 +523,64 @@ export default function ClientsPage() {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Orders */}
+                                        {client.orders.length > 0 && (() => {
+                                            const orderStatusMap: Record<string, { label: string; bg: string; color: string }> = {
+                                                pending:    { label: "En attente",  bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
+                                                processing: { label: "En cours",    bg: "rgba(99,102,241,0.12)",  color: "#a5b4fc" },
+                                                shipped:    { label: "Expédié",     bg: "rgba(0,255,145,0.1)",   color: "#00ff91" },
+                                                delivered:  { label: "Livré",       bg: "rgba(0,255,145,0.15)",  color: "#00ff91" },
+                                                cancelled:  { label: "Annulé",      bg: "rgba(239,68,68,0.1)",   color: "#f87171" },
+                                                refunded:   { label: "Remboursé",   bg: "rgba(239,68,68,0.1)",   color: "#f87171" },
+                                            };
+                                            return (
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a1a1aa' }}>
+                                                            Commandes ({client.orders.length})
+                                                        </p>
+                                                        <span className="text-xs font-semibold" style={{ color: '#FFC745' }}>
+                                                            CA : {client.totalCA.toFixed(2)} €
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-col gap-2">
+                                                        {client.orders.map((o) => {
+                                                            const s = orderStatusMap[o.status] || orderStatusMap.pending;
+                                                            return (
+                                                                <div key={o.id} className="rounded-lg px-3 py-2"
+                                                                    style={{ background: 'rgba(255,199,69,0.03)', border: '1px solid rgba(255,199,69,0.1)' }}>
+                                                                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                                                                        <span className="text-xs font-medium" style={{ color: '#FFC745' }}>
+                                                                            {o.total_amount.toFixed(2)} €
+                                                                        </span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                                                                style={{ background: s.bg, color: s.color }}>
+                                                                                {s.label}
+                                                                            </span>
+                                                                            <span className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                                                {new Date(o.created_at).toLocaleDateString("fr-FR")}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    {Array.isArray(o.items) && o.items.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                                            {o.items.map((item, i) => (
+                                                                                <span key={i} className="text-xs px-2 py-0.5 rounded"
+                                                                                    style={{ background: 'rgba(255,255,255,0.05)', color: '#c3c3d4' }}>
+                                                                                    {item.name} × {item.qty}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 )}
                             </div>

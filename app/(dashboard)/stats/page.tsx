@@ -492,7 +492,7 @@ export default function StatsPage() {
                                 {
                                     title: "Commandes ce mois",
                                     value: ordersThisMonth.length,
-                                    subtitle: `Mois dernier : ${ordersPrevMonth.length}`,
+                                    subtitle: `${ordersThisMonth.filter(o => o.status === "processing").length} payées · ${ordersThisMonth.filter(o => o.status === "pending").length} en attente`,
                                     icon: ShoppingCart,
                                     color: "#818cf8",
                                     trend: orderCountTrend as "up" | "down" | "neutral",

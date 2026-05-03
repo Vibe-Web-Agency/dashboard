@@ -28,7 +28,7 @@ interface Order {
     updated_at: string;
 }
 
-type Tab = "active" | "history";
+type Tab = "toProcess" | "toShip" | "history";
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
     pending:    { label: "En attente",   bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
@@ -39,7 +39,8 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }
     refunded:   { label: "Remboursé",    bg: "rgba(113,113,122,0.12)", color: "#a1a1aa" },
 };
 
-const ACTIVE_STATUSES = ["pending", "processing", "shipped"];
+const TO_PROCESS_STATUSES = ["pending"];
+const TO_SHIP_STATUSES = ["processing", "shipped"];
 const HISTORY_STATUSES = ["delivered", "cancelled", "refunded"];
 
 const NEXT_STATUS: Record<string, string | null> = {
@@ -84,7 +85,7 @@ export default function OrdersPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState<Tab>("active");
+    const [tab, setTab] = useState<Tab>("toProcess");
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(0);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -128,9 +129,10 @@ export default function OrdersPage() {
         await updateStatus(id, "cancelled");
     };
 
-    const activeOrders = orders.filter(o => ACTIVE_STATUSES.includes(o.status));
+    const toProcessOrders = orders.filter(o => TO_PROCESS_STATUSES.includes(o.status));
+    const toShipOrders = orders.filter(o => TO_SHIP_STATUSES.includes(o.status));
     const historyOrders = orders.filter(o => HISTORY_STATUSES.includes(o.status));
-    const currentList = tab === "active" ? activeOrders : historyOrders;
+    const currentList = tab === "toProcess" ? toProcessOrders : tab === "toShip" ? toShipOrders : historyOrders;
 
     const filtered = currentList.filter(o => {
         if (!searchQuery.trim()) return true;
@@ -147,7 +149,8 @@ export default function OrdersPage() {
     const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-    const totalCA = activeOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + (o.total_amount || 0), 0);
+    const activeOrders = [...toProcessOrders, ...toShipOrders];
+    const totalCA = activeOrders.reduce((s, o) => s + (o.total_amount || 0), 0);
 
     const exportCSV = () => {
         const headers = ["ID", "Client", "Email", "Téléphone", "Statut", "Montant", "Date", "Notes"];
@@ -192,7 +195,7 @@ export default function OrdersPage() {
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Commandes</h1>
                     <p className="mt-1 text-sm" style={{ color: "#c3c3d4" }}>
-                        {activeOrders.length} active{activeOrders.length > 1 ? "s" : ""} · CA en cours : {formatAmount(totalCA)}
+                        {toProcessOrders.length} à traiter · {toShipOrders.length} à expédier · CA en cours : {formatAmount(totalCA)}
                     </p>
                 </div>
                 <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2 w-fit"
@@ -205,7 +208,8 @@ export default function OrdersPage() {
             {/* Tabs */}
             <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.1)" }}>
                 {([
-                    { key: "active" as Tab, label: `En cours (${activeOrders.length})` },
+                    { key: "toProcess" as Tab, label: `À traiter (${toProcessOrders.length})` },
+                    { key: "toShip" as Tab, label: `À expédier (${toShipOrders.length})` },
                     { key: "history" as Tab, label: `Historique (${historyOrders.length})` },
                 ]).map(({ key, label }) => (
                     <button key={key} onClick={() => { setTab(key); setSearchQuery(""); setPage(0); }}
