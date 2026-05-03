@@ -500,6 +500,12 @@ function PersonCard({ person, color, onEdit, onToggle }: { person: Person; color
                 </div>
             )}
 
+            {!person.slug && (
+                <p className="mt-3 text-[10px] px-2 py-1 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
+                    ⚠ URL manquante — ouvrir et sauvegarder pour générer
+                </p>
+            )}
+
             {person.portfolio_url && (
                 <a href={person.portfolio_url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 mt-3 text-xs transition-all"

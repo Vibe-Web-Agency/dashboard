@@ -8,10 +8,11 @@ import {
     ArrowUpRight, ArrowDownRight, Minus,
     Users, UserCheck, UserPlus, Clock,
     CheckCircle, XCircle, CalendarClock,
+    ShoppingCart, Euro, Package, CreditCard,
 } from "lucide-react";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, Cell, ComposedChart, Area,
+    ResponsiveContainer, Cell, ComposedChart, Area, LineChart, Line,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ALL_FEATURES } from "@/lib/businessConfig";
@@ -41,6 +42,16 @@ interface ClientData {
     firstSeen: string;
 }
 
+interface Order {
+    id: string;
+    created_at: string;
+    status: string;
+    total_amount: number;
+    customer_name: string | null;
+    customer_email: string | null;
+    items: { product_id?: string; name: string; price: number; qty: number }[];
+}
+
 type Period = "3months" | "6months" | "12months";
 
 const DAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
@@ -61,6 +72,7 @@ export default function StatsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [quotes, setQuotes] = useState<Quote[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(false);
     const [period, setPeriod] = useState<Period>("6months");
@@ -68,6 +80,7 @@ export default function StatsPage() {
     const features = profile?.business_type?.features ?? ALL_FEATURES;
     const hasReservations = features.includes("reservations");
     const hasQuotes = features.includes("quotes");
+    const hasOrders = features.includes("orders");
 
     useEffect(() => {
         if (!profileLoading) {
@@ -84,7 +97,7 @@ export default function StatsPage() {
 
         const feats = profile?.business_type?.features ?? ALL_FEATURES;
 
-        const [{ data: resData, error: e1 }, { data: quotesData, error: e2 }] = await Promise.all([
+        const [{ data: resData, error: e1 }, { data: quotesData, error: e2 }, { data: ordersData, error: e3 }] = await Promise.all([
             feats.includes("reservations")
                 ? supabase.from("reservations")
                     .select("id, date, created_at, customer_name, customer_mail, status")
@@ -95,14 +108,22 @@ export default function StatsPage() {
                     .select("id, status, created_at, customer_name, customer_email")
                     .eq("business_id", profile.business_id)
                 : Promise.resolve({ data: [], error: null }),
+            feats.includes("orders")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ? (supabase as any).from("orders")
+                    .select("id, created_at, status, total_amount, customer_name, customer_email, items")
+                    .eq("business_id", profile.business_id)
+                    .order("created_at", { ascending: false })
+                : Promise.resolve({ data: [], error: null }),
         ]);
 
-        if (e1 || e2) {
-            console.error("Erreur récupération stats:", e1 || e2);
+        if (e1 || e2 || e3) {
+            console.error("Erreur récupération stats:", e1 || e2 || e3);
             setFetchError(true);
         } else {
             setReservations((resData as Reservation[]) || []);
             setQuotes((quotesData as Quote[]) || []);
+            setOrders((ordersData as Order[]) || []);
         }
         setLoading(false);
     };
@@ -135,23 +156,22 @@ export default function StatsPage() {
             const email = r.customer_mail?.toLowerCase().trim();
             if (!email) return;
             const c = map.get(email);
-            if (c) {
-                c.reservations++;
-                if (r.created_at < c.firstSeen) c.firstSeen = r.created_at;
-            } else {
-                map.set(email, { email, name: r.customer_name || email, reservations: 1, quotes: 0, firstSeen: r.created_at });
-            }
+            if (c) { c.reservations++; if (r.created_at < c.firstSeen) c.firstSeen = r.created_at; }
+            else map.set(email, { email, name: r.customer_name || email, reservations: 1, quotes: 0, firstSeen: r.created_at });
         });
         quotes.forEach(q => {
             const email = q.customer_email?.toLowerCase().trim();
             if (!email) return;
             const c = map.get(email);
-            if (c) {
-                c.quotes++;
-                if (q.created_at < c.firstSeen) c.firstSeen = q.created_at;
-            } else {
-                map.set(email, { email, name: q.customer_name || email, reservations: 0, quotes: 1, firstSeen: q.created_at });
-            }
+            if (c) { c.quotes++; if (q.created_at < c.firstSeen) c.firstSeen = q.created_at; }
+            else map.set(email, { email, name: q.customer_name || email, reservations: 0, quotes: 1, firstSeen: q.created_at });
+        });
+        orders.forEach(o => {
+            const email = o.customer_email?.toLowerCase().trim();
+            if (!email) return;
+            const c = map.get(email);
+            if (c) { c.quotes++; if (o.created_at < c.firstSeen) c.firstSeen = o.created_at; }
+            else map.set(email, { email, name: o.customer_name || email, reservations: 0, quotes: 1, firstSeen: o.created_at });
         });
         return map;
     };
@@ -166,6 +186,65 @@ export default function StatsPage() {
         .map(c => ({ ...c, total: c.reservations + c.quotes }))
         .sort((a, b) => b.total - a.total)
         .slice(0, 5);
+
+    // ── Orders helpers ────────────────────────────────────────────────────────
+    const ordersInPeriod = orders.filter(o => new Date(o.created_at) >= periodStart);
+    const ordersThisMonth = orders.filter(o => new Date(o.created_at) >= thisMonthStart);
+    const ordersPrevMonth = orders.filter(o => {
+        const d = new Date(o.created_at);
+        return d >= prevMonthStart && d < thisMonthStart;
+    });
+    const paidStatuses = ["processing", "shipped", "delivered"];
+    const paidOrders = ordersInPeriod.filter(o => paidStatuses.includes(o.status));
+    const caInPeriod = paidOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const caThisMonth = ordersThisMonth.filter(o => paidStatuses.includes(o.status)).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const caPrevMonth = ordersPrevMonth.filter(o => paidStatuses.includes(o.status)).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const avgBasket = paidOrders.length > 0 ? caInPeriod / paidOrders.length : 0;
+    const orderCountDiff = ordersThisMonth.length - ordersPrevMonth.length;
+    const orderCountTrend = orderCountDiff > 0 ? "up" : orderCountDiff < 0 ? "down" : "neutral";
+    const caDiff = caThisMonth - caPrevMonth;
+    const caTrend = caDiff > 0 ? "up" : caDiff < 0 ? "down" : "neutral";
+
+    const getMonthlyOrderData = () => {
+        const data = [];
+        for (let i = periodMonths - 1; i >= 0; i--) {
+            const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+            const monthOrders = orders.filter(o => {
+                const d = new Date(o.created_at);
+                return d >= mStart && d <= mEnd;
+            });
+            const monthCA = monthOrders.filter(o => paidStatuses.includes(o.status)).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+            data.push({ month: MONTHS_FR[mStart.getMonth()], commandes: monthOrders.length, ca: Math.round(monthCA) });
+        }
+        return data;
+    };
+
+    const getOrderStatusData = () => [
+        { statut: "En attente", count: ordersInPeriod.filter(o => o.status === "pending").length, color: "#FFC745" },
+        { statut: "En cours", count: ordersInPeriod.filter(o => o.status === "processing").length, color: "#818cf8" },
+        { statut: "Expédiée", count: ordersInPeriod.filter(o => o.status === "shipped").length, color: "#38bdf8" },
+        { statut: "Livrée", count: ordersInPeriod.filter(o => o.status === "delivered").length, color: "#00ff91" },
+        { statut: "Annulée", count: ordersInPeriod.filter(o => o.status === "cancelled").length, color: "#ef4444" },
+        { statut: "Remboursée", count: ordersInPeriod.filter(o => o.status === "refunded").length, color: "#a1a1aa" },
+    ].filter(s => s.count > 0);
+
+    const getTopProducts = () => {
+        const map = new Map<string, { name: string; qty: number; ca: number }>();
+        paidOrders.forEach(o => {
+            (o.items || []).forEach(item => {
+                const key = item.name;
+                const existing = map.get(key);
+                if (existing) {
+                    existing.qty += item.qty;
+                    existing.ca += item.price * item.qty;
+                } else {
+                    map.set(key, { name: item.name, qty: item.qty, ca: item.price * item.qty });
+                }
+            });
+        });
+        return [...map.values()].sort((a, b) => b.ca - a.ca).slice(0, 5);
+    };
 
     // ── Chart data ────────────────────────────────────────────────────────────
     const getMonthlyData = () => {
@@ -389,6 +468,208 @@ export default function StatsPage() {
                 })}
             </div>
 
+            {/* ══════════════════════════════════════════════════
+                ── BLOC E-COMMERCE ──
+            ══════════════════════════════════════════════════ */}
+            {hasOrders && (() => {
+                const monthlyOrderData = getMonthlyOrderData();
+                const orderStatusData = getOrderStatusData();
+                const topProducts = getTopProducts();
+                const maxCA = Math.max(...monthlyOrderData.map(d => d.ca));
+
+                return (
+                    <>
+                        {/* Séparateur */}
+                        <div className="flex items-center gap-3 mt-2">
+                            <ShoppingCart className="w-4 h-4 shrink-0" style={{ color: "#818cf8" }} />
+                            <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#818cf8" }}>E-commerce</span>
+                            <div className="flex-1 h-px" style={{ background: "rgba(129,140,248,0.2)" }} />
+                        </div>
+
+                        {/* KPI Cards */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[
+                                {
+                                    title: "Commandes ce mois",
+                                    value: ordersThisMonth.length,
+                                    subtitle: `Mois dernier : ${ordersPrevMonth.length}`,
+                                    icon: ShoppingCart,
+                                    color: "#818cf8",
+                                    trend: orderCountTrend as "up" | "down" | "neutral",
+                                    trendValue: orderCountDiff,
+                                },
+                                {
+                                    title: "CA ce mois",
+                                    value: `${caThisMonth.toFixed(0)} €`,
+                                    subtitle: `Mois dernier : ${caPrevMonth.toFixed(0)} €`,
+                                    icon: Euro,
+                                    color: "#818cf8",
+                                    trend: caTrend as "up" | "down" | "neutral",
+                                    trendValue: Math.round(caDiff),
+                                },
+                                {
+                                    title: "CA sur la période",
+                                    value: `${caInPeriod.toFixed(0)} €`,
+                                    subtitle: `${paidOrders.length} commandes payées`,
+                                    icon: CreditCard,
+                                    color: "#818cf8",
+                                },
+                                {
+                                    title: "Panier moyen",
+                                    value: `${avgBasket.toFixed(0)} €`,
+                                    subtitle: `Sur les commandes payées`,
+                                    icon: Package,
+                                    color: "#818cf8",
+                                },
+                            ].map(card => {
+                                const Icon = card.icon;
+                                return (
+                                    <div key={card.title} className="rounded-xl p-4 sm:p-5"
+                                        style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.15)" }}>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                                                style={{ background: "rgba(129,140,248,0.12)" }}>
+                                                <Icon className="w-4 h-4" style={{ color: "#818cf8" }} />
+                                            </div>
+                                            {"trend" in card && card.trend && (
+                                                <span className="flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
+                                                    style={card.trend === "up"
+                                                        ? { background: "rgba(34,197,94,0.1)", color: "#22c55e" }
+                                                        : card.trend === "down"
+                                                        ? { background: "rgba(239,68,68,0.1)", color: "#ef4444" }
+                                                        : { background: "rgba(113,113,122,0.1)", color: "#71717a" }}>
+                                                    {card.trend === "up" ? <ArrowUpRight className="w-3 h-3" />
+                                                        : card.trend === "down" ? <ArrowDownRight className="w-3 h-3" />
+                                                        : <Minus className="w-3 h-3" />}
+                                                    {"trendValue" in card && card.trendValue !== 0
+                                                        ? `${(card.trendValue as number) > 0 ? "+" : ""}${card.trendValue}`
+                                                        : "="}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-2xl font-bold" style={{ color: "#ffffff" }}>{card.value}</p>
+                                        <p className="text-sm mt-1 font-medium" style={{ color: "#c3c3d4" }}>{card.title}</p>
+                                        <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>{card.subtitle}</p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* CA par mois + Évolution commandes */}
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Chiffre d&apos;affaires mensuel</h2>
+                                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Commandes payées / expédiées / livrées</p>
+                                {caInPeriod === 0 ? (
+                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                                        Aucune commande payée sur la période
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <BarChart data={monthlyOrderData} barSize={28}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(129,140,248,0.08)" vertical={false} />
+                                            <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} unit="€" />
+                                            <Tooltip
+                                                contentStyle={{ background: "#002928", border: "1px solid rgba(129,140,248,0.2)", borderRadius: "8px", color: "#fff", fontSize: "13px" }}
+                                                cursor={{ fill: "rgba(129,140,248,0.05)" }}
+                                                formatter={(v: number) => [`${v} €`, "CA"]}
+                                            />
+                                            <Bar dataKey="ca" radius={[4, 4, 0, 0]}>
+                                                {monthlyOrderData.map((entry, i) => (
+                                                    <Cell key={i} fill={entry.ca === maxCA && maxCA > 0 ? "#818cf8" : "rgba(129,140,248,0.3)"} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Volume de commandes</h2>
+                                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Toutes commandes confondues</p>
+                                {ordersInPeriod.length === 0 ? (
+                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                                        Aucune commande sur la période
+                                    </div>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <LineChart data={monthlyOrderData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(129,140,248,0.08)" vertical={false} />
+                                            <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                            <Tooltip
+                                                contentStyle={{ background: "#002928", border: "1px solid rgba(129,140,248,0.2)", borderRadius: "8px", color: "#fff", fontSize: "13px" }}
+                                                cursor={{ stroke: "rgba(129,140,248,0.3)" }}
+                                            />
+                                            <Line type="monotone" dataKey="commandes" stroke="#818cf8" strokeWidth={2}
+                                                dot={{ fill: "#818cf8", r: 3 }} activeDot={{ r: 5, fill: "#818cf8" }} name="Commandes" />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Statuts commandes + Top produits */}
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Statuts des commandes</h2>
+                                <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Répartition sur la période sélectionnée</p>
+                                {orderStatusData.length === 0 ? (
+                                    <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de commandes</p>
+                                ) : (
+                                    <div className="flex flex-col gap-4">
+                                        {orderStatusData.map(s => {
+                                            const pct = ordersInPeriod.length > 0 ? Math.round((s.count / ordersInPeriod.length) * 100) : 0;
+                                            return (
+                                                <div key={s.statut}>
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{s.statut}</span>
+                                                        <span className="text-sm font-semibold" style={{ color: s.color }}>
+                                                            {pct}% <span className="font-normal text-xs" style={{ color: "#71717a" }}>({s.count})</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                                                        <div className="h-2 rounded-full transition-all duration-500" style={{ background: s.color, width: `${pct}%` }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
+                                <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Top produits</h2>
+                                <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Par chiffre d&apos;affaires — commandes payées</p>
+                                {topProducts.length === 0 ? (
+                                    <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée produit disponible</p>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {topProducts.map((p, i) => (
+                                            <div key={p.name} className="flex items-center gap-3">
+                                                <span className="text-xs font-bold w-5 text-center shrink-0"
+                                                    style={{ color: i === 0 ? "#818cf8" : "#52525b" }}>{i + 1}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate" style={{ color: "#e4e4e7" }}>{p.name}</p>
+                                                    <p className="text-xs" style={{ color: "#52525b" }}>{p.qty} unité{p.qty > 1 ? "s" : ""} vendue{p.qty > 1 ? "s" : ""}</p>
+                                                </div>
+                                                <span className="text-sm font-semibold shrink-0" style={{ color: "#818cf8" }}>
+                                                    {p.ca.toFixed(0)} €
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Séparateur fin bloc */}
+                        <div className="h-px" style={{ background: "rgba(129,140,248,0.1)" }} />
+                    </>
+                );
+            })()}
+
             {/* ── Évolution de la clientèle ── */}
             <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
                 <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Évolution de la clientèle</h2>
@@ -603,7 +884,7 @@ export default function StatsPage() {
             )}
 
             {/* ── Heures de pointe ── */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            {hasReservations && <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
                 <div className="flex items-center gap-2 mb-1">
                     <Clock className="w-4 h-4" style={{ color: "#818cf8" }} />
                     <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Heures de pointe</h2>
@@ -629,7 +910,7 @@ export default function StatsPage() {
                         </BarChart>
                     </ResponsiveContainer>
                 )}
-            </div>
+            </div>}
 
         </div>
     );

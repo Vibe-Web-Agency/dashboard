@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
     CalendarDays, FileText, BarChart3, Globe, Settings, LogOut,
     User, Scissors, Users, Package, UserSquare2, Clapperboard,
-    Star, Contact, MessageCircle, Newspaper, Menu, X, ChevronRight,
+    Star, Contact, MessageCircle, Newspaper, Menu, X, ChevronRight, ShoppingCart,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -194,6 +194,7 @@ export default function Sidebar() {
             items: [
                 features.includes("reservations") && { key: "reservations" as FeatureKey, title: businessTypeUI.reservationLabel, href: "/reservations", icon: CalendarDays, badge: todayRes },
                 features.includes("quotes") && { key: "quotes" as FeatureKey, title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
+                features.includes("orders") && { key: "orders" as FeatureKey, title: "Commandes", href: "/orders", icon: ShoppingCart },
                 features.includes("reviews") && { key: "reviews" as FeatureKey, title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
                 features.includes("clients") && { key: "clients" as FeatureKey, title: "Clients", href: "/clients", icon: Contact },
             ].filter(Boolean) as NavItem[],
