@@ -127,13 +127,16 @@ export default function QuotesPage() {
         <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1
-                        className="text-2xl sm:text-3xl font-bold"
-                        style={{ color: '#FFC745' }}
-                    >
+                    <h1 style={{
+                        fontSize: "clamp(1.4rem, 3vw, 1.75rem)",
+                        fontWeight: 400,
+                        color: "var(--text)",
+                        letterSpacing: "-0.02em",
+                        lineHeight: 1.2,
+                    }}>
                         Devis
                     </h1>
-                    <p className="mt-1" style={{ color: '#c3c3d4' }}>
+                    <p className="mt-1" style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)" }}>
                         Gérez vos demandes de devis
                     </p>
                 </div>
@@ -141,7 +144,7 @@ export default function QuotesPage() {
                     onClick={exportCSV}
                     variant="outline"
                     className="flex items-center gap-2"
-                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}
                 >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Exporter CSV</span>
@@ -149,15 +152,15 @@ export default function QuotesPage() {
                 <div
                     className="flex items-center gap-2 rounded-lg px-4 py-2"
                     style={{
-                        background: 'rgba(255, 199, 69, 0.1)',
-                        border: '1px solid rgba(255, 199, 69, 0.2)'
+                        background: 'var(--accent-dim)',
+                        border: '1px solid var(--accent-glow)'
                     }}
                 >
                     <div
                         className="w-2 h-2 rounded-full animate-pulse"
-                        style={{ background: '#FFC745' }}
+                        style={{ background: 'var(--accent)' }}
                     />
-                    <span className="font-medium" style={{ color: '#FFC745' }}>
+                    <span className="font-medium" style={{ color: 'var(--accent)' }}>
                         {quotes.filter(q => q.status === "pending").length} en attente
                     </span>
                 </div>
@@ -167,7 +170,7 @@ export default function QuotesPage() {
             <div className="relative">
                 <Search
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5"
-                    style={{ color: '#a1a1aa' }}
+                    style={{ color: 'var(--muted)' }}
                 />
                 <Input
                     type="text"
@@ -176,16 +179,15 @@ export default function QuotesPage() {
                     onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10 w-full"
                     style={{
-                        background: '#002928',
-                        border: '1px solid rgba(0, 255, 145, 0.1)',
-                        color: '#ffffff'
+                        background: 'var(--bg-elev)', border: '1px solid var(--border)',
+                        color: 'var(--text)'
                     }}
                 />
                 {searchQuery && (
                     <button
                         onClick={() => handleSearch("")}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
-                        style={{ color: '#a1a1aa' }}
+                        style={{ color: 'var(--muted)' }}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -197,8 +199,8 @@ export default function QuotesPage() {
                 <div
                     className="text-sm px-3 py-2 rounded-lg"
                     style={{
-                        background: 'rgba(255, 199, 69, 0.1)',
-                        color: '#FFC745'
+                        background: 'var(--accent-dim)',
+                        color: 'var(--accent)'
                     }}
                 >
                     {filteredQuotes.length} résultat{filteredQuotes.length > 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
@@ -206,9 +208,9 @@ export default function QuotesPage() {
             )}
 
             {fetchError && (
-                <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}>
+                <div className="p-4 rounded-[6px] text-sm flex items-center justify-between gap-3" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
                     <span>Impossible de charger les devis. Vérifiez votre connexion.</span>
-                    <button onClick={fetchQuotes} className="shrink-0 font-medium underline" style={{ color: '#fca5a5' }}>Réessayer</button>
+                    <button onClick={fetchQuotes} className="shrink-0 font-medium underline" style={{ color: 'var(--danger)' }}>Réessayer</button>
                 </div>
             )}
 
@@ -218,7 +220,7 @@ export default function QuotesPage() {
                         <div
                             key={i}
                             className="rounded-xl p-6"
-                            style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
+                            style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -241,19 +243,18 @@ export default function QuotesPage() {
                 <div
                     className="rounded-xl p-8 text-center"
                     style={{
-                        background: '#002928',
-                        border: '1px solid rgba(0, 255, 145, 0.1)'
+                        background: 'var(--bg-elev)', border: '1px solid var(--border)'
                     }}
                 >
                     <div
                         className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                        style={{ background: 'rgba(255, 199, 69, 0.1)' }}
+                        style={{ background: 'var(--accent-dim)' }}
                     >
-                        <svg className="w-8 h-8" style={{ color: '#FFC745' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>
-                    <p style={{ color: '#c3c3d4' }}>Aucune demande de devis</p>
+                    <p style={{ color: 'var(--text-2)' }}>Aucune demande de devis</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -261,7 +262,7 @@ export default function QuotesPage() {
                         <div
                             key={quote.id}
                             className="card-hover rounded-xl p-6 cursor-pointer"
-                            style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
+                            style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}
                             onClick={() => router.push(`/quotes/${quote.id}`)}
                         >
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -269,28 +270,28 @@ export default function QuotesPage() {
                                     <div className="flex items-center gap-3 mb-2">
                                         <div
                                             className="w-10 h-10 rounded-full flex items-center justify-center font-semibold"
-                                            style={{ background: '#FFC745', color: '#001C1C' }}
+                                            style={{ background: 'var(--accent)', color: '#0E0D0B' }}
                                         >
                                             {quote.customer_name?.charAt(0).toUpperCase() || "?"}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold" style={{ color: '#ffffff' }}>
+                                            <h3 className="font-semibold" style={{ color: 'var(--text)' }}>
                                                 {quote.customer_name || "Client inconnu"}
                                             </h3>
-                                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                            <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                                 {quote.customer_email || "Pas d'email"}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2 mt-3">
-                                        <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'rgba(255, 199, 69, 0.08)', color: '#FFC745' }}>
+                                        <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                             </svg>
                                             {formatDate(quote.created_at)}
                                         </span>
                                         {quote.customer_phone && (
-                                            <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                            <span className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full" style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                                 </svg>
@@ -299,7 +300,7 @@ export default function QuotesPage() {
                                         )}
                                     </div>
                                     {quote.message && (
-                                        <p className="text-sm mt-3 italic" style={{ color: '#a1a1aa' }}>
+                                        <p className="text-sm mt-3 italic" style={{ color: 'var(--muted)' }}>
                                             &quot;{quote.message}&quot;
                                         </p>
                                     )}
@@ -313,8 +314,8 @@ export default function QuotesPage() {
                                             disabled={updatingId === quote.id}
                                             className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
                                             style={quote.status === 'pending'
-                                                ? { background: '#FFC745', color: '#001C1C' }
-                                                : { background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }
+                                                ? { background: 'var(--accent)', color: '#0E0D0B' }
+                                                : { background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(255,199,69,0.2)' }
                                             }
                                         >
                                             Attente
@@ -324,8 +325,8 @@ export default function QuotesPage() {
                                             disabled={updatingId === quote.id}
                                             className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
                                             style={quote.status === 'approved'
-                                                ? { background: '#22c55e', color: '#ffffff' }
-                                                : { background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }
+                                                ? { background: 'var(--success)', color: '#0E0D0B' }
+                                                : { background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success)' }
                                             }
                                         >
                                             Approuver
@@ -335,8 +336,8 @@ export default function QuotesPage() {
                                             disabled={updatingId === quote.id}
                                             className="text-xs px-2.5 py-1 rounded-full font-medium transition-all"
                                             style={quote.status === 'rejected'
-                                                ? { background: '#ef4444', color: '#ffffff' }
-                                                : { background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }
+                                                ? { background: 'var(--danger)', color: '#0E0D0B' }
+                                                : { background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }
                                             }
                                         >
                                             Refuser
@@ -349,7 +350,7 @@ export default function QuotesPage() {
 
                     {Math.ceil(filteredQuotes.length / PAGE_SIZE) > 1 && (
                         <div className="flex items-center justify-between pt-2">
-                            <span className="text-sm" style={{ color: '#a1a1aa' }}>
+                            <span className="text-sm" style={{ color: 'var(--muted)' }}>
                                 Page {page + 1} sur {Math.ceil(filteredQuotes.length / PAGE_SIZE)} · {filteredQuotes.length} devis
                             </span>
                             <div className="flex gap-2">
@@ -359,7 +360,7 @@ export default function QuotesPage() {
                                     onClick={() => setPage(p => p - 1)}
                                     disabled={page === 0}
                                     className="flex items-center gap-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     Préc.
@@ -370,7 +371,7 @@ export default function QuotesPage() {
                                     onClick={() => setPage(p => p + 1)}
                                     disabled={page >= Math.ceil(filteredQuotes.length / PAGE_SIZE) - 1}
                                     className="flex items-center gap-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}
                                 >
                                     Suiv.
                                     <ChevronRight className="w-4 h-4" />

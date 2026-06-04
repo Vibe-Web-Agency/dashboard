@@ -26,7 +26,7 @@ export function campaignEmailHtml({ businessName, subject, body, unsubscribeUrl 
                     <tr>
                         <td align="center" style="padding-bottom: 28px;">
                             <div style="display: inline-block; padding: 10px 22px; border-radius: 12px; background: rgba(0,41,40,0.8); border: 1px solid rgba(0,255,145,0.1);">
-                                <span style="font-size: 18px; font-weight: 800; color: #FFC745;">${businessName}</span>
+                                <span style="font-size: 18px; font-weight: 800; color: var(--accent);">${businessName}</span>
                             </div>
                         </td>
                     </tr>
@@ -35,7 +35,7 @@ export function campaignEmailHtml({ businessName, subject, body, unsubscribeUrl 
                     <tr>
                         <td style="background: rgba(0,41,40,0.9); border: 1px solid rgba(0,255,145,0.12); border-radius: 16px; padding: 32px 28px;">
 
-                            <h1 style="margin: 0 0 24px; font-size: 20px; font-weight: 700; color: #FFC745; line-height: 1.3;">
+                            <h1 style="margin: 0 0 24px; font-size: 20px; font-weight: 700; color: var(--accent); line-height: 1.3;">
                                 ${subject}
                             </h1>
 

@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
     const admin = getAdminClient() as any;
 
     const businessName = profile.business_name || "Votre prestataire";
+    const replyTo = profile.contact_email || profile.email || undefined;
+    const fromAddress = `${businessName} <noreply@vibewebagency.fr>`;
 
     // Récupérer tous les emails clients (réservations + devis), dédupliqués
     const [{ data: resEmails }, { data: quoteEmails }, { data: unsubs }] = await Promise.all([
@@ -57,8 +59,9 @@ export async function POST(req: NextRequest) {
                 const unsubUrl = `${siteUrl}/unsubscribe?business_id=${businessId}&email=${encodeURIComponent(email)}`;
                 try {
                     await resend.emails.send({
-                        from: FROM_EMAIL,
+                        from: fromAddress,
                         to: email,
+                        replyTo,
                         subject,
                         html: campaignEmailHtml({ businessName, subject, body, unsubscribeUrl: unsubUrl }),
                     });

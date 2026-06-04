@@ -76,36 +76,30 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#001C1C' }}>
-            {/* Background decorative elements */}
-            <div className="absolute inset-0 overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg)' }}>
+            {/* Background glow */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div
-                    className="absolute -top-40 -right-40 w-96 h-96 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"
-                    style={{ background: 'radial-gradient(circle, #FFC745, transparent)' }}
+                    className="absolute top-1/4 right-1/4 w-96 h-96 rounded-full filter blur-3xl opacity-10"
+                    style={{ background: 'radial-gradient(circle, #C9A876, transparent)' }}
                 />
                 <div
-                    className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"
-                    style={{ background: 'radial-gradient(circle, #00ff91, transparent)', animationDelay: '2s' }}
-                />
-                <div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-pulse"
-                    style={{ background: 'radial-gradient(circle, #FFC745, transparent)', animationDelay: '4s' }}
+                    className="absolute bottom-1/4 left-1/4 w-80 h-80 rounded-full filter blur-3xl opacity-6"
+                    style={{ background: 'radial-gradient(circle, #C9A876, transparent)' }}
                 />
             </div>
 
             <Card
-                className="w-full max-w-md relative border shadow-2xl"
+                className="w-full max-w-sm relative border"
                 style={{
-                    background: 'rgba(0, 41, 40, 0.8)',
-                    backdropFilter: 'blur(20px)',
-                    borderColor: 'rgba(0, 255, 145, 0.1)',
-                    boxShadow: '0 0 60px rgba(255, 199, 69, 0.1), 0 8px 32px rgba(0, 0, 0, 0.4)'
+                    background: 'var(--bg-elev)',
+                    borderColor: 'var(--border-hi)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
                 }}
             >
-                <CardHeader className="space-y-1 text-center">
-                    {/* Logo */}
+                <CardHeader className="space-y-1 text-center pb-4">
                     <div className="flex justify-center mb-4">
-                        <div className="relative w-20 h-20">
+                        <div className="relative w-14 h-14">
                             <Image
                                 src="/assets/logo.png"
                                 alt="Vibe Web Agency Logo"
@@ -115,37 +109,35 @@ export default function LoginPage() {
                             />
                         </div>
                     </div>
-
                     <CardTitle
-                        className="text-2xl font-bold"
-                        style={{ color: '#FFC745' }}
+                        className="font-normal"
+                        style={{ fontSize: '1.5rem', color: 'var(--text)', letterSpacing: '-0.02em' }}
                     >
                         Connexion
                     </CardTitle>
-                    <CardDescription style={{ color: '#c3c3d4' }}>
+                    <CardDescription style={{ color: 'var(--muted)', fontSize: '12px' }}>
                         Accédez à votre espace client
                     </CardDescription>
                 </CardHeader>
 
                 <form onSubmit={handleSubmit}>
                     <CardContent className="space-y-4">
-                        {/* Error message */}
                         {error && (
                             <div
                                 className="p-3 rounded-lg text-sm"
                                 style={{
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: '#fca5a5'
+                                    background: 'oklch(62% 0.22 25 / 0.08)',
+                                    border: '1px solid oklch(62% 0.22 25 / 0.2)',
+                                    color: 'oklch(72% 0.18 25)',
+                                    fontSize: '12px',
                                 }}
                             >
                                 {error}
                             </div>
                         )}
 
-                        {/* Email */}
-                        <div className="space-y-2">
-                            <Label htmlFor="email" style={{ color: '#e4e4e7' }}>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email" style={{ color: 'var(--text-2)', fontSize: '12px' }}>
                                 Email
                             </Label>
                             <Input
@@ -157,27 +149,26 @@ export default function LoginPage() {
                                 onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
-                                className="transition-all duration-200"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
+                                    background: 'var(--surface-2)',
+                                    border: '1px solid var(--border-2)',
+                                    color: 'var(--text)',
+                                    fontSize: '13px',
                                 }}
                             />
                         </div>
 
-                        {/* Password */}
-                        <div className="space-y-2">
+                        <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password" style={{ color: '#e4e4e7' }}>
+                                <Label htmlFor="password" style={{ color: 'var(--text-2)', fontSize: '12px' }}>
                                     Mot de passe
                                 </Label>
                                 <Link
                                     href="/forgot-password"
-                                    className="text-xs transition-colors hover:underline underline-offset-4"
-                                    style={{ color: '#c3c3d4' }}
+                                    className="transition-colors hover:underline underline-offset-4"
+                                    style={{ fontSize: '11px', color: 'var(--muted)' }}
                                 >
-                                    Mot de passe oublié ?
+                                    Oublié ?
                                 </Link>
                             </div>
                             <Input
@@ -189,25 +180,25 @@ export default function LoginPage() {
                                 onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
-                                className="transition-all duration-200"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
+                                    background: 'var(--surface-2)',
+                                    border: '1px solid var(--border-2)',
+                                    color: 'var(--text)',
+                                    fontSize: '13px',
                                 }}
                             />
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex flex-col space-y-4">
+                    <CardFooter className="flex flex-col space-y-4 pt-2">
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full font-semibold py-2.5 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full font-medium py-2.5 transition-all duration-200 disabled:opacity-50"
                             style={{
-                                background: '#FFC745',
-                                color: '#001C1C',
-                                boxShadow: '0 4px 20px rgba(255, 199, 69, 0.3)'
+                                background: 'var(--accent)',
+                                color: '#0E0D0B',
+                                fontSize: '13px',
                             }}
                         >
                             {isLoading ? (
@@ -239,23 +230,21 @@ export default function LoginPage() {
                             )}
                         </Button>
 
-                        {/* Divider */}
                         <div className="relative w-full">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full" style={{ borderTop: '1px solid rgba(0, 255, 145, 0.1)' }} />
+                                <span className="w-full" style={{ borderTop: '1px solid var(--border)' }} />
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="px-2" style={{ background: 'rgba(0, 41, 40, 0.8)', color: '#71717a' }}>ou</span>
+                            <div className="relative flex justify-center">
+                                <span className="px-2" style={{ background: 'var(--bg-elev)', color: 'var(--text-muted)', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>ou</span>
                             </div>
                         </div>
 
-                        {/* Link to signup */}
-                        <p className="text-center text-sm" style={{ color: '#c3c3d4' }}>
-                            Première connexion ?
+                        <p className="text-center" style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                            Première connexion ?{' '}
                             <Link
                                 href="/signup"
-                                className="ml-1 font-medium transition-colors underline-offset-4 hover:underline"
-                                style={{ color: '#FFC745' }}
+                                className="font-medium transition-colors underline-offset-4 hover:underline"
+                                style={{ color: 'var(--accent)' }}
                             >
                                 Activer mon compte
                             </Link>

@@ -34,7 +34,7 @@ interface ActiveSub {
 
 export default function BillingPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin" style={{ color: "#FFC745" }} /></div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--accent)" }} /></div>}>
             <BillingContent />
         </Suspense>
     );
@@ -144,7 +144,7 @@ function BillingContent() {
     if (profileLoading || loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-6 h-6 animate-spin" style={{ color: "#FFC745" }} />
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--accent)" }} />
             </div>
         );
     }
@@ -153,8 +153,8 @@ function BillingContent() {
         <div className="max-w-4xl mx-auto space-y-8 pb-16">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold" style={{ color: "#FFC745" }}>Facturation</h1>
-                <p className="text-sm mt-1" style={{ color: "#71717a" }}>
+                <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Facturation</h1>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                     Choisissez votre formule et vos options
                 </p>
             </div>
@@ -162,14 +162,14 @@ function BillingContent() {
             {/* Banner success/cancel */}
             {successParam && (
                 <div className="p-4 rounded-xl text-sm font-medium flex items-center gap-2"
-                    style={{ background: "rgba(0,255,145,0.1)", border: "1px solid rgba(0,255,145,0.2)", color: "#00ff91" }}>
+                    style={{ background: "var(--accent-muted)", border: "1px solid var(--border-hi)", color: "var(--accent)" }}>
                     <Check className="w-4 h-4" />
                     Abonnement activé avec succès !
                 </div>
             )}
             {canceledParam && (
                 <div className="p-4 rounded-xl text-sm font-medium"
-                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
+                    style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-bg)", color: "var(--danger)" }}>
                     Paiement annulé.
                 </div>
             )}
@@ -178,7 +178,7 @@ function BillingContent() {
             {activeSubs.length > 0 && (
                 <div className="rounded-xl p-5 space-y-3" style={{ background: "rgba(255,199,69,0.05)", border: "1px solid rgba(255,199,69,0.15)" }}>
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "#FFC745" }}>
+                        <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--accent)" }}>
                             <CreditCard className="w-4 h-4" />
                             Abonnement actuel
                         </h2>
@@ -186,7 +186,7 @@ function BillingContent() {
                             onClick={handlePortal}
                             disabled={openingPortal}
                             className="text-xs flex items-center gap-1 transition-opacity hover:opacity-70"
-                            style={{ color: "#71717a" }}
+                            style={{ color: "var(--text-muted)" }}
                         >
                             {openingPortal ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
                             Gérer / Factures
@@ -195,21 +195,21 @@ function BillingContent() {
                     <div className="space-y-2">
                         {activeSubs.map((sub, i) => (
                             <div key={i} className="flex items-center justify-between text-sm">
-                                <span style={{ color: "#e4e4e7" }}>
+                                <span style={{ color: "var(--text-muted)" }}>
                                     {sub.type === "plan" ? sub.plan?.label : sub.addon?.label}
                                 </span>
                                 <div className="flex items-center gap-3">
-                                    <span style={{ color: "#71717a" }}>
+                                    <span style={{ color: "var(--text-muted)" }}>
                                         {sub.type === "plan" ? sub.plan?.monthly_price : sub.addon?.monthly_price}€/mois
                                     </span>
                                     <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                                         style={sub.status === "active" || sub.status === "trialing"
-                                            ? { background: "rgba(0,255,145,0.1)", color: "#00ff91" }
+                                            ? { background: "var(--accent-muted)", color: "var(--accent)" }
                                             : sub.status === "past_due"
-                                                ? { background: "rgba(239,68,68,0.1)", color: "#f87171" }
+                                                ? { background: "var(--danger-bg)", color: "var(--danger)" }
                                                 : sub.status === "incomplete" || sub.status === "incomplete_expired"
-                                                    ? { background: "rgba(255,199,69,0.1)", color: "#FFC745" }
-                                                    : { background: "rgba(113,113,122,0.1)", color: "#71717a" }}>
+                                                    ? { background: "var(--accent-dim)", color: "var(--accent)" }
+                                                    : { background: "rgba(113,113,122,0.1)", color: "var(--text-muted)" }}>
                                         {sub.status === "active" || sub.status === "trialing" ? "Actif"
                                             : sub.status === "past_due" ? "Impayé"
                                             : sub.status === "incomplete" || sub.status === "incomplete_expired" ? "En attente"
@@ -225,7 +225,7 @@ function BillingContent() {
             {/* Plans */}
             {plans.length > 0 && (
                 <div className="space-y-4">
-                    <h2 className="font-semibold text-sm" style={{ color: "#e4e4e7" }}>Choisir une formule</h2>
+                    <h2 className="font-semibold text-sm" style={{ color: "var(--text-muted)" }}>Choisir une formule</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {plans.map(plan => {
                             const isSelected = selectedPlanId === plan.id;
@@ -235,24 +235,24 @@ function BillingContent() {
                                     onClick={() => setSelectedPlanId(plan.id)}
                                     className="text-left rounded-xl p-5 space-y-3 transition-all duration-200 hover:scale-[1.02]"
                                     style={{
-                                        background: isSelected ? "rgba(255,199,69,0.08)" : "rgba(0,255,145,0.03)",
-                                        border: isSelected ? "1px solid rgba(255,199,69,0.4)" : "1px solid rgba(0,255,145,0.1)",
+                                        background: isSelected ? "rgba(255,199,69,0.08)" : "var(--surface)",
+                                        border: isSelected ? "1px solid rgba(255,199,69,0.4)" : "1px solid var(--accent-muted)",
                                     }}
                                 >
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <div className="font-semibold text-sm" style={{ color: isSelected ? "#FFC745" : "#e4e4e7" }}>
+                                            <div className="font-semibold text-sm" style={{ color: isSelected ? "var(--accent)" : "var(--text-muted)" }}>
                                                 {plan.label}
                                             </div>
-                                            <div className="text-xl font-bold mt-1" style={{ color: isSelected ? "#FFC745" : "#ffffff" }}>
+                                            <div className="text-xl font-bold mt-1" style={{ color: isSelected ? "var(--accent)" : "var(--text)" }}>
                                                 {plan.monthly_price}€
-                                                <span className="text-xs font-normal ml-1" style={{ color: "#71717a" }}>/mois</span>
+                                                <span className="text-xs font-normal ml-1" style={{ color: "var(--text-muted)" }}>/mois</span>
                                             </div>
                                         </div>
                                         <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 shrink-0 transition-all"
                                             style={{
-                                                borderColor: isSelected ? "#FFC745" : "rgba(0,255,145,0.2)",
-                                                background: isSelected ? "#FFC745" : "transparent"
+                                                borderColor: isSelected ? "var(--accent)" : "var(--border-hi)",
+                                                background: isSelected ? "var(--accent)" : "transparent"
                                             }}>
                                             {isSelected && <Check className="w-3 h-3 text-black" />}
                                         </div>
@@ -260,8 +260,8 @@ function BillingContent() {
                                     {plan.features.length > 0 && (
                                         <ul className="space-y-1">
                                             {plan.features.map((f, i) => (
-                                                <li key={i} className="flex items-center gap-1.5 text-xs" style={{ color: "#a1a1aa" }}>
-                                                    <Check className="w-3 h-3 shrink-0" style={{ color: "#00ff91" }} />
+                                                <li key={i} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                                                    <Check className="w-3 h-3 shrink-0" style={{ color: "var(--accent)" }} />
                                                     {f}
                                                 </li>
                                             ))}
@@ -277,8 +277,8 @@ function BillingContent() {
             {/* Add-ons */}
             {addons.length > 0 && (
                 <div className="space-y-4">
-                    <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "#e4e4e7" }}>
-                        <Sparkles className="w-4 h-4" style={{ color: "#FFC745" }} />
+                    <h2 className="font-semibold text-sm flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
+                        <Sparkles className="w-4 h-4" style={{ color: "var(--accent)" }} />
                         Options supplémentaires
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -290,26 +290,26 @@ function BillingContent() {
                                     onClick={() => toggleAddon(addon.id)}
                                     className="text-left rounded-xl p-4 flex items-center justify-between transition-all duration-200 hover:scale-[1.01]"
                                     style={{
-                                        background: isSelected ? "rgba(255,199,69,0.08)" : "rgba(0,255,145,0.03)",
-                                        border: isSelected ? "1px solid rgba(255,199,69,0.4)" : "1px solid rgba(0,255,145,0.1)",
+                                        background: isSelected ? "rgba(255,199,69,0.08)" : "var(--surface)",
+                                        border: isSelected ? "1px solid rgba(255,199,69,0.4)" : "1px solid var(--accent-muted)",
                                     }}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                            style={{ background: isSelected ? "rgba(255,199,69,0.15)" : "rgba(0,255,145,0.05)" }}>
-                                            <Zap className="w-4 h-4" style={{ color: isSelected ? "#FFC745" : "#00ff91" }} />
+                                            style={{ background: isSelected ? "rgba(255,199,69,0.15)" : "var(--accent-muted)" }}>
+                                            <Zap className="w-4 h-4" style={{ color: isSelected ? "var(--accent)" : "var(--accent)" }} />
                                         </div>
                                         <div>
-                                            <div className="text-sm font-medium" style={{ color: isSelected ? "#FFC745" : "#e4e4e7" }}>
+                                            <div className="text-sm font-medium" style={{ color: isSelected ? "var(--accent)" : "var(--text-muted)" }}>
                                                 {addon.label}
                                             </div>
-                                            <div className="text-xs" style={{ color: "#71717a" }}>+{addon.monthly_price}€/mois</div>
+                                            <div className="text-xs" style={{ color: "var(--text-muted)" }}>+{addon.monthly_price}€/mois</div>
                                         </div>
                                     </div>
                                     <div className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all"
                                         style={{
-                                            borderColor: isSelected ? "#FFC745" : "rgba(0,255,145,0.2)",
-                                            background: isSelected ? "#FFC745" : "transparent"
+                                            borderColor: isSelected ? "var(--accent)" : "var(--border-hi)",
+                                            background: isSelected ? "var(--accent)" : "transparent"
                                         }}>
                                         {isSelected && <Check className="w-3 h-3 text-black" />}
                                     </div>
@@ -322,23 +322,23 @@ function BillingContent() {
 
             {/* Récapitulatif + CTA */}
             {(plans.length > 0 || addons.length > 0) && (
-                <div className="rounded-xl p-5 space-y-4" style={{ background: "rgba(0,41,40,0.6)", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>Total mensuel</span>
-                        <span className="text-xl font-bold" style={{ color: "#FFC745" }}>
-                            {totalSelected}€<span className="text-xs font-normal ml-1" style={{ color: "#71717a" }}>/mois</span>
+                        <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>Total mensuel</span>
+                        <span className="text-xl font-bold" style={{ color: "var(--accent)" }}>
+                            {totalSelected}€<span className="text-xs font-normal ml-1" style={{ color: "var(--text-muted)" }}>/mois</span>
                         </span>
                     </div>
 
                     {error && (
-                        <p className="text-xs" style={{ color: "#f87171" }}>{error}</p>
+                        <p className="text-xs" style={{ color: "var(--danger)" }}>{error}</p>
                     )}
 
                     <Button
                         onClick={handleCheckout}
                         disabled={!selectedPlanId || redirecting}
                         className="w-full font-semibold py-2.5 transition-all duration-300 hover:scale-[1.01] disabled:opacity-50"
-                        style={{ background: "#FFC745", color: "#001C1C" }}
+                        style={{ background: "var(--accent)", color: "var(--on-accent)" }}
                     >
                         {redirecting ? (
                             <span className="flex items-center gap-2">
@@ -353,7 +353,7 @@ function BillingContent() {
                     </Button>
 
                     {!selectedPlanId && (
-                        <p className="text-xs text-center" style={{ color: "#71717a" }}>
+                        <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
                             Sélectionnez une formule pour continuer
                         </p>
                     )}
@@ -361,7 +361,7 @@ function BillingContent() {
             )}
 
             {plans.length === 0 && !loading && (
-                <div className="text-center py-16" style={{ color: "#71717a" }}>
+                <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
                     <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">Aucune formule disponible pour le moment.</p>
                     <p className="text-xs mt-1">Contactez-nous pour plus d&apos;informations.</p>

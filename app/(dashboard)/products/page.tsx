@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+
 import { useState, useEffect } from "react";
 import { Plus, X, Pencil, Tag, Euro, Package, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +28,16 @@ export default function ProductsPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        if (searchParams.get("new") === "1") {
+            setShowModal(true);
+            window.history.replaceState(null, "", window.location.pathname);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+        const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [saving, setSaving] = useState(false);
     const [form, setForm] = useState({ name: "", description: "", price: "", stock: "", sku: "", category: "" });
@@ -113,12 +124,12 @@ export default function ProductsPage() {
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>Produits</h1>
-                    <p className="text-sm mt-1" style={{ color: "#71717a" }}>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Produits</h1>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                         {products.filter(p => p.active).length} actifs · {products.length} au total
                     </p>
                 </div>
-                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Nouveau produit</span>
                     <span className="sm:hidden">Nouveau</span>
@@ -127,15 +138,15 @@ export default function ProductsPage() {
 
             {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" style={{ background: "#001C1C" }} />)}
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" style={{ background: "var(--bg)" }} />)}
                 </div>
             ) : (
                 <>
                     {categories.map(category => (
                         <div key={category} className="mb-6">
                             <div className="flex items-center gap-2 mb-3">
-                                <Tag className="w-3.5 h-3.5" style={{ color: "#FFC745" }} />
-                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#FFC745" }}>{category}</span>
+                                <Tag className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
+                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>{category}</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {products.filter(p => p.category === category).map(product => (
@@ -148,8 +159,8 @@ export default function ProductsPage() {
                     {products.filter(p => !p.category).length > 0 && (
                         <div className="mb-6">
                             <div className="flex items-center gap-2 mb-3">
-                                <Tag className="w-3.5 h-3.5" style={{ color: "#71717a" }} />
-                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#71717a" }}>Sans catégorie</span>
+                                <Tag className="w-3.5 h-3.5" style={{ color: "var(--text-muted)" }} />
+                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Sans catégorie</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {products.filter(p => !p.category).map(product => (
@@ -160,10 +171,10 @@ export default function ProductsPage() {
                     )}
 
                     {products.length === 0 && (
-                        <div className="text-center py-16" style={{ color: "#71717a" }}>
+                        <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
                             <Package className="w-10 h-10 mx-auto mb-3 opacity-30" />
                             <p className="text-sm">Aucun produit pour le moment</p>
-                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 Ajouter un produit
                             </Button>
                         </div>
@@ -173,40 +184,40 @@ export default function ProductsPage() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
                                 {editingProduct ? "Modifier le produit" : "Nouveau produit"}
                             </h2>
-                            <button onClick={() => setShowModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                            <button onClick={() => setShowModal(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Nom *</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Nom *</Label>
                                 <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: T-shirt logo" style={inputStyle} />
                             </div>
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Description</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Description</Label>
                                 <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description du produit" style={inputStyle} />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Prix (€)</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prix (€)</Label>
                                     <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Stock</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Stock</Label>
                                     <Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} placeholder="0" style={inputStyle} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>SKU</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>SKU</Label>
                                     <Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} placeholder="REF-001" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Catégorie</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Catégorie</Label>
                                     <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Ex: Vêtements" style={inputStyle} />
                                 </div>
                             </div>
@@ -214,14 +225,14 @@ export default function ProductsPage() {
 
                         <div className="flex gap-2 mt-6">
                             {editingProduct && (
-                                <Button onClick={() => handleDelete(editingProduct.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                                <Button onClick={() => handleDelete(editingProduct.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
                                     Supprimer
                                 </Button>
                             )}
-                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa" }}>
+                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
                                 Annuler
                             </Button>
-                            <Button onClick={handleSave} disabled={!form.name.trim() || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={handleSave} disabled={!form.name.trim() || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 {saving ? "..." : editingProduct ? "Enregistrer" : "Créer"}
                             </Button>
                         </div>
@@ -234,42 +245,42 @@ export default function ProductsPage() {
 
 function ProductCard({ product, onEdit, onToggle }: { product: Product; onEdit: () => void; onToggle: () => void }) {
     return (
-        <div className="rounded-xl p-4" style={{ background: "#001C1C", border: `1px solid ${product.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.2)"}`, opacity: product.active ? 1 : 0.6 }}>
+        <div className="rounded-xl p-4" style={{ background: "var(--bg)", border: `1px solid ${product.active ? "var(--border-hi)" : "rgba(113,113,122,0.2)"}`, opacity: product.active ? 1 : 0.6 }}>
             <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="font-semibold text-sm leading-tight" style={{ color: "#ffffff" }}>{product.name}</span>
-                <button onClick={onEdit} className="flex h-7 w-7 items-center justify-center rounded-lg transition-all shrink-0" style={{ color: "#71717a" }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; e.currentTarget.style.background = "rgba(255,199,69,0.1)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.background = "transparent"; }}>
+                <span className="font-semibold text-sm leading-tight" style={{ color: "var(--text)" }}>{product.name}</span>
+                <button onClick={onEdit} className="flex h-7 w-7 items-center justify-center rounded-lg transition-all shrink-0" style={{ color: "var(--text-muted)" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
                     <Pencil className="w-3.5 h-3.5" />
                 </button>
             </div>
 
-            {product.description && <p className="text-xs mb-3 leading-relaxed" style={{ color: "#71717a" }}>{product.description}</p>}
+            {product.description && <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>{product.description}</p>}
 
             <div className="flex items-center gap-3 flex-wrap">
                 {product.price != null && (
                     <div className="flex items-center gap-1">
-                        <Euro className="w-3 h-3" style={{ color: "#FFC745" }} />
-                        <span className="text-sm font-semibold" style={{ color: "#FFC745" }}>{product.price}€</span>
+                        <Euro className="w-3 h-3" style={{ color: "var(--accent)" }} />
+                        <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{product.price}€</span>
                     </div>
                 )}
                 {product.stock != null && (
                     <div className="flex items-center gap-1">
-                        <Hash className="w-3 h-3" style={{ color: "#71717a" }} />
-                        <span className="text-xs" style={{ color: product.stock <= 5 ? "#f87171" : "#71717a" }}>
+                        <Hash className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
+                        <span className="text-xs" style={{ color: product.stock <= 5 ? "var(--danger)" : "var(--text-muted)" }}>
                             {product.stock} en stock
                         </span>
                     </div>
                 )}
                 {product.sku && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(113,113,122,0.15)", color: "#52525b" }}>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(113,113,122,0.15)", color: "var(--text-faint)" }}>
                         {product.sku}
                     </span>
                 )}
             </div>
 
             <button onClick={onToggle} className="mt-3 w-full text-[11px] py-1 rounded-lg transition-all"
-                style={{ background: product.active ? "rgba(0,255,145,0.08)" : "rgba(113,113,122,0.1)", color: product.active ? "#00ff91" : "#71717a", border: `1px solid ${product.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.15)"}` }}>
+                style={{ background: product.active ? "var(--border)" : "rgba(113,113,122,0.1)", color: product.active ? "var(--accent)" : "var(--text-muted)", border: `1px solid ${product.active ? "var(--border-hi)" : "rgba(113,113,122,0.15)"}` }}>
                 {product.active ? "Actif · Désactiver" : "Inactif · Activer"}
             </button>
         </div>

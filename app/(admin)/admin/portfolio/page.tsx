@@ -145,7 +145,7 @@ export default function AdminPortfolioPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Portfolio</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Portfolio</h1>
                     <p className="mt-1 text-sm" style={{ color: "#c3c3d4" }}>
                         {projects.length} projet{projects.length > 1 ? "s" : ""} · {featured.length} mis en avant
                     </p>
@@ -153,7 +153,7 @@ export default function AdminPortfolioPage() {
                 <Button
                     onClick={openCreate}
                     className="flex items-center gap-2 font-semibold"
-                    style={{ background: "#FFC745", color: "#001C1C" }}
+                    style={{ background: "var(--accent)", color: "var(--on-accent)" }}
                 >
                     <Plus className="w-4 h-4" />
                     Nouveau projet
@@ -163,11 +163,11 @@ export default function AdminPortfolioPage() {
             {/* List */}
             {loading ? (
                 <div className="flex items-center gap-2" style={{ color: "#c3c3d4" }}>
-                    <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "#FFC745", borderTopColor: "transparent" }} />
+                    <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
                     Chargement...
                 </div>
             ) : projects.length === 0 ? (
-                <div className="rounded-xl p-12 text-center" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.08)" }}>
+                <div className="rounded-xl p-12 text-center" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.08)" }}>
                     <p style={{ color: "#c3c3d4" }}>Aucun projet pour l&apos;instant.</p>
                     <p className="text-sm mt-1" style={{ color: "rgba(195,195,212,0.5)" }}>Ajoutez votre premier projet avec le bouton ci-dessus.</p>
                 </div>
@@ -178,7 +178,7 @@ export default function AdminPortfolioPage() {
                             key={p.id}
                             className="flex items-center gap-4 rounded-xl px-4 py-3"
                             style={{
-                                background: "#002928",
+                                background: "var(--surface)",
                                 border: `1px solid ${p.active ? "rgba(0,255,145,0.1)" : "rgba(255,255,255,0.06)"}`,
                                 opacity: p.active ? 1 : 0.55,
                             }}
@@ -189,7 +189,7 @@ export default function AdminPortfolioPage() {
                             {/* Thumbnail */}
                             <div
                                 className="w-14 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
-                                style={{ background: "#001C1C" }}
+                                style={{ background: "#0E0D0B" }}
                             >
                                 {p.image_url ? (
                                     // eslint-disable-next-line @next/next/no-img-element
@@ -205,7 +205,7 @@ export default function AdminPortfolioPage() {
                                     <span className="font-semibold truncate" style={{ color: "#fff" }}>{p.title}</span>
                                     <span
                                         className="text-xs px-2 py-0.5 rounded-full shrink-0"
-                                        style={{ background: "rgba(255,199,69,0.12)", color: "#FFC745" }}
+                                        style={{ background: "rgba(255,199,69,0.12)", color: "var(--accent)" }}
                                     >
                                         {p.category}
                                     </span>
@@ -234,7 +234,7 @@ export default function AdminPortfolioPage() {
                                     onClick={() => toggleField(p, "featured")}
                                     title={p.featured ? "Retirer du featured" : "Mettre en avant"}
                                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                                    style={{ color: p.featured ? "#FFC745" : "rgba(195,195,212,0.4)" }}
+                                    style={{ color: p.featured ? "var(--accent)" : "rgba(195,195,212,0.4)" }}
                                 >
                                     {p.featured ? <Star className="w-4 h-4 fill-current" /> : <StarOff className="w-4 h-4" />}
                                 </button>
@@ -269,7 +269,7 @@ export default function AdminPortfolioPage() {
                                     onClick={() => openEdit(p)}
                                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
                                     style={{ color: "rgba(195,195,212,0.4)" }}
-                                    onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; }}
                                     onMouseLeave={e => { e.currentTarget.style.color = "rgba(195,195,212,0.4)"; }}
                                 >
                                     <Pencil className="w-4 h-4" />
@@ -304,10 +304,10 @@ export default function AdminPortfolioPage() {
                 >
                     <div
                         className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.12)", maxHeight: "90vh", overflowY: "auto" }}
+                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.12)", maxHeight: "90vh", overflowY: "auto" }}
                     >
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold" style={{ color: "#FFC745" }}>
+                            <h2 className="text-lg font-bold" style={{ color: "var(--accent)" }}>
                                 {editProject ? "Modifier le projet" : "Nouveau projet"}
                             </h2>
                             <button onClick={() => setModalOpen(false)} style={{ color: "#c3c3d4" }}>
@@ -325,7 +325,7 @@ export default function AdminPortfolioPage() {
                                         onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                                         placeholder="BSK Barbershop"
                                         className="px-3 py-2 rounded-lg text-sm outline-none"
-                                        style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                        style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1">
@@ -335,7 +335,7 @@ export default function AdminPortfolioPage() {
                                         onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                                         placeholder="Barbershop"
                                         className="px-3 py-2 rounded-lg text-sm outline-none"
-                                        style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                        style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                     />
                                 </div>
                             </div>
@@ -349,7 +349,7 @@ export default function AdminPortfolioPage() {
                                     placeholder="Site vitrine avec réservation en ligne..."
                                     rows={2}
                                     className="px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                                    style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                    style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                 />
                             </div>
 
@@ -361,7 +361,7 @@ export default function AdminPortfolioPage() {
                                     onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
                                     placeholder="Next.js, Resend, SEO"
                                     className="px-3 py-2 rounded-lg text-sm outline-none"
-                                    style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                    style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                 />
                             </div>
 
@@ -371,7 +371,7 @@ export default function AdminPortfolioPage() {
                                 <div className="flex gap-2">
                                     <div
                                         className="w-16 h-12 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
-                                        style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)" }}
+                                        style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)" }}
                                     >
                                         {form.image_url ? (
                                             // eslint-disable-next-line @next/next/no-img-element
@@ -386,10 +386,10 @@ export default function AdminPortfolioPage() {
                                             onClick={() => fileInputRef.current?.click()}
                                             disabled={uploading}
                                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all"
-                                            style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#c3c3d4" }}
+                                            style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#c3c3d4" }}
                                         >
                                             {uploading
-                                                ? <span className="w-4 h-4 border-2 rounded-full animate-spin shrink-0" style={{ borderColor: "#FFC745", borderTopColor: "transparent" }} />
+                                                ? <span className="w-4 h-4 border-2 rounded-full animate-spin shrink-0" style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }} />
                                                 : <Upload className="w-4 h-4 shrink-0" />
                                             }
                                             {uploading ? "Upload en cours..." : "Choisir une image"}
@@ -399,7 +399,7 @@ export default function AdminPortfolioPage() {
                                             onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
                                             placeholder="ou coller une URL..."
                                             className="px-3 py-1.5 rounded-lg text-xs outline-none"
-                                            style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.08)", color: "rgba(195,195,212,0.7)" }}
+                                            style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.08)", color: "rgba(195,195,212,0.7)" }}
                                         />
                                     </div>
                                 </div>
@@ -420,7 +420,7 @@ export default function AdminPortfolioPage() {
                                     onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
                                     placeholder="https://bskbarbershop.fr"
                                     className="px-3 py-2 rounded-lg text-sm outline-none"
-                                    style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                    style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                 />
                             </div>
 
@@ -433,7 +433,7 @@ export default function AdminPortfolioPage() {
                                         value={form.display_order}
                                         onChange={e => setForm(f => ({ ...f, display_order: Number(e.target.value) }))}
                                         className="w-20 px-3 py-2 rounded-lg text-sm outline-none"
-                                        style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
+                                        style={{ background: "#0E0D0B", border: "1px solid rgba(0,255,145,0.12)", color: "#fff" }}
                                     />
                                 </div>
 
@@ -441,9 +441,9 @@ export default function AdminPortfolioPage() {
                                     onClick={() => setForm(f => ({ ...f, featured: !f.featured }))}
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all mt-4"
                                     style={{
-                                        background: form.featured ? "rgba(255,199,69,0.12)" : "#001C1C",
+                                        background: form.featured ? "rgba(255,199,69,0.12)" : "#0E0D0B",
                                         border: "1px solid rgba(0,255,145,0.12)",
-                                        color: form.featured ? "#FFC745" : "rgba(195,195,212,0.5)",
+                                        color: form.featured ? "var(--accent)" : "rgba(195,195,212,0.5)",
                                     }}
                                 >
                                     {form.featured ? <Star className="w-4 h-4 fill-current" /> : <StarOff className="w-4 h-4" />}
@@ -454,7 +454,7 @@ export default function AdminPortfolioPage() {
                                     onClick={() => setForm(f => ({ ...f, active: !f.active }))}
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all mt-4"
                                     style={{
-                                        background: form.active ? "rgba(52,211,153,0.1)" : "#001C1C",
+                                        background: form.active ? "rgba(52,211,153,0.1)" : "#0E0D0B",
                                         border: "1px solid rgba(0,255,145,0.12)",
                                         color: form.active ? "#34d399" : "rgba(195,195,212,0.5)",
                                     }}
@@ -470,10 +470,10 @@ export default function AdminPortfolioPage() {
                                 onClick={handleSave}
                                 disabled={saving || !form.title.trim()}
                                 className="flex-1 font-semibold flex items-center justify-center gap-2"
-                                style={{ background: "#FFC745", color: "#001C1C" }}
+                                style={{ background: "var(--accent)", color: "var(--on-accent)" }}
                             >
                                 {saving
-                                    ? <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "#001C1C", borderTopColor: "transparent" }} />
+                                    ? <span className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "#0E0D0B", borderTopColor: "transparent" }} />
                                     : <Check className="w-4 h-4" />
                                 }
                                 {editProject ? "Enregistrer" : "Créer"}

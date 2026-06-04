@@ -103,8 +103,8 @@ export default function ReservationDetailPage() {
                     <Skeleton className="h-9 w-72" />
                     <Skeleton className="h-4 w-48" />
                 </div>
-                <div className="rounded-xl p-6 space-y-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                    <div className="flex items-center gap-4 pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="rounded-xl p-6 space-y-6" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+                    <div className="flex items-center gap-4 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
                         <Skeleton className="w-16 h-16 rounded-full shrink-0" />
                         <div className="space-y-2">
                             <Skeleton className="h-6 w-40" />
@@ -128,9 +128,9 @@ export default function ReservationDetailPage() {
     if (!reservation) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p style={{ color: '#c3c3d4' }}>Réservation non trouvée</p>
+                <p style={{ color: 'var(--text-2)' }}>Réservation non trouvée</p>
                 <Link href="/reservations">
-                    <Button style={{ background: '#FFC745', color: '#001C1C' }}>Retour aux réservations</Button>
+                    <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux réservations</Button>
                 </Link>
             </div>
         );
@@ -142,7 +142,7 @@ export default function ReservationDetailPage() {
             <Link
                 href="/reservations"
                 className="flex items-center gap-2 w-fit transition-colors"
-                style={{ color: '#FFC745' }}
+                style={{ color: 'var(--accent)' }}
             >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm font-medium">Retour aux {businessTypeUI.reservationLabel.toLowerCase()}</span>
@@ -152,11 +152,11 @@ export default function ReservationDetailPage() {
             <div>
                 <h1
                     className="text-2xl sm:text-3xl font-bold mb-2"
-                    style={{ color: '#FFC745' }}
+                    style={{ color: 'var(--accent)' }}
                 >
                     Détails du {businessTypeUI.reservationLabel.toLowerCase().replace(/s$/, "")}
                 </h1>
-                <p style={{ color: '#c3c3d4' }}>
+                <p style={{ color: 'var(--text-2)' }}>
                     Informations complètes et gestion
                 </p>
             </div>
@@ -165,23 +165,22 @@ export default function ReservationDetailPage() {
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                    background: 'var(--bg-elev)', border: '1px solid var(--border)'
                 }}
             >
                 {/* Customer Info */}
-                <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
                     <div
                         className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold"
-                        style={{ background: '#FFC745', color: '#001C1C' }}
+                        style={{ background: 'var(--accent)', color: '#0E0D0B' }}
                     >
                         {reservation.customer_name?.charAt(0).toUpperCase() || "?"}
                     </div>
                     <div>
-                        <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+                        <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                             {reservation.customer_name}
                         </h2>
-                        <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                        <p className="text-sm" style={{ color: 'var(--muted)' }}>
                             Réservation créée le {formatDate(reservation.created_at)}
                         </p>
                     </div>
@@ -193,13 +192,13 @@ export default function ReservationDetailPage() {
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
+                                style={{ background: 'var(--accent-dim)' }}
                             >
-                                <Calendar className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                <Calendar className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Date de réservation</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Date de réservation</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {formatDate(reservation.date)}
                                 </p>
                             </div>
@@ -210,13 +209,13 @@ export default function ReservationDetailPage() {
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
+                                style={{ background: 'var(--accent-dim)' }}
                             >
-                                <Users className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                <Users className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>{businessTypeUI.guestsLabel}</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>{businessTypeUI.guestsLabel}</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {reservation.guests} personne{reservation.guests > 1 ? "s" : ""}
                                 </p>
                             </div>
@@ -227,13 +226,13 @@ export default function ReservationDetailPage() {
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
+                                style={{ background: 'var(--surface-2)' }}
                             >
-                                <Mail className="w-5 h-5" style={{ color: '#00ff91' }} />
+                                <Mail className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Email</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Email</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {reservation.customer_mail}
                                 </p>
                             </div>
@@ -244,13 +243,13 @@ export default function ReservationDetailPage() {
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
+                                style={{ background: 'var(--surface-2)' }}
                             >
-                                <Phone className="w-5 h-5" style={{ color: '#00ff91' }} />
+                                <Phone className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Téléphone</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Téléphone</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {reservation.customer_phone}
                                 </p>
                             </div>
@@ -261,13 +260,13 @@ export default function ReservationDetailPage() {
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
+                                style={{ background: 'var(--accent-dim)' }}
                             >
-                                <MessageSquare className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                <MessageSquare className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Message</p>
-                                <p className="italic" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Message</p>
+                                <p className="italic" style={{ color: 'var(--text)' }}>
                                     &quot;{reservation.message}&quot;
                                 </p>
                             </div>
@@ -277,16 +276,16 @@ export default function ReservationDetailPage() {
 
                 {/* Statut de présence */}
                 <div className="p-4 rounded-lg mt-4"
-                    style={{ background: 'rgba(0, 255, 145, 0.03)', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                    <p className="text-sm font-medium mb-3" style={{ color: '#c3c3d4' }}>Statut de présence</p>
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-2)' }}>Statut de présence</p>
                     <div className="flex gap-3">
                         <Button
                             onClick={() => updateStatus("attended")}
                             disabled={updatingStatus}
                             className="flex-1 flex items-center justify-center gap-2"
                             style={reservation.status === "attended"
-                                ? { background: 'linear-gradient(135deg, #00ff91, #00cc73)', color: '#001C1C', fontWeight: 600 }
-                                : { background: 'rgba(0,255,145,0.08)', color: '#00ff91', border: '1px solid rgba(0,255,145,0.2)' }}
+                                ? { background: 'linear-gradient(135deg, var(--accent), #00cc73)', color: '#0E0D0B', fontWeight: 600 }
+                                : { background: 'var(--border)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}
                         >
                             <UserCheck className="w-4 h-4" />
                             Venu
@@ -296,8 +295,8 @@ export default function ReservationDetailPage() {
                             disabled={updatingStatus}
                             className="flex-1 flex items-center justify-center gap-2"
                             style={reservation.status === "no_show"
-                                ? { background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#ffffff', fontWeight: 600 }
-                                : { background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
+                                ? { background: 'linear-gradient(135deg, var(--danger), var(--danger))', color: 'var(--text)', fontWeight: 600 }
+                                : { background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger-bg)' }}
                         >
                             <UserX className="w-4 h-4" />
                             No Show
@@ -307,7 +306,7 @@ export default function ReservationDetailPage() {
                                 onClick={() => updateStatus("scheduled")}
                                 disabled={updatingStatus}
                                 className="flex-1 flex items-center justify-center gap-2"
-                                style={{ background: 'rgba(255,199,69,0.08)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }}
+                                style={{ background: 'rgba(255,199,69,0.08)', color: 'var(--accent)', border: '1px solid rgba(255,199,69,0.2)' }}
                             >
                                 Planifié
                             </Button>
@@ -319,20 +318,20 @@ export default function ReservationDetailPage() {
                 <div
                     className="p-4 rounded-lg mt-4"
                     style={{
-                        background: 'rgba(239, 68, 68, 0.05)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                        background: 'var(--danger-bg)',
+                        border: '1px solid var(--danger-bg)'
                     }}
                 >
-                    <p className="text-sm font-medium mb-3" style={{ color: '#ef4444' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--danger)' }}>
                         Zone de danger
                     </p>
                     <Button
                         onClick={() => setShowDeleteModal(true)}
                         className="w-full flex items-center justify-center gap-2"
                         style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                            background: 'var(--danger-bg)',
+                            color: 'var(--danger)',
+                            border: '1px solid var(--danger)'
                         }}
                     >
                         <Trash2 className="w-4 h-4" />
@@ -351,31 +350,31 @@ export default function ReservationDetailPage() {
                     <div
                         className="w-full max-w-md rounded-2xl p-6"
                         style={{
-                            background: '#002928',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.1)'
+                            background: 'var(--surface)',
+                            border: '1px solid var(--danger)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--danger-bg)'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center gap-3 mb-4">
                             <div
                                 className="w-12 h-12 rounded-full flex items-center justify-center"
-                                style={{ background: 'rgba(239, 68, 68, 0.15)' }}
+                                style={{ background: 'var(--danger-bg)' }}
                             >
-                                <AlertTriangle className="w-6 h-6" style={{ color: '#ef4444' }} />
+                                <AlertTriangle className="w-6 h-6" style={{ color: 'var(--danger)' }} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                                     Confirmer la suppression
                                 </h3>
-                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                     Cette action est irréversible
                                 </p>
                             </div>
                         </div>
 
-                        <p className="mb-4" style={{ color: '#c3c3d4' }}>
-                            Êtes-vous sûr de vouloir supprimer la réservation de <strong style={{ color: '#ffffff' }}>{reservation.customer_name}</strong> ?
+                        <p className="mb-4" style={{ color: 'var(--text-2)' }}>
+                            Êtes-vous sûr de vouloir supprimer la réservation de <strong style={{ color: 'var(--text)' }}>{reservation.customer_name}</strong> ?
                             Cette action ne peut pas être annulée.
                         </p>
 
@@ -383,9 +382,9 @@ export default function ReservationDetailPage() {
                             <div
                                 className="p-3 mb-4 rounded-lg text-sm"
                                 style={{
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: '#fca5a5'
+                                    background: 'var(--danger-bg)',
+                                    border: '1px solid var(--danger)',
+                                    color: 'var(--danger)'
                                 }}
                             >
                                 {deleteError}
@@ -397,9 +396,9 @@ export default function ReservationDetailPage() {
                                 onClick={() => setShowDeleteModal(false)}
                                 className="flex-1"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    color: '#c3c3d4',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                                    background: 'var(--surface-2)',
+                                    color: 'var(--text-2)',
+                                    border: '1px solid var(--border)'
                                 }}
                             >
                                 Annuler
@@ -409,8 +408,8 @@ export default function ReservationDetailPage() {
                                 disabled={deleting}
                                 className="flex-1 flex items-center justify-center gap-2"
                                 style={{
-                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                    color: '#ffffff',
+                                    background: 'linear-gradient(135deg, var(--danger), var(--danger))',
+                                    color: 'var(--text)',
                                     fontWeight: 600
                                 }}
                             >

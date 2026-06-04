@@ -35,13 +35,13 @@ export default function AdminPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#FFC745' }}>Clients VWA</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--accent)' }}>Clients VWA</h1>
                     <p className="mt-1 text-sm" style={{ color: '#c3c3d4' }}>
                         {clients.length} client{clients.length > 1 ? "s" : ""} · {activated} activé{activated > 1 ? "s" : ""}
                     </p>
                 </div>
                 <Link href="/admin/new">
-                    <Button className="flex items-center gap-2 font-semibold" style={{ background: '#FFC745', color: '#001C1C' }}>
+                    <Button className="flex items-center gap-2 font-semibold" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                         <Plus className="w-4 h-4" />
                         Nouveau client
                     </Button>
@@ -52,7 +52,7 @@ export default function AdminPage() {
             {loading ? (
                 <div className="flex flex-col gap-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-5" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <div key={i} className="rounded-xl p-5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                             <div className="flex items-center gap-3">
                                 <Skeleton className="w-10 h-10 rounded-full" />
                                 <div className="flex-1 space-y-2">
@@ -64,11 +64,11 @@ export default function AdminPage() {
                     ))}
                 </div>
             ) : clients.length === 0 ? (
-                <div className="rounded-xl p-12 text-center" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="rounded-xl p-12 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                     <p className="text-lg mb-2" style={{ color: '#ffffff' }}>Aucun client</p>
                     <p className="text-sm mb-6" style={{ color: '#a1a1aa' }}>Créez votre premier client pour commencer.</p>
                     <Link href="/admin/new">
-                        <Button style={{ background: '#FFC745', color: '#001C1C' }}>
+                        <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                             <Plus className="w-4 h-4 mr-2" />
                             Créer un client
                         </Button>
@@ -79,9 +79,9 @@ export default function AdminPage() {
                     {clients.map((client) => (
                         <Link key={client.business_id} href={`/admin/${client.business_id}`}>
                             <div className="flex items-center gap-4 rounded-xl p-5 cursor-pointer transition-colors hover:bg-white/[0.02]"
-                                style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                                 <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0"
-                                    style={{ background: '#FFC745', color: '#001C1C' }}>
+                                    style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                     {(client.business_name || client.email).charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -93,7 +93,7 @@ export default function AdminPage() {
                                 <div className="flex items-center gap-3 shrink-0">
                                     {client.business_type && (
                                         <span className="hidden sm:inline text-xs px-2.5 py-1 rounded-full"
-                                            style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                            style={{ background: 'var(--border)', color: '#c3c3d4' }}>
                                             {client.business_type}
                                         </span>
                                     )}
@@ -109,7 +109,7 @@ export default function AdminPage() {
                                             <span className="hidden sm:inline">Activé</span>
                                         </span>
                                     ) : (
-                                        <span className="flex items-center gap-1 text-xs" style={{ color: '#FFC745' }}>
+                                        <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--accent)' }}>
                                             <Clock className="w-3.5 h-3.5" />
                                             <span className="hidden sm:inline">En attente</span>
                                         </span>

@@ -127,11 +127,11 @@ export default function CalendarPage() {
                 <div>
                     <h1
                         className="text-2xl sm:text-3xl font-bold"
-                        style={{ color: '#FFC745' }}
+                        style={{ color: 'var(--accent)' }}
                     >
                         Calendrier
                     </h1>
-                    <p className="mt-1" style={{ color: '#c3c3d4' }}>
+                    <p className="mt-1" style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)" }}>
                         Vue mensuelle de vos réservations
                     </p>
                 </div>
@@ -141,8 +141,7 @@ export default function CalendarPage() {
             <div
                 className="flex items-center justify-between p-4 rounded-xl"
                 style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                    background: 'var(--bg-elev)', border: '1px solid var(--border)'
                 }}
             >
                 <Button
@@ -150,7 +149,7 @@ export default function CalendarPage() {
                     size="icon"
                     onClick={previousMonth}
                     className="rounded-lg"
-                    style={{ color: '#c3c3d4' }}
+                    style={{ color: 'var(--text-2)' }}
                 >
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
@@ -158,7 +157,7 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-4">
                     <h2
                         className="text-xl font-semibold capitalize"
-                        style={{ color: '#ffffff' }}
+                        style={{ color: 'var(--text)' }}
                     >
                         {monthName}
                     </h2>
@@ -168,9 +167,9 @@ export default function CalendarPage() {
                         onClick={goToToday}
                         className="text-xs"
                         style={{
-                            background: 'rgba(255, 199, 69, 0.1)',
-                            border: '1px solid rgba(255, 199, 69, 0.3)',
-                            color: '#FFC745'
+                            background: 'var(--accent-dim)',
+                            border: '1px solid var(--accent-glow)',
+                            color: 'var(--accent)'
                         }}
                     >
                         Aujourd&apos;hui
@@ -182,7 +181,7 @@ export default function CalendarPage() {
                     size="icon"
                     onClick={nextMonth}
                     className="rounded-lg"
-                    style={{ color: '#c3c3d4' }}
+                    style={{ color: 'var(--text-2)' }}
                 >
                     <ChevronRight className="h-5 w-5" />
                 </Button>
@@ -192,7 +191,7 @@ export default function CalendarPage() {
             {(loading || profileLoading) ? (
                 <div
                     className="rounded-xl p-4"
-                    style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}
+                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}
                 >
                     <div className="grid grid-cols-7 gap-2 mb-2">
                         {[...Array(7)].map((_, i) => (
@@ -209,8 +208,7 @@ export default function CalendarPage() {
                 <div
                     className="rounded-xl p-4"
                     style={{
-                        background: '#002928',
-                        border: '1px solid rgba(0, 255, 145, 0.1)'
+                        background: 'var(--bg-elev)', border: '1px solid var(--border)'
                     }}
                 >
                     {/* Week days header */}
@@ -219,7 +217,7 @@ export default function CalendarPage() {
                             <div
                                 key={day}
                                 className="text-center p-2 text-sm font-semibold"
-                                style={{ color: '#FFC745' }}
+                                style={{ color: 'var(--accent)' }}
                             >
                                 {day}
                             </div>
@@ -234,7 +232,7 @@ export default function CalendarPage() {
                                     <div
                                         key={`empty-${index}`}
                                         className="aspect-square rounded-lg"
-                                        style={{ background: 'rgba(0, 255, 145, 0.02)' }}
+                                        style={{ background: 'transparent' }}
                                     />
                                 );
                             }
@@ -250,29 +248,29 @@ export default function CalendarPage() {
                                     onClick={() => handleDayClick(date)}
                                     style={{
                                         background: isToday
-                                            ? 'rgba(255, 199, 69, 0.12)'
+                                            ? 'var(--accent-dim)'
                                             : isPast
-                                                ? 'rgba(0, 255, 145, 0.02)'
-                                                : 'rgba(0, 255, 145, 0.05)',
+                                                ? 'transparent'
+                                                : 'var(--surface-2)',
                                         border: isToday
-                                            ? '2px solid rgba(255, 199, 69, 0.5)'
-                                            : '1px solid rgba(0, 255, 145, 0.08)',
+                                            ? '2px solid var(--accent-glow)'
+                                            : '1px solid var(--border)',
                                         opacity: isPast ? 0.5 : 1
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = 'rgba(255, 199, 69, 0.12)';
-                                        e.currentTarget.style.borderColor = 'rgba(255, 199, 69, 0.4)';
+                                        e.currentTarget.style.background = 'var(--accent-dim)';
+                                        e.currentTarget.style.borderColor = 'var(--accent-glow)';
                                         e.currentTarget.style.transform = 'scale(1.02)';
                                     }}
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.background = isToday
-                                            ? 'rgba(255, 199, 69, 0.12)'
+                                            ? 'var(--accent-dim)'
                                             : isPast
-                                                ? 'rgba(0, 255, 145, 0.02)'
-                                                : 'rgba(0, 255, 145, 0.05)';
+                                                ? 'transparent'
+                                                : 'var(--surface-2)';
                                         e.currentTarget.style.borderColor = isToday
-                                            ? 'rgba(255, 199, 69, 0.5)'
-                                            : 'rgba(0, 255, 145, 0.08)';
+                                            ? 'var(--accent-glow)'
+                                            : 'var(--border)';
                                         e.currentTarget.style.transform = 'scale(1)';
                                     }}
                                 >
@@ -280,7 +278,7 @@ export default function CalendarPage() {
                                         <div
                                             className="text-sm font-medium"
                                             style={{
-                                                color: isToday ? '#FFC745' : '#ffffff'
+                                                color: isToday ? 'var(--accent)' : '#ffffff'
                                             }}
                                         >
                                             {date.getDate()}
@@ -290,9 +288,9 @@ export default function CalendarPage() {
                                             <div
                                                 className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                                                 style={{
-                                                    background: '#FFC745',
-                                                    color: '#001C1C',
-                                                    boxShadow: '0 2px 8px rgba(255, 199, 69, 0.3)'
+                                                    background: 'var(--accent)',
+                                                    color: '#0E0D0B',
+                                                    boxShadow: '0 2px 8px var(--accent-glow)'
                                                 }}
                                             >
                                                 {dayReservations.length}
@@ -307,8 +305,8 @@ export default function CalendarPage() {
                                                     key={res.id}
                                                     className="text-xs p-1 rounded truncate hidden sm:block"
                                                     style={{
-                                                        background: 'rgba(255, 199, 69, 0.15)',
-                                                        color: '#FFC745'
+                                                        background: 'var(--accent-glow)',
+                                                        color: 'var(--accent)'
                                                     }}
                                                     title={`${res.customer_name} - ${res.customer_mail || res.customer_phone || ''}`}
                                                 >
@@ -318,7 +316,7 @@ export default function CalendarPage() {
                                             {dayReservations.length > 2 && (
                                                 <div
                                                     className="text-xs p-1 text-center font-medium hidden sm:block"
-                                                    style={{ color: '#FFC745' }}
+                                                    style={{ color: 'var(--accent)' }}
                                                 >
                                                     +{dayReservations.length - 2}
                                                 </div>
@@ -336,41 +334,40 @@ export default function CalendarPage() {
             <div
                 className="flex items-center flex-wrap gap-4 p-4 rounded-xl"
                 style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                    background: 'var(--bg-elev)', border: '1px solid var(--border)'
                 }}
             >
                 <div className="flex items-center gap-2">
                     <div
                         className="w-4 h-4 rounded"
                         style={{
-                            background: 'rgba(255, 199, 69, 0.12)',
-                            border: '2px solid rgba(255, 199, 69, 0.5)'
+                            background: 'var(--accent-dim)',
+                            border: '2px solid var(--accent-glow)'
                         }}
                     />
-                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Aujourd&apos;hui</span>
+                    <span className="text-sm" style={{ color: 'var(--text-2)' }}>Aujourd&apos;hui</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div
                         className="w-4 h-4 rounded"
                         style={{
-                            background: 'rgba(255, 199, 69, 0.15)'
+                            background: 'var(--accent-glow)'
                         }}
                     />
-                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Réservation</span>
+                    <span className="text-sm" style={{ color: 'var(--text-2)' }}>Réservation</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div
                         className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                         style={{
-                            background: '#FFC745',
-                            color: '#001C1C',
-                            boxShadow: '0 2px 8px rgba(255, 199, 69, 0.3)'
+                            background: 'var(--accent)',
+                            color: '#0E0D0B',
+                            boxShadow: '0 2px 8px var(--accent-glow)'
                         }}
                     >
                         3
                     </div>
-                    <span className="text-sm" style={{ color: '#c3c3d4' }}>Nombre de réservations</span>
+                    <span className="text-sm" style={{ color: 'var(--text-2)' }}>Nombre de réservations</span>
                 </div>
             </div>
 
@@ -384,9 +381,9 @@ export default function CalendarPage() {
                     <div
                         className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto"
                         style={{
-                            background: '#002928',
-                            border: '1px solid rgba(255, 199, 69, 0.3)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 199, 69, 0.1)'
+                            background: 'var(--surface)',
+                            border: '1px solid var(--accent-glow)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--accent-dim)'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -396,14 +393,14 @@ export default function CalendarPage() {
                                 <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center"
                                     style={{
-                                        background: 'rgba(255, 199, 69, 0.15)',
-                                        border: '1px solid rgba(255, 199, 69, 0.3)'
+                                        background: 'var(--accent-glow)',
+                                        border: '1px solid var(--accent-glow)'
                                     }}
                                 >
-                                    <Calendar className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                    <Calendar className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                    <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                                         {selectedDate.toLocaleDateString('fr-FR', {
                                             weekday: 'long',
                                             day: 'numeric',
@@ -411,7 +408,7 @@ export default function CalendarPage() {
                                             year: 'numeric'
                                         })}
                                     </h3>
-                                    <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                    <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                         {selectedDateReservations.length} réservation{selectedDateReservations.length !== 1 ? 's' : ''}
                                     </p>
                                 </div>
@@ -421,7 +418,7 @@ export default function CalendarPage() {
                                 size="icon"
                                 onClick={closeModal}
                                 className="rounded-full"
-                                style={{ color: '#c3c3d4' }}
+                                style={{ color: 'var(--text-2)' }}
                             >
                                 <X className="w-5 h-5" />
                             </Button>
@@ -432,12 +429,12 @@ export default function CalendarPage() {
                             <div
                                 className="text-center py-12 rounded-xl"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.03)',
-                                    border: '1px solid rgba(0, 255, 145, 0.08)'
+                                    background: 'var(--surface-2)',
+                                    border: '1px solid var(--border)'
                                 }}
                             >
-                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: '#14524F' }} />
-                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted-2)' }} />
+                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                     Aucune réservation pour ce jour
                                 </p>
                             </div>
@@ -449,31 +446,31 @@ export default function CalendarPage() {
                                         href={`/reservations/${res.id}`}
                                         className="card-hover block rounded-xl p-4"
                                         style={{
-                                            background: 'rgba(255, 199, 69, 0.05)',
-                                            border: '1px solid rgba(255, 199, 69, 0.15)'
+                                            background: 'var(--accent-dim)',
+                                            border: '1px solid var(--accent-glow)'
                                         }}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h4 className="font-medium mb-2" style={{ color: '#ffffff' }}>
+                                                <h4 className="font-medium mb-2" style={{ color: 'var(--text)' }}>
                                                     {res.customer_name}
                                                 </h4>
                                                 <div className="space-y-1">
                                                     {res.customer_mail && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
-                                                            <Mail className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
+                                                            <Mail className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                                                             {res.customer_mail}
                                                         </div>
                                                     )}
                                                     {res.customer_phone && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
-                                                            <Phone className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
+                                                            <Phone className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                                                             {res.customer_phone}
                                                         </div>
                                                     )}
                                                     {res.date && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: '#c3c3d4' }}>
-                                                            <Clock className="w-4 h-4" style={{ color: '#FFC745' }} />
+                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
+                                                            <Clock className="w-4 h-4" style={{ color: 'var(--accent)' }} />
                                                             {new Date(res.date).toLocaleTimeString('fr-FR', {
                                                                 hour: '2-digit',
                                                                 minute: '2-digit'
@@ -482,7 +479,7 @@ export default function CalendarPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: '#FFC745' }} />
+                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: 'var(--accent)' }} />
                                         </div>
                                     </Link>
                                 ))}

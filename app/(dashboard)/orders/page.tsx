@@ -3,9 +3,9 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
-import { X, Search, ChevronLeft, ChevronRight, Download, ShoppingCart, Package, Mail, Phone, Euro } from "lucide-react";
+import { X, Search, ChevronLeft, ChevronRight, Download, ShoppingCart, Package, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface OrderItem {
@@ -17,6 +17,7 @@ interface OrderItem {
 
 interface Order {
     id: string;
+    order_number: string | null;
     customer_name: string | null;
     customer_email: string | null;
     customer_phone: string | null;
@@ -24,22 +25,22 @@ interface Order {
     total_amount: number;
     items: OrderItem[];
     notes: string | null;
+    tracking_number: string | null;
     created_at: string;
     updated_at: string;
 }
 
-type Tab = "toProcess" | "toShip" | "history";
+type Tab = "toShip" | "history";
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-    pending:    { label: "En attente",   bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
-    processing: { label: "En cours",     bg: "rgba(99,102,241,0.12)",  color: "#818cf8" },
-    shipped:    { label: "Expédié",      bg: "rgba(14,165,233,0.12)",  color: "#38bdf8" },
-    delivered:  { label: "Livré",        bg: "rgba(0,255,145,0.12)",   color: "#00ff91" },
-    cancelled:  { label: "Annulé",       bg: "rgba(239,68,68,0.12)",   color: "#f87171" },
-    refunded:   { label: "Remboursé",    bg: "rgba(113,113,122,0.12)", color: "#a1a1aa" },
+    pending:    { label: "En attente",   bg: "var(--warning-bg)",  color: "var(--accent)" },
+    processing: { label: "En cours",     bg: "var(--info-bg)",  color: "var(--info)" },
+    shipped:    { label: "Expédié",      bg: "var(--info-bg)",         color: "var(--info)" },
+    delivered:  { label: "Livré",        bg: "var(--success-bg)",   color: "var(--accent)" },
+    cancelled:  { label: "Annulé",       bg: "var(--danger-bg)",   color: "var(--danger)" },
+    refunded:   { label: "Remboursé",    bg: "rgba(113,113,122,0.12)", color: "var(--text-muted)" },
 };
 
-const TO_PROCESS_STATUSES = ["pending"];
 const TO_SHIP_STATUSES = ["processing", "shipped"];
 const HISTORY_STATUSES = ["delivered", "cancelled", "refunded"];
 
@@ -58,15 +59,18 @@ const NEXT_LABEL: Record<string, string> = {
     shipped:    "Livré",
 };
 
+const STATUS_PILL_CLASS: Record<string, string> = {
+    pending:    "pill pill-amber",
+    processing: "pill pill-blue",
+    shipped:    "pill pill-blue",
+    delivered:  "pill pill-green",
+    cancelled:  "pill pill-red",
+    refunded:   "pill pill-muted",
+};
+
 function StatusBadge({ status }: { status: string }) {
     const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-    return (
-        <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
-            style={{ background: cfg.bg, color: cfg.color }}>
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
-            {cfg.label}
-        </span>
-    );
+    return <span className={STATUS_PILL_CLASS[status] || "pill pill-muted"}>{cfg.label}</span>;
 }
 
 function formatAmount(amount: number) {
@@ -85,11 +89,14 @@ export default function OrdersPage() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tab, setTab] = useState<Tab>("toProcess");
+    const [tab, setTab] = useState<Tab>("toShip");
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(0);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+    const [shipModal, setShipModal] = useState<Order | null>(null);
+    const [trackingInput, setTrackingInput] = useState("");
+    const [shipping, setShipping] = useState(false);
     const PAGE_SIZE = 25;
 
     useEffect(() => {
@@ -129,10 +136,29 @@ export default function OrdersPage() {
         await updateStatus(id, "cancelled");
     };
 
-    const toProcessOrders = orders.filter(o => TO_PROCESS_STATUSES.includes(o.status));
+    const openShipModal = (order: Order, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setTrackingInput("");
+        setShipModal(order);
+    };
+
+    const confirmShip = async () => {
+        if (!shipModal) return;
+        setShipping(true);
+        await fetch("/api/orders/ship", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: shipModal.id, trackingNumber: trackingInput.trim() || null }),
+        });
+        setOrders(prev => prev.map(o => o.id === shipModal.id ? { ...o, status: "shipped", tracking_number: trackingInput.trim() || null } : o));
+        if (selectedOrder?.id === shipModal.id) setSelectedOrder(prev => prev ? { ...prev, status: "shipped", tracking_number: trackingInput.trim() || null } : null);
+        setShipModal(null);
+        setShipping(false);
+    };
+
     const toShipOrders = orders.filter(o => TO_SHIP_STATUSES.includes(o.status));
     const historyOrders = orders.filter(o => HISTORY_STATUSES.includes(o.status));
-    const currentList = tab === "toProcess" ? toProcessOrders : tab === "toShip" ? toShipOrders : historyOrders;
+    const currentList = tab === "toShip" ? toShipOrders : historyOrders;
 
     const filtered = currentList.filter(o => {
         if (!searchQuery.trim()) return true;
@@ -142,6 +168,7 @@ export default function OrdersPage() {
             o.customer_email?.toLowerCase().includes(q) ||
             o.customer_phone?.toLowerCase().includes(q) ||
             o.notes?.toLowerCase().includes(q) ||
+            o.order_number?.toLowerCase().includes(q) ||
             o.id.toLowerCase().includes(q)
         );
     });
@@ -149,13 +176,12 @@ export default function OrdersPage() {
     const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-    const activeOrders = [...toProcessOrders, ...toShipOrders];
-    const totalCA = activeOrders.reduce((s, o) => s + (o.total_amount || 0), 0);
+    const totalCA = toShipOrders.reduce((s, o) => s + (o.total_amount || 0), 0);
 
     const exportCSV = () => {
-        const headers = ["ID", "Client", "Email", "Téléphone", "Statut", "Montant", "Date", "Notes"];
+        const headers = ["N° Commande", "ID", "Client", "Email", "Téléphone", "Statut", "Montant", "Date", "Notes"];
         const rows = filtered.map(o => [
-            o.id, o.customer_name || "", o.customer_email || "", o.customer_phone || "",
+            o.order_number || "", o.id, o.customer_name || "", o.customer_email || "", o.customer_phone || "",
             STATUS_CONFIG[o.status]?.label || o.status,
             o.total_amount?.toString() || "0",
             formatDateTime(o.created_at),
@@ -174,7 +200,7 @@ export default function OrdersPage() {
     const skeletons = (
         <div className="flex flex-col gap-3">
             {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-xl p-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div key={i} className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                     <div className="flex items-center gap-3 mb-3">
                         <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                         <div className="flex-1 space-y-2">
@@ -189,241 +215,253 @@ export default function OrdersPage() {
     );
 
     return (
-        <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-5 max-w-5xl mx-auto w-full">
+            {/* ─── Page Head ─── */}
+            <div className="page-head">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Commandes</h1>
-                    <p className="mt-1 text-sm" style={{ color: "#c3c3d4" }}>
-                        {toProcessOrders.length} à traiter · {toShipOrders.length} à expédier · CA en cours : {formatAmount(totalCA)}
+                    <h1>Commandes</h1>
+                    <p style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)", marginTop: 4 }}>
+                        {toShipOrders.length} à expédier · CA en cours : {formatAmount(totalCA)}
                     </p>
                 </div>
-                <Button onClick={exportCSV} variant="outline" className="flex items-center gap-2 w-fit"
-                    style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.15)", color: "#c3c3d4" }}>
-                    <Download className="w-4 h-4" />
-                    <span className="hidden sm:inline">Exporter CSV</span>
+                <Button onClick={exportCSV} variant="outline">
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">CSV</span>
                 </Button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.1)" }}>
+            {/* ─── Tabs ─── */}
+            <div className="vos-tabs">
                 {([
-                    { key: "toProcess" as Tab, label: `À traiter (${toProcessOrders.length})` },
-                    { key: "toShip" as Tab, label: `À expédier (${toShipOrders.length})` },
-                    { key: "history" as Tab, label: `Historique (${historyOrders.length})` },
+                    { key: "toShip" as Tab, label: `À expédier · ${toShipOrders.length}` },
+                    { key: "history" as Tab, label: `Historique · ${historyOrders.length}` },
                 ]).map(({ key, label }) => (
                     <button key={key} onClick={() => { setTab(key); setSearchQuery(""); setPage(0); }}
-                        className="px-4 py-1.5 text-sm rounded-md transition-all duration-200 font-medium"
-                        style={tab === key ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 } : { color: "#c3c3d4" }}>
+                        className={`vos-tab${tab === key ? " active" : ""}`}>
                         {label}
                     </button>
                 ))}
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#a1a1aa" }} />
-                <Input
-                    placeholder="Rechercher par client, email, téléphone..."
+            {/* ─── Search ─── */}
+            <div className="vos-search">
+                <Search className="vos-search-icon" />
+                <input
+                    placeholder="Rechercher par client, email, téléphone…"
                     value={searchQuery}
                     onChange={e => { setSearchQuery(e.target.value); setPage(0); }}
-                    className="pl-10"
-                    style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)", color: "#ffffff" }}
                 />
-                {searchQuery && (
-                    <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#a1a1aa" }}>
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
             </div>
 
-            {/* List */}
+            {/* ─── List ─── */}
             {(loading || profileLoading) ? skeletons : filtered.length === 0 ? (
-                <div className="rounded-xl p-10 text-center" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: "#FFC745" }} />
-                    <p className="text-sm" style={{ color: "#a1a1aa" }}>
-                        {searchQuery ? `Aucun résultat pour "${searchQuery}"` : "Aucune commande"}
-                    </p>
+                <div className="vos-empty" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                    <ShoppingCart className="w-5 h-5" style={{ color: "var(--muted-2)" }} />
+                    <p>{searchQuery ? `Aucun résultat pour "${searchQuery}"` : "Aucune commande"}</p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-3">
-                    {paginated.map(order => {
-                        const nextStatus = NEXT_STATUS[order.status];
-                        const nextLabel = NEXT_LABEL[order.status];
-                        const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-                        return (
-                            <div key={order.id}
-                                className="rounded-xl p-5 cursor-pointer transition-all duration-150"
-                                style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,199,69,0.3)"; e.currentTarget.style.background = "rgba(0,41,40,0.9)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,255,145,0.1)"; e.currentTarget.style.background = "#002928"; }}
-                                onClick={() => setSelectedOrder(order)}>
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    {/* Left: customer info */}
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
-                                            style={{ background: cfg.bg, color: cfg.color }}>
-                                            {order.customer_name?.charAt(0).toUpperCase() || "?"}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-semibold truncate" style={{ color: "#ffffff" }}>
-                                                {order.customer_name || "Client inconnu"}
-                                            </p>
-                                            <p className="text-xs truncate" style={{ color: "#a1a1aa" }}>
-                                                {formatDate(order.created_at)} · {order.items?.length || 0} article{(order.items?.length || 0) > 1 ? "s" : ""}
-                                            </p>
-                                        </div>
+                <>
+                    <div style={{ background: "var(--bg-elev)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+                        {paginated.map((order, idx) => {
+                            const nextStatus = NEXT_STATUS[order.status];
+                            const nextLabel = NEXT_LABEL[order.status];
+                            return (
+                                <div key={order.id}
+                                    className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors"
+                                    style={{ borderBottom: idx < paginated.length - 1 ? "1px solid var(--border)" : "none" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                                    onClick={() => setSelectedOrder(order)}>
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                                        style={{ background: "var(--surface-3)", color: "var(--muted)" }}>
+                                        {order.customer_name?.charAt(0).toUpperCase() || "?"}
                                     </div>
-
-                                    {/* Right: amount + status + actions */}
-                                    <div className="flex items-center gap-3 flex-wrap sm:shrink-0">
-                                        <span className="font-bold text-sm" style={{ color: "#ffffff" }}>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate" style={{ fontSize: "13px", color: "var(--text)" }}>
+                                            {order.customer_name || "Client inconnu"}
+                                        </p>
+                                        <p className="truncate" style={{ fontSize: "11px", color: "var(--muted)" }}>
+                                            {order.order_number && <span style={{ fontFamily: "var(--font-mono)", marginRight: 6 }}>{order.order_number}</span>}
+                                            {formatDate(order.created_at)} · {order.items?.length || 0} article{(order.items?.length || 0) > 1 ? "s" : ""}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span style={{ fontSize: "14px", color: "var(--text)", letterSpacing: "-0.02em" }}>
                                             {formatAmount(order.total_amount)}
                                         </span>
                                         <StatusBadge status={order.status} />
                                         {nextStatus && nextLabel && (
                                             <button
                                                 disabled={updatingStatus === order.id}
-                                                onClick={e => { e.stopPropagation(); updateStatus(order.id, nextStatus); }}
-                                                className="text-xs px-3 py-1.5 rounded-full font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
-                                                style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}>
-                                                {updatingStatus === order.id ? "..." : nextLabel}
+                                                onClick={e => {
+                                                    if (order.status === "processing") { openShipModal(order, e); }
+                                                    else { e.stopPropagation(); updateStatus(order.id, nextStatus); }
+                                                }}
+                                                className="vos-tab" style={{ cursor: "pointer", opacity: updatingStatus === order.id ? 0.5 : 1 }}>
+                                                {updatingStatus === order.id ? "…" : nextLabel}
                                             </button>
                                         )}
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-
-                    {/* Pagination */}
+                            );
+                        })}
+                    </div>
                     {totalPages > 1 && (
-                        <div className="flex items-center justify-between pt-2">
-                            <span className="text-sm" style={{ color: "#a1a1aa" }}>
-                                Page {page + 1} sur {totalPages} · {filtered.length} commande{filtered.length > 1 ? "s" : ""}
+                        <div className="vos-pagination">
+                            <span style={{ fontSize: "10.5px", color: "var(--muted)", marginRight: "auto" }}>
+                                {filtered.length} commandes · page {page + 1}/{totalPages}
                             </span>
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}
-                                    className="flex items-center gap-1"
-                                    style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.15)", color: "#c3c3d4" }}>
-                                    <ChevronLeft className="w-4 h-4" /> Préc.
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}
-                                    className="flex items-center gap-1"
-                                    style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.15)", color: "#c3c3d4" }}>
-                                    Suiv. <ChevronRight className="w-4 h-4" />
-                                </Button>
-                            </div>
+                            <button className="vos-page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 0}><ChevronLeft className="w-3.5 h-3.5" /></button>
+                            <button className="vos-page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}><ChevronRight className="w-3.5 h-3.5" /></button>
                         </div>
                     )}
-                </div>
+                </>
             )}
 
-            {/* Order detail modal */}
+            {/* ─── Order detail modal ─── */}
             {selectedOrder && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                    style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
-                    onClick={() => setSelectedOrder(null)}>
-                    <div className="w-full max-w-lg rounded-2xl p-6 max-h-[85vh] overflow-y-auto"
-                        style={{ background: "#002928", border: "1px solid rgba(255,199,69,0.25)" }}
-                        onClick={e => e.stopPropagation()}>
-
-                        {/* Modal header */}
-                        <div className="flex items-center justify-between mb-6">
+                <div className="vos-modal-backdrop" onClick={() => setSelectedOrder(null)}>
+                    <div className="vos-modal max-h-[85vh] overflow-y-auto" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+                        <div className="vos-modal-header">
                             <div>
-                                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
-                                    {selectedOrder.customer_name || "Commande"}
-                                </h2>
-                                <p className="text-xs mt-0.5" style={{ color: "#52525b" }}>
-                                    #{selectedOrder.id.slice(0, 8).toUpperCase()} · {formatDateTime(selectedOrder.created_at)}
+                                <h2 className="vos-modal-title">{selectedOrder.customer_name || "Commande"}</h2>
+                                <p style={{ fontSize: "10.5px", color: "var(--muted)", marginTop: 3, fontFamily: "var(--font-mono)" }}>
+                                    {selectedOrder.order_number || `#${selectedOrder.id.slice(0, 8).toUpperCase()}`} · {formatDateTime(selectedOrder.created_at)}
                                 </p>
                             </div>
-                            <button onClick={() => setSelectedOrder(null)} style={{ color: "#71717a" }}>
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setSelectedOrder(null)} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: "var(--muted)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        {/* Status */}
-                        <div className="flex items-center gap-3 mb-6">
-                            <StatusBadge status={selectedOrder.status} />
-                            {NEXT_STATUS[selectedOrder.status] && (
-                                <button
-                                    disabled={updatingStatus === selectedOrder.id}
-                                    onClick={() => updateStatus(selectedOrder.id, NEXT_STATUS[selectedOrder.status]!)}
-                                    className="text-xs px-3 py-1.5 rounded-full font-medium transition-opacity hover:opacity-80"
-                                    style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}>
-                                    {updatingStatus === selectedOrder.id ? "..." : `→ ${NEXT_LABEL[selectedOrder.status]}`}
-                                </button>
-                            )}
-                            {!["cancelled", "refunded", "delivered"].includes(selectedOrder.status) && (
-                                <button
-                                    onClick={() => cancelOrder(selectedOrder.id)}
-                                    className="text-xs px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-                                    style={{ background: "rgba(239,68,68,0.08)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
-                                    Annuler
-                                </button>
-                            )}
-                        </div>
+                        <div className="flex flex-col gap-4">
+                            {/* Status row */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <StatusBadge status={selectedOrder.status} />
+                                {NEXT_STATUS[selectedOrder.status] && (
+                                    <button disabled={updatingStatus === selectedOrder.id}
+                                        onClick={() => {
+                                            if (selectedOrder.status === "processing") { openShipModal(selectedOrder); }
+                                            else { updateStatus(selectedOrder.id, NEXT_STATUS[selectedOrder.status]!); }
+                                        }}
+                                        className="pill pill-green" style={{ cursor: "pointer", border: "none", opacity: updatingStatus === selectedOrder.id ? 0.5 : 1 }}>
+                                        {updatingStatus === selectedOrder.id ? "…" : `→ ${NEXT_LABEL[selectedOrder.status]}`}
+                                    </button>
+                                )}
+                                {!["cancelled", "refunded", "delivered"].includes(selectedOrder.status) && (
+                                    <button onClick={() => cancelOrder(selectedOrder.id)} className="pill pill-red" style={{ cursor: "pointer", border: "none" }}>
+                                        Annuler
+                                    </button>
+                                )}
+                            </div>
 
-                        {/* Customer info */}
-                        <div className="rounded-xl p-4 mb-4 space-y-2" style={{ background: "rgba(0,0,0,0.2)" }}>
-                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#52525b" }}>Client</p>
-                            {selectedOrder.customer_email && (
-                                <div className="flex items-center gap-2 text-sm" style={{ color: "#c3c3d4" }}>
-                                    <Mail className="w-4 h-4 shrink-0" style={{ color: "#FFC745" }} />
-                                    {selectedOrder.customer_email}
-                                </div>
-                            )}
-                            {selectedOrder.customer_phone && (
-                                <div className="flex items-center gap-2 text-sm" style={{ color: "#c3c3d4" }}>
-                                    <Phone className="w-4 h-4 shrink-0" style={{ color: "#FFC745" }} />
-                                    {selectedOrder.customer_phone}
-                                </div>
-                            )}
-                        </div>
+                            {/* Customer info */}
+                            <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                                <p className="vos-label">Client</p>
+                                {selectedOrder.customer_email && (
+                                    <div className="flex items-center gap-2" style={{ fontSize: "12.5px", color: "var(--text-2)" }}>
+                                        <Mail className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--muted)" }} />
+                                        {selectedOrder.customer_email}
+                                    </div>
+                                )}
+                                {selectedOrder.customer_phone && (
+                                    <div className="flex items-center gap-2" style={{ fontSize: "12.5px", color: "var(--text-2)" }}>
+                                        <Phone className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--muted)" }} />
+                                        {selectedOrder.customer_phone}
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Items */}
-                        {selectedOrder.items?.length > 0 && (
-                            <div className="rounded-xl p-4 mb-4" style={{ background: "rgba(0,0,0,0.2)" }}>
-                                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#52525b" }}>Articles</p>
-                                <div className="space-y-2">
+                            {/* Items */}
+                            {selectedOrder.items?.length > 0 && (
+                                <div className="flex flex-col gap-1.5 p-3 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                                    <p className="vos-label mb-1">Articles</p>
                                     {selectedOrder.items.map((item, i) => (
                                         <div key={i} className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0">
-                                                <Package className="w-4 h-4 shrink-0" style={{ color: "#a1a1aa" }} />
-                                                <span className="text-sm truncate" style={{ color: "#ffffff" }}>{item.name}</span>
-                                                {item.qty > 1 && (
-                                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745" }}>×{item.qty}</span>
-                                                )}
+                                                <Package className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--muted)" }} />
+                                                <span style={{ fontSize: "12.5px", color: "var(--text)", maxWidth: 200 }} className="truncate">{item.name}</span>
+                                                {item.qty > 1 && <span className="pill pill-muted">×{item.qty}</span>}
                                             </div>
-                                            <span className="text-sm shrink-0" style={{ color: "#c3c3d4" }}>
+                                            <span style={{ fontSize: "11px", color: "var(--text-2)" }}>
                                                 {formatAmount(item.price * item.qty)}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Total */}
-                        <div className="flex items-center justify-between px-4 py-3 rounded-xl mb-4"
-                            style={{ background: "rgba(255,199,69,0.08)", border: "1px solid rgba(255,199,69,0.15)" }}>
-                            <div className="flex items-center gap-2">
-                                <Euro className="w-4 h-4" style={{ color: "#FFC745" }} />
-                                <span className="font-semibold text-sm" style={{ color: "#FFC745" }}>Total</span>
+                            {/* Total */}
+                            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg" style={{ background: "var(--accent-dim)", border: "1px solid var(--accent-glow)" }}>
+                                <span style={{ fontSize: "10.5px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent)" }}>Total</span>
+                                <span style={{ fontSize: "1.1rem", color: "var(--accent)", letterSpacing: "-0.02em" }}>
+                                    {formatAmount(selectedOrder.total_amount)}
+                                </span>
                             </div>
-                            <span className="font-bold text-lg" style={{ color: "#FFC745" }}>
-                                {formatAmount(selectedOrder.total_amount)}
-                            </span>
+
+                            {/* Tracking */}
+                            {selectedOrder.tracking_number && (
+                                <div className="p-3 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                                    <p className="vos-label mb-1">Numéro de suivi</p>
+                                    <p style={{ fontSize: "12.5px", color: "var(--text)", fontFamily: "var(--font-mono)" }}>{selectedOrder.tracking_number}</p>
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {selectedOrder.notes && (
+                                <div className="p-3 rounded-lg" style={{ background: "var(--surface-2)" }}>
+                                    <p className="vos-label mb-1">Notes</p>
+                                    <p style={{ fontSize: "12.5px", color: "var(--text-2)", fontStyle: "italic" }}>{selectedOrder.notes}</p>
+                                </div>
+                            )}
                         </div>
+                    </div>
+                </div>
+            )}
 
-                        {/* Notes */}
-                        {selectedOrder.notes && (
-                            <div className="rounded-xl p-4" style={{ background: "rgba(0,0,0,0.2)" }}>
-                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#52525b" }}>Notes</p>
-                                <p className="text-sm italic" style={{ color: "#a1a1aa" }}>{selectedOrder.notes}</p>
+            {/* ─── Ship modal ─── */}
+            {shipModal && (
+                <div className="vos-modal-backdrop" onClick={() => setShipModal(null)}>
+                    <div className="vos-modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+                        <div className="vos-modal-header">
+                            <h2 className="vos-modal-title">Expédier la commande</h2>
+                            <button onClick={() => setShipModal(null)} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: "var(--muted)" }} onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-4">
+                            <p style={{ fontSize: "12.5px", color: "var(--muted)" }}>
+                                Commande <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{shipModal.order_number || `#${shipModal.id.slice(0, 8).toUpperCase()}`}</span> — {shipModal.customer_name}
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                                <label style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted)" }}>
+                                    Numéro de suivi <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optionnel)</span>
+                                </label>
+                                <input
+                                    autoFocus
+                                    value={trackingInput}
+                                    onChange={e => setTrackingInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") confirmShip(); }}
+                                    placeholder="ex: 1Z999AA10123456784"
+                                    style={{
+                                        width: "100%", padding: "8px 12px", borderRadius: 6, fontSize: "13px",
+                                        background: "var(--surface-2)", border: "1px solid var(--border)",
+                                        color: "var(--text)", fontFamily: "var(--font-mono)", outline: "none",
+                                    }}
+                                />
                             </div>
-                        )}
+                            <p style={{ fontSize: "11px", color: "var(--muted)" }}>
+                                Un email de confirmation sera envoyé à {shipModal.customer_email || "l'client"}.
+                            </p>
+                            <div className="flex gap-2 justify-end">
+                                <button onClick={() => setShipModal(null)} className="pill pill-muted" style={{ cursor: "pointer", border: "none" }}>
+                                    Annuler
+                                </button>
+                                <button onClick={confirmShip} disabled={shipping} className="pill pill-green" style={{ cursor: shipping ? "not-allowed" : "pointer", border: "none", opacity: shipping ? 0.6 : 1 }}>
+                                    {shipping ? "Envoi…" : "Confirmer l'expédition"}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

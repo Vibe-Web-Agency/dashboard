@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState, useMemo } from "react";
@@ -120,7 +122,7 @@ function Stars({ rating }: { rating: number }) {
         <span className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((s) => (
                 <svg key={s} className="w-3 h-3" viewBox="0 0 24 24"
-                    fill={rating >= s ? "#FFC745" : "none"} stroke="#FFC745" strokeWidth="1.5">
+                    fill={rating >= s ? "var(--accent)" : "none"} stroke="var(--accent)" strokeWidth="1.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                 </svg>
             ))}
@@ -236,7 +238,7 @@ export default function ClientsPage() {
     const skeletons = (
         <div className="flex flex-col gap-3">
             {[...Array(5)].map((_, i) => (
-                <div key={i} className="rounded-xl p-5" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div key={i} className="rounded-xl p-5" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
                     <div className="flex items-center gap-3">
                         <Skeleton className="w-10 h-10 rounded-full shrink-0" />
                         <div className="flex-1 space-y-2">
@@ -258,14 +260,14 @@ export default function ClientsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#FFC745' }}>Clients</h1>
-                    <p className="mt-1" style={{ color: '#c3c3d4' }}>Vue unifiée de tous vos contacts</p>
+                    <h1 style={{ fontSize: "1.5rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em" }}>Clients</h1>
+                    <p className="mt-1" style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)" }}>Vue unifiée de tous vos contacts</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <Button
                         onClick={() => { setShowCampaignModal(true); setCampaignResult(null); setCampaignError(null); }}
                         className="flex items-center gap-2"
-                        style={{ background: '#FFC745', color: '#001C1C' }}
+                        style={{ background: 'var(--accent)', color: '#0E0D0B' }}
                     >
                         <Megaphone className="w-4 h-4" />
                         <span className="hidden sm:inline">Campagne email</span>
@@ -274,17 +276,17 @@ export default function ClientsPage() {
                         onClick={exportCSV}
                         variant="outline"
                         className="flex items-center gap-2"
-                        style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#c3c3d4' }}
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}
                     >
                         <Download className="w-4 h-4" />
                         <span className="hidden sm:inline">Exporter CSV</span>
                     </Button>
                     <div
                         className="flex items-center gap-2 rounded-lg px-4 py-2"
-                        style={{ background: 'rgba(255, 199, 69, 0.1)', border: '1px solid rgba(255, 199, 69, 0.2)' }}
+                        style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-glow)' }}
                     >
-                        <div className="w-2 h-2 rounded-full" style={{ background: '#FFC745' }} />
-                        <span className="font-medium" style={{ color: '#FFC745' }}>
+                        <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
+                        <span className="font-medium" style={{ color: 'var(--accent)' }}>
                             {clients.length} client{clients.length > 1 ? "s" : ""}
                         </span>
                     </div>
@@ -308,9 +310,9 @@ export default function ClientsPage() {
                 return (
                     <div className={`grid grid-cols-2 sm:grid-cols-${baseStats.length} gap-3`}>
                         {baseStats.map(({ label, value, danger }) => (
-                            <div key={label} className="rounded-xl p-4" style={{ background: '#002928', border: `1px solid ${danger ? 'rgba(239,68,68,0.2)' : 'rgba(0, 255, 145, 0.1)'}` }}>
-                                <p className="text-xl font-bold" style={{ color: danger ? '#f87171' : '#ffffff' }}>{value}</p>
-                                <p className="text-xs mt-1" style={{ color: '#a1a1aa' }}>{label}</p>
+                            <div key={label} className="rounded-xl p-4" style={{ background: 'var(--surface)', border: `1px solid ${danger ? 'var(--danger-bg)' : 'var(--border)'}` }}>
+                                <p className="text-xl font-bold" style={{ color: danger ? 'var(--danger)' : '#ffffff' }}>{value}</p>
+                                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{label}</p>
                             </div>
                         ))}
                     </div>
@@ -319,20 +321,20 @@ export default function ClientsPage() {
 
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#a1a1aa' }} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--muted)' }} />
                 <Input
                     type="text"
                     placeholder="Rechercher par nom, email ou téléphone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 w-full"
-                    style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }}
+                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }}
                 />
                 {searchQuery && (
                     <button
                         onClick={() => setSearchQuery("")}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
-                        style={{ color: '#a1a1aa' }}
+                        style={{ color: 'var(--muted)' }}
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -340,15 +342,15 @@ export default function ClientsPage() {
             </div>
 
             {searchQuery && (
-                <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'rgba(255, 199, 69, 0.1)', color: '#FFC745' }}>
+                <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
                     {filtered.length} résultat{filtered.length > 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
                 </div>
             )}
 
             {/* List */}
             {(loading || profileLoading) ? skeletons : filtered.length === 0 ? (
-                <div className="rounded-xl p-8 text-center" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                    <p style={{ color: '#c3c3d4' }}>
+                <div className="rounded-xl p-8 text-center" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+                    <p style={{ color: 'var(--text-2)' }}>
                         {clients.length === 0 ? "Aucun client pour l'instant." : "Aucun résultat pour cette recherche."}
                     </p>
                 </div>
@@ -359,84 +361,84 @@ export default function ClientsPage() {
                         const total = client.quotes.length + client.reservations.length + client.reviews.length;
                         const noShows = client.reservations.filter(r => r.status === "no_show").length;
                         return (
-                            <div key={client.key} className="rounded-xl overflow-hidden" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                            <div key={client.key} className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
                                 {/* Row */}
                                 <button
                                     className="w-full flex items-center gap-4 p-5 text-left transition-colors hover:bg-white/[0.02]"
                                     onClick={() => setExpandedKey(isExpanded ? null : client.key)}
                                 >
                                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0"
-                                        style={{ background: '#FFC745', color: '#001C1C' }}>
+                                        style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                         {client.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-semibold truncate" style={{ color: '#ffffff' }}>{client.name}</p>
-                                        <p className="text-sm truncate" style={{ color: '#a1a1aa' }}>
+                                        <p className="font-semibold truncate" style={{ color: 'var(--text)' }}>{client.name}</p>
+                                        <p className="text-sm truncate" style={{ color: 'var(--muted)' }}>
                                             {client.email || client.phone || "Pas de coordonnées"}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         {client.orders.length > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
-                                                style={{ background: 'rgba(255, 199, 69, 0.12)', color: '#FFC745' }}>
+                                                style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
                                                 <ShoppingCart className="w-3 h-3" />
                                                 {client.orders.length}
                                             </span>
                                         )}
                                         {client.quotes.length > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                                                style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                                style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>
                                                 <FileText className="w-3 h-3" />
                                                 {client.quotes.length}
                                             </span>
                                         )}
                                         {client.reservations.length > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                                                style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                                style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>
                                                 <CalendarDays className="w-3 h-3" />
                                                 {client.reservations.length}
                                             </span>
                                         )}
                                         {client.reviews.length > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                                                style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                                style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>
                                                 <Star className="w-3 h-3" />
                                                 {client.reviews.length}
                                             </span>
                                         )}
                                         {noShows > 0 && (
                                             <span className="hidden sm:flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                                                style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                                                style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
                                                 {noShows} no show{noShows > 1 ? 's' : ''}
                                             </span>
                                         )}
                                         <span className="flex sm:hidden text-xs px-2.5 py-1 rounded-full"
-                                            style={{ background: 'rgba(0, 255, 145, 0.08)', color: '#c3c3d4' }}>
+                                            style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}>
                                             {total} interaction{total > 1 ? "s" : ""}
                                         </span>
                                         {isExpanded
-                                            ? <ChevronUp className="w-4 h-4 shrink-0" style={{ color: '#a1a1aa' }} />
-                                            : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: '#a1a1aa' }} />
+                                            ? <ChevronUp className="w-4 h-4 shrink-0" style={{ color: 'var(--muted)' }} />
+                                            : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: 'var(--muted)' }} />
                                         }
                                     </div>
                                 </button>
 
                                 {/* Expanded detail */}
                                 {isExpanded && (
-                                    <div className="px-5 pb-5 flex flex-col gap-5 border-t" style={{ borderColor: 'rgba(0, 255, 145, 0.08)' }}>
+                                    <div className="px-5 pb-5 flex flex-col gap-5 border-t" style={{ borderColor: 'var(--border)' }}>
                                         {/* Contact info */}
                                         <div className="pt-4 flex flex-wrap gap-4 text-sm">
                                             {client.email && (
-                                                <a href={`mailto:${client.email}`} className="flex items-center gap-2 underline" style={{ color: '#FFC745' }}>
+                                                <a href={`mailto:${client.email}`} className="flex items-center gap-2 underline" style={{ color: 'var(--accent)' }}>
                                                     Mail : {client.email}
                                                 </a>
                                             )}
                                             {client.phone && (
-                                                <a href={`tel:${client.phone}`} className="flex items-center gap-2 underline" style={{ color: '#FFC745' }}>
+                                                <a href={`tel:${client.phone}`} className="flex items-center gap-2 underline" style={{ color: 'var(--accent)' }}>
                                                     Tél : {client.phone}
                                                 </a>
                                             )}
-                                            <span className="text-xs" style={{ color: '#a1a1aa' }}>
+                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>
                                                 Premier contact : {new Date(client.firstSeen).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                                             </span>
                                         </div>
@@ -444,23 +446,23 @@ export default function ClientsPage() {
                                         {/* Quotes */}
                                         {client.quotes.length > 0 && (
                                             <div>
-                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#a1a1aa' }}>
+                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
                                                     Devis ({client.quotes.length})
                                                 </p>
                                                 <div className="flex flex-col gap-2">
                                                     {client.quotes.map((q) => (
                                                         <div key={q.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                                                            style={{ background: 'rgba(0, 255, 145, 0.04)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
-                                                            <p className="text-sm truncate" style={{ color: '#c3c3d4' }}>{q.message || "Sans message"}</p>
+                                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                                                            <p className="text-sm truncate" style={{ color: 'var(--text-2)' }}>{q.message || "Sans message"}</p>
                                                             <div className="flex items-center gap-2 shrink-0">
                                                                 <span className="text-xs px-2 py-0.5 rounded-full"
                                                                     style={{
-                                                                        background: q.status === "pending" ? 'rgba(255, 199, 69, 0.15)' : 'rgba(0, 255, 145, 0.1)',
-                                                                        color: q.status === "pending" ? '#FFC745' : '#00ff91'
+                                                                        background: q.status === "pending" ? 'var(--accent-dim)' : 'var(--border)',
+                                                                        color: q.status === "pending" ? 'var(--accent)' : 'var(--accent)'
                                                                     }}>
                                                                     {q.status}
                                                                 </span>
-                                                                <span className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                                <span className="text-xs" style={{ color: 'var(--muted)' }}>
                                                                     {new Date(q.created_at).toLocaleDateString("fr-FR")}
                                                                 </span>
                                                             </div>
@@ -473,21 +475,21 @@ export default function ClientsPage() {
                                         {/* Reservations */}
                                         {client.reservations.length > 0 && (
                                             <div>
-                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#a1a1aa' }}>
+                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
                                                     Réservations ({client.reservations.length})
                                                 </p>
                                                 <div className="flex flex-col gap-2">
                                                     {client.reservations.map((r) => {
                                                         const statusMap: Record<string, { label: string; bg: string; color: string }> = {
-                                                            scheduled: { label: "Planifié",  bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
-                                                            attended:  { label: "Venu",      bg: "rgba(0,255,145,0.1)",    color: "#00ff91" },
-                                                            no_show:   { label: "No Show",   bg: "rgba(239,68,68,0.1)",    color: "#f87171" },
+                                                            scheduled: { label: "Planifié",  bg: "var(--warning-bg)",  color: "var(--accent)" },
+                                                            attended:  { label: "Venu",      bg: "var(--success-bg)",    color: "var(--accent)" },
+                                                            no_show:   { label: "No Show",   bg: "var(--danger-bg)",    color: "var(--danger)" },
                                                         };
                                                         const s = statusMap[r.status] || statusMap.scheduled;
                                                         return (
                                                             <div key={r.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                                                                style={{ background: 'rgba(0, 255, 145, 0.04)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
-                                                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                                                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                                                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                                                     {r.date ? new Date(r.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Date non spécifiée"}
                                                                 </p>
                                                                 <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
@@ -504,20 +506,20 @@ export default function ClientsPage() {
                                         {/* Reviews */}
                                         {client.reviews.length > 0 && (
                                             <div>
-                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: '#a1a1aa' }}>
+                                                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--muted)' }}>
                                                     Avis ({client.reviews.length})
                                                 </p>
                                                 <div className="flex flex-col gap-2">
                                                     {client.reviews.map((r) => (
                                                         <div key={r.id} className="rounded-lg px-3 py-2"
-                                                            style={{ background: 'rgba(0, 255, 145, 0.04)', border: '1px solid rgba(0, 255, 145, 0.08)' }}>
+                                                            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                                                             <div className="flex items-center justify-between gap-3 mb-1">
                                                                 <Stars rating={r.rating} />
-                                                                <span className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                                <span className="text-xs" style={{ color: 'var(--muted)' }}>
                                                                     {new Date(r.created_at).toLocaleDateString("fr-FR")}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-sm" style={{ color: '#c3c3d4' }}>{r.comment}</p>
+                                                            <p className="text-sm" style={{ color: 'var(--text-2)' }}>{r.comment}</p>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -527,20 +529,20 @@ export default function ClientsPage() {
                                         {/* Orders */}
                                         {client.orders.length > 0 && (() => {
                                             const orderStatusMap: Record<string, { label: string; bg: string; color: string }> = {
-                                                pending:    { label: "En attente",  bg: "rgba(255,199,69,0.12)",  color: "#FFC745" },
-                                                processing: { label: "En cours",    bg: "rgba(99,102,241,0.12)",  color: "#a5b4fc" },
-                                                shipped:    { label: "Expédié",     bg: "rgba(0,255,145,0.1)",   color: "#00ff91" },
-                                                delivered:  { label: "Livré",       bg: "rgba(0,255,145,0.15)",  color: "#00ff91" },
-                                                cancelled:  { label: "Annulé",      bg: "rgba(239,68,68,0.1)",   color: "#f87171" },
-                                                refunded:   { label: "Remboursé",   bg: "rgba(239,68,68,0.1)",   color: "#f87171" },
+                                                pending:    { label: "En attente",  bg: "var(--warning-bg)",  color: "var(--accent)" },
+                                                processing: { label: "En cours",    bg: "var(--info-bg)",  color: "var(--info)" },
+                                                shipped:    { label: "Expédié",     bg: "var(--success-bg)",   color: "var(--accent)" },
+                                                delivered:  { label: "Livré",       bg: "var(--border-hi)",  color: "var(--accent)" },
+                                                cancelled:  { label: "Annulé",      bg: "var(--danger-bg)",   color: "var(--danger)" },
+                                                refunded:   { label: "Remboursé",   bg: "var(--danger-bg)",   color: "var(--danger)" },
                                             };
                                             return (
                                                 <div>
                                                     <div className="flex items-center justify-between mb-2">
-                                                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#a1a1aa' }}>
+                                                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
                                                             Commandes ({client.orders.length})
                                                         </p>
-                                                        <span className="text-xs font-semibold" style={{ color: '#FFC745' }}>
+                                                        <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
                                                             CA : {client.totalCA.toFixed(2)} €
                                                         </span>
                                                     </div>
@@ -549,9 +551,9 @@ export default function ClientsPage() {
                                                             const s = orderStatusMap[o.status] || orderStatusMap.pending;
                                                             return (
                                                                 <div key={o.id} className="rounded-lg px-3 py-2"
-                                                                    style={{ background: 'rgba(255,199,69,0.03)', border: '1px solid rgba(255,199,69,0.1)' }}>
+                                                                    style={{ background: 'rgba(255,199,69,0.03)', border: '1px solid var(--accent-dim)' }}>
                                                                     <div className="flex items-center justify-between gap-3 mb-1.5">
-                                                                        <span className="text-xs font-medium" style={{ color: '#FFC745' }}>
+                                                                        <span className="text-xs font-medium" style={{ color: 'var(--accent)' }}>
                                                                             {o.total_amount.toFixed(2)} €
                                                                         </span>
                                                                         <div className="flex items-center gap-2">
@@ -559,7 +561,7 @@ export default function ClientsPage() {
                                                                                 style={{ background: s.bg, color: s.color }}>
                                                                                 {s.label}
                                                                             </span>
-                                                                            <span className="text-xs" style={{ color: '#a1a1aa' }}>
+                                                                            <span className="text-xs" style={{ color: 'var(--muted)' }}>
                                                                                 {new Date(o.created_at).toLocaleDateString("fr-FR")}
                                                                             </span>
                                                                         </div>
@@ -568,7 +570,7 @@ export default function ClientsPage() {
                                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                                             {o.items.map((item, i) => (
                                                                                 <span key={i} className="text-xs px-2 py-0.5 rounded"
-                                                                                    style={{ background: 'rgba(255,255,255,0.05)', color: '#c3c3d4' }}>
+                                                                                    style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-2)' }}>
                                                                                     {item.name} × {item.qty}
                                                                                 </span>
                                                                             ))}
@@ -595,48 +597,48 @@ export default function ClientsPage() {
                     style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
                     onClick={() => !sending && setShowCampaignModal(false)}>
                     <div className="w-full max-w-lg rounded-2xl p-6 space-y-5"
-                        style={{ background: 'rgba(0,41,40,0.98)', border: '1px solid rgba(0,255,145,0.15)' }}
+                        style={{ background: 'rgba(0,41,40,0.98)', border: '1px solid var(--border-hi)' }}
                         onClick={e => e.stopPropagation()}>
 
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-bold" style={{ color: '#FFC745' }}>Campagne email</h2>
-                                <p className="text-xs mt-0.5" style={{ color: '#71717a' }}>
+                                <h2 className="text-lg font-bold" style={{ color: 'var(--accent)' }}>Campagne email</h2>
+                                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                                     {recipientCount} destinataire{recipientCount !== 1 ? 's' : ''} disponible{recipientCount !== 1 ? 's' : ''}
                                 </p>
                             </div>
                             <button onClick={() => setShowCampaignModal(false)} disabled={sending}
-                                style={{ color: '#71717a' }}>
+                                style={{ color: 'var(--muted)' }}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         {campaignResult ? (
                             <div className="text-center py-6 space-y-3">
-                                <CheckCircle className="w-12 h-12 mx-auto" style={{ color: '#00ff91' }} />
-                                <p className="font-semibold" style={{ color: '#e4e4e7' }}>
+                                <CheckCircle className="w-12 h-12 mx-auto" style={{ color: 'var(--accent)' }} />
+                                <p className="font-semibold" style={{ color: 'var(--text-muted)' }}>
                                     {campaignResult?.sent} email{(campaignResult?.sent ?? 0) > 1 ? 's' : ''} envoyé{(campaignResult?.sent ?? 0) > 1 ? 's' : ''} sur {campaignResult?.total}
                                 </p>
                                 <Button onClick={() => setShowCampaignModal(false)}
-                                    className="w-full" style={{ background: '#FFC745', color: '#001C1C' }}>
+                                    className="w-full" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                     Fermer
                                 </Button>
                             </div>
                         ) : (
                             <form onSubmit={handleSendCampaign} className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label style={{ color: '#c3c3d4' }}>Objet</Label>
+                                    <Label style={{ color: 'var(--text-2)' }}>Objet</Label>
                                     <Input
                                         value={campaignSubject}
                                         onChange={e => setCampaignSubject(e.target.value)}
                                         placeholder="Ex: Promotion -20% ce weekend 🎉"
                                         required
                                         disabled={sending}
-                                        style={{ background: 'rgba(0,255,145,0.05)', border: '1px solid rgba(0,255,145,0.1)', color: '#ffffff' }}
+                                        style={{ background: 'var(--accent-muted)', border: '1px solid var(--accent-muted)', color: 'var(--text)' }}
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label style={{ color: '#c3c3d4' }}>Message</Label>
+                                    <Label style={{ color: 'var(--text-2)' }}>Message</Label>
                                     <textarea
                                         value={campaignBody}
                                         onChange={e => setCampaignBody(e.target.value)}
@@ -644,16 +646,16 @@ export default function ClientsPage() {
                                         required
                                         disabled={sending}
                                         rows={6}
-                                        className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-[rgba(0,255,145,0.3)]"
-                                        style={{ background: 'rgba(0,255,145,0.05)', border: '1px solid rgba(0,255,145,0.1)', color: '#ffffff' }}
+                                        className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-[var(--border-hi)]"
+                                        style={{ background: 'var(--accent-muted)', border: '1px solid var(--accent-muted)', color: 'var(--text)' }}
                                     />
                                 </div>
                                 {campaignError && (
-                                    <p className="text-sm" style={{ color: '#f87171' }}>{campaignError}</p>
+                                    <p className="text-sm" style={{ color: 'var(--danger)' }}>{campaignError}</p>
                                 )}
                                 <Button type="submit" disabled={sending || !campaignSubject || !campaignBody || recipientCount === 0}
                                     className="w-full font-semibold py-2.5 disabled:opacity-50"
-                                    style={{ background: '#FFC745', color: '#001C1C' }}>
+                                    style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                     {sending ? (
                                         <span className="flex items-center gap-2">
                                             <Loader2 className="w-4 h-4 animate-spin" />

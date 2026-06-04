@@ -59,13 +59,12 @@ const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Se
 
 const tooltipStyle = {
     contentStyle: {
-        background: "#002928",
-        border: "1px solid rgba(0, 255, 145, 0.15)",
+        background: "var(--bg-elev)", border: "1px solid var(--border)",
         borderRadius: "8px",
-        color: "#ffffff",
+        color: "var(--text)",
         fontSize: "13px",
     },
-    cursor: { fill: "rgba(255, 199, 69, 0.05)" },
+    cursor: { fill: "var(--accent-dim)" },
 };
 
 export default function StatsPage() {
@@ -221,12 +220,12 @@ export default function StatsPage() {
     };
 
     const getOrderStatusData = () => [
-        { statut: "En attente", count: ordersInPeriod.filter(o => o.status === "pending").length, color: "#FFC745" },
-        { statut: "En cours", count: ordersInPeriod.filter(o => o.status === "processing").length, color: "#818cf8" },
-        { statut: "Expédiée", count: ordersInPeriod.filter(o => o.status === "shipped").length, color: "#38bdf8" },
-        { statut: "Livrée", count: ordersInPeriod.filter(o => o.status === "delivered").length, color: "#00ff91" },
-        { statut: "Annulée", count: ordersInPeriod.filter(o => o.status === "cancelled").length, color: "#ef4444" },
-        { statut: "Remboursée", count: ordersInPeriod.filter(o => o.status === "refunded").length, color: "#a1a1aa" },
+        { statut: "En attente", count: ordersInPeriod.filter(o => o.status === "pending").length, color: "var(--accent)" },
+        { statut: "En cours", count: ordersInPeriod.filter(o => o.status === "processing").length, color: "var(--info)" },
+        { statut: "Expédiée", count: ordersInPeriod.filter(o => o.status === "shipped").length, color: "var(--accent-deep)" },
+        { statut: "Livrée", count: ordersInPeriod.filter(o => o.status === "delivered").length, color: "var(--accent)" },
+        { statut: "Annulée", count: ordersInPeriod.filter(o => o.status === "cancelled").length, color: "var(--danger)" },
+        { statut: "Remboursée", count: ordersInPeriod.filter(o => o.status === "refunded").length, color: "var(--text-muted)" },
     ].filter(s => s.count > 0);
 
     const getTopProducts = () => {
@@ -263,9 +262,9 @@ export default function StatsPage() {
     };
 
     const getQuoteStatusData = () => [
-        { statut: "En attente", count: quotesInPeriod.filter(q => q.status === "pending").length, color: "#FFC745" },
-        { statut: "Approuvé", count: quotesInPeriod.filter(q => q.status === "approved").length, color: "#22c55e" },
-        { statut: "Refusé", count: quotesInPeriod.filter(q => q.status === "rejected").length, color: "#ef4444" },
+        { statut: "En attente", count: quotesInPeriod.filter(q => q.status === "pending").length, color: "var(--accent)" },
+        { statut: "Approuvé", count: quotesInPeriod.filter(q => q.status === "approved").length, color: "var(--accent)" },
+        { statut: "Refusé", count: quotesInPeriod.filter(q => q.status === "rejected").length, color: "var(--danger)" },
     ];
 
     const getDayOfWeekData = () => {
@@ -321,14 +320,14 @@ export default function StatsPage() {
                 value: resInPeriod.length,
                 subtitle: `Sur ${periodMonths} mois`,
                 icon: Calendar,
-                color: "#FFC745",
+                color: "var(--accent)",
             },
             {
                 title: "Ce mois-ci",
                 value: resThisMonth.length,
                 subtitle: `Mois dernier : ${resPrevMonth.length}`,
                 icon: TrendingUp,
-                color: "#FFC745",
+                color: "var(--accent)",
                 trend: monthTrend as "up" | "down" | "neutral",
                 trendValue: monthDiff,
             },
@@ -339,14 +338,14 @@ export default function StatsPage() {
                 value: quotesInPeriod.length,
                 subtitle: `${quotesInPeriod.filter(q => q.status === "pending").length} en attente`,
                 icon: FileText,
-                color: "#FFC745",
+                color: "var(--accent)",
             },
             {
                 title: "Taux de conversion",
                 value: `${conversionRate}%`,
                 subtitle: "Devis approuvés",
                 icon: BarChart3,
-                color: "#FFC745",
+                color: "var(--accent)",
             },
         ] : []),
         {
@@ -354,14 +353,14 @@ export default function StatsPage() {
             value: totalClients,
             subtitle: `+${newClientsThisMonth} ce mois`,
             icon: Users,
-            color: "#00ff91",
+            color: "var(--accent)",
         },
         {
             title: "Clients fidèles",
             value: loyalClients,
             subtitle: `${loyalPct}% de la clientèle`,
             icon: UserCheck,
-            color: "#00ff91",
+            color: "var(--accent)",
         },
     ];
 
@@ -369,12 +368,12 @@ export default function StatsPage() {
         return (
             <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Statistiques</h1>
-                    <p className="mt-1" style={{ color: "#c3c3d4" }}>Performances et évolution de votre activité</p>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Statistiques</h1>
+                    <p className="mt-1" style={{ color: "var(--text-muted)" }}>Performances et évolution de votre activité</p>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                             <Skeleton className="w-9 h-9 rounded-lg mb-3" />
                             <Skeleton className="h-8 w-16 mb-2" />
                             <Skeleton className="h-4 w-24 mb-1" />
@@ -384,7 +383,7 @@ export default function StatsPage() {
                 </div>
                 <div className="grid lg:grid-cols-2 gap-6">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                             <Skeleton className="h-5 w-48 mb-2" />
                             <Skeleton className="h-4 w-64 mb-6" />
                             <Skeleton className="w-full h-[200px] rounded-lg" />
@@ -408,17 +407,17 @@ export default function StatsPage() {
             {/* ── Header ── */}
             <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Statistiques</h1>
-                    <p className="mt-1" style={{ color: "#c3c3d4" }}>Performances et évolution de votre activité</p>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Statistiques</h1>
+                    <p className="mt-1" style={{ color: "var(--text-muted)" }}>Performances et évolution de votre activité</p>
                 </div>
                 <div className="flex gap-1 p-1 rounded-lg"
-                    style={{ background: "rgba(0, 255, 145, 0.05)", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                    style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                     {(["3months", "6months", "12months"] as Period[]).map(p => (
                         <button key={p} onClick={() => setPeriod(p)}
                             className="px-3 py-1.5 text-sm rounded-md transition-all duration-200"
                             style={period === p
-                                ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 }
-                                : { color: "#c3c3d4" }}>
+                                ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 }
+                                : { color: "var(--text-muted)" }}>
                             {p === "3months" ? "3 mois" : p === "6months" ? "6 mois" : "12 mois"}
                         </button>
                     ))}
@@ -427,9 +426,9 @@ export default function StatsPage() {
 
             {fetchError && (
                 <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3"
-                    style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", color: "#fca5a5" }}>
+                    style={{ background: "var(--danger-bg)", border: "1px solid var(--danger)", color: "var(--danger)" }}>
                     <span>Impossible de charger les données. Vérifiez votre connexion.</span>
-                    <button onClick={fetchData} className="shrink-0 font-medium underline" style={{ color: "#fca5a5" }}>Réessayer</button>
+                    <button onClick={fetchData} className="shrink-0 font-medium underline" style={{ color: "var(--danger)" }}>Réessayer</button>
                 </div>
             )}
 
@@ -437,22 +436,22 @@ export default function StatsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {statCards.map(card => {
                     const Icon = card.icon;
-                    const isGreen = card.color === "#00ff91";
+                    const isGreen = card.color === "var(--accent)";
                     return (
                         <div key={card.title} className="rounded-xl p-4 sm:p-5"
-                            style={{ background: "#002928", border: `1px solid ${isGreen ? "rgba(0, 255, 145, 0.12)" : "rgba(0, 255, 145, 0.1)"}` }}>
+                            style={{ background: "var(--surface)", border: `1px solid ${isGreen ? "var(--border)" : "var(--border)"}` }}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="w-9 h-9 rounded-lg flex items-center justify-center"
-                                    style={{ background: isGreen ? "rgba(0,255,145,0.12)" : "rgba(255, 199, 69, 0.15)" }}>
+                                    style={{ background: isGreen ? "var(--accent-muted)" : "var(--accent-dim)" }}>
                                     <Icon className="w-4 h-4" style={{ color: card.color }} />
                                 </div>
                                 {card.trend && (
                                     <span className="flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
                                         style={card.trend === "up"
-                                            ? { background: "rgba(34, 197, 94, 0.1)", color: "#22c55e" }
+                                            ? { background: "var(--success-bg)", color: "var(--success)" }
                                             : card.trend === "down"
-                                            ? { background: "rgba(239, 68, 68, 0.1)", color: "#ef4444" }
-                                            : { background: "rgba(113, 113, 122, 0.1)", color: "#71717a" }}>
+                                            ? { background: "var(--danger-bg)", color: "var(--danger)" }
+                                            : { background: "var(--surface)", color: "var(--text-muted)" }}>
                                         {card.trend === "up" ? <ArrowUpRight className="w-3 h-3" />
                                             : card.trend === "down" ? <ArrowDownRight className="w-3 h-3" />
                                             : <Minus className="w-3 h-3" />}
@@ -460,9 +459,9 @@ export default function StatsPage() {
                                     </span>
                                 )}
                             </div>
-                            <p className="text-2xl font-bold" style={{ color: "#ffffff" }}>{card.value}</p>
-                            <p className="text-sm mt-1 font-medium" style={{ color: "#c3c3d4" }}>{card.title}</p>
-                            <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>{card.subtitle}</p>
+                            <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{card.value}</p>
+                            <p className="text-sm mt-1 font-medium" style={{ color: "var(--text-muted)" }}>{card.title}</p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{card.subtitle}</p>
                         </div>
                     );
                 })}
@@ -481,9 +480,9 @@ export default function StatsPage() {
                     <>
                         {/* Séparateur */}
                         <div className="flex items-center gap-3 mt-2">
-                            <ShoppingCart className="w-4 h-4 shrink-0" style={{ color: "#818cf8" }} />
-                            <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#818cf8" }}>E-commerce</span>
-                            <div className="flex-1 h-px" style={{ background: "rgba(129,140,248,0.2)" }} />
+                            <ShoppingCart className="w-4 h-4 shrink-0" style={{ color: "var(--accent)" }} />
+                            <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--accent)" }}>E-commerce</span>
+                            <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
                         </div>
 
                         {/* KPI Cards */}
@@ -494,7 +493,7 @@ export default function StatsPage() {
                                     value: ordersThisMonth.length,
                                     subtitle: `${ordersThisMonth.filter(o => o.status === "processing").length} payées · ${ordersThisMonth.filter(o => o.status === "pending").length} en attente`,
                                     icon: ShoppingCart,
-                                    color: "#818cf8",
+                                    color: "var(--accent)",
                                     trend: orderCountTrend as "up" | "down" | "neutral",
                                     trendValue: orderCountDiff,
                                 },
@@ -503,7 +502,7 @@ export default function StatsPage() {
                                     value: `${caThisMonth.toFixed(0)} €`,
                                     subtitle: `Mois dernier : ${caPrevMonth.toFixed(0)} €`,
                                     icon: Euro,
-                                    color: "#818cf8",
+                                    color: "var(--accent)",
                                     trend: caTrend as "up" | "down" | "neutral",
                                     trendValue: Math.round(caDiff),
                                 },
@@ -512,32 +511,32 @@ export default function StatsPage() {
                                     value: `${caInPeriod.toFixed(0)} €`,
                                     subtitle: `${paidOrders.length} commandes payées`,
                                     icon: CreditCard,
-                                    color: "#818cf8",
+                                    color: "var(--accent)",
                                 },
                                 {
                                     title: "Panier moyen",
                                     value: `${avgBasket.toFixed(0)} €`,
                                     subtitle: `Sur les commandes payées`,
                                     icon: Package,
-                                    color: "#818cf8",
+                                    color: "var(--accent)",
                                 },
                             ].map(card => {
                                 const Icon = card.icon;
                                 return (
                                     <div key={card.title} className="rounded-xl p-4 sm:p-5"
-                                        style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.15)" }}>
+                                        style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="w-9 h-9 rounded-lg flex items-center justify-center"
-                                                style={{ background: "rgba(129,140,248,0.12)" }}>
-                                                <Icon className="w-4 h-4" style={{ color: "#818cf8" }} />
+                                                style={{ background: "var(--accent-muted)" }}>
+                                                <Icon className="w-4 h-4" style={{ color: "var(--accent)" }} />
                                             </div>
                                             {"trend" in card && card.trend && (
                                                 <span className="flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
                                                     style={card.trend === "up"
-                                                        ? { background: "rgba(34,197,94,0.1)", color: "#22c55e" }
+                                                        ? { background: "var(--success-bg)", color: "var(--success)" }
                                                         : card.trend === "down"
-                                                        ? { background: "rgba(239,68,68,0.1)", color: "#ef4444" }
-                                                        : { background: "rgba(113,113,122,0.1)", color: "#71717a" }}>
+                                                        ? { background: "var(--danger-bg)", color: "var(--danger)" }
+                                                        : { background: "var(--surface)", color: "var(--text-muted)" }}>
                                                     {card.trend === "up" ? <ArrowUpRight className="w-3 h-3" />
                                                         : card.trend === "down" ? <ArrowDownRight className="w-3 h-3" />
                                                         : <Minus className="w-3 h-3" />}
@@ -547,9 +546,9 @@ export default function StatsPage() {
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-2xl font-bold" style={{ color: "#ffffff" }}>{card.value}</p>
-                                        <p className="text-sm mt-1 font-medium" style={{ color: "#c3c3d4" }}>{card.title}</p>
-                                        <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>{card.subtitle}</p>
+                                        <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{card.value}</p>
+                                        <p className="text-sm mt-1 font-medium" style={{ color: "var(--text-muted)" }}>{card.title}</p>
+                                        <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{card.subtitle}</p>
                                     </div>
                                 );
                             })}
@@ -557,27 +556,27 @@ export default function StatsPage() {
 
                         {/* CA par mois + Évolution commandes */}
                         <div className="grid lg:grid-cols-2 gap-6">
-                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
-                                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Chiffre d&apos;affaires mensuel</h2>
-                                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Commandes payées / expédiées / livrées</p>
+                            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                                <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Chiffre d&apos;affaires mensuel</h2>
+                                <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Commandes payées / expédiées / livrées</p>
                                 {caInPeriod === 0 ? (
-                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "var(--text-muted)" }}>
                                         Aucune commande payée sur la période
                                     </div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height={200}>
                                         <BarChart data={monthlyOrderData} barSize={28}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(129,140,248,0.08)" vertical={false} />
-                                            <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
-                                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} unit="€" />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                            <XAxis dataKey="month" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                            <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} unit="€" />
                                             <Tooltip
-                                                contentStyle={{ background: "#002928", border: "1px solid rgba(129,140,248,0.2)", borderRadius: "8px", color: "#fff", fontSize: "13px" }}
-                                                cursor={{ fill: "rgba(129,140,248,0.05)" }}
+                                                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-hi)", borderRadius: "8px", color: "var(--text)", fontSize: "13px" }}
+                                                cursor={{ fill: "var(--accent-muted)" }}
                                                 formatter={(v: number) => [`${v} €`, "CA"]}
                                             />
                                             <Bar dataKey="ca" radius={[4, 4, 0, 0]}>
                                                 {monthlyOrderData.map((entry, i) => (
-                                                    <Cell key={i} fill={entry.ca === maxCA && maxCA > 0 ? "#818cf8" : "rgba(129,140,248,0.3)"} />
+                                                    <Cell key={i} fill={entry.ca === maxCA && maxCA > 0 ? "var(--accent)" : "var(--accent-muted)"} />
                                                 ))}
                                             </Bar>
                                         </BarChart>
@@ -585,25 +584,25 @@ export default function StatsPage() {
                                 )}
                             </div>
 
-                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
-                                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Volume de commandes</h2>
-                                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Toutes commandes confondues</p>
+                            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                                <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Volume de commandes</h2>
+                                <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Toutes commandes confondues</p>
                                 {ordersInPeriod.length === 0 ? (
-                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "var(--text-muted)" }}>
                                         Aucune commande sur la période
                                     </div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height={200}>
                                         <LineChart data={monthlyOrderData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(129,140,248,0.08)" vertical={false} />
-                                            <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
-                                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                            <XAxis dataKey="month" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                            <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                                             <Tooltip
-                                                contentStyle={{ background: "#002928", border: "1px solid rgba(129,140,248,0.2)", borderRadius: "8px", color: "#fff", fontSize: "13px" }}
-                                                cursor={{ stroke: "rgba(129,140,248,0.3)" }}
+                                                contentStyle={{ background: "var(--surface)", border: "1px solid var(--border-hi)", borderRadius: "8px", color: "var(--text)", fontSize: "13px" }}
+                                                cursor={{ stroke: "var(--border-hi)" }}
                                             />
-                                            <Line type="monotone" dataKey="commandes" stroke="#818cf8" strokeWidth={2}
-                                                dot={{ fill: "#818cf8", r: 3 }} activeDot={{ r: 5, fill: "#818cf8" }} name="Commandes" />
+                                            <Line type="monotone" dataKey="commandes" stroke="var(--accent)" strokeWidth={2}
+                                                dot={{ fill: "var(--accent)", r: 3 }} activeDot={{ r: 5, fill: "var(--accent)" }} name="Commandes" />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 )}
@@ -612,11 +611,11 @@ export default function StatsPage() {
 
                         {/* Statuts commandes + Top produits */}
                         <div className="grid lg:grid-cols-2 gap-6">
-                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
-                                <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Statuts des commandes</h2>
-                                <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Répartition sur la période sélectionnée</p>
+                            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                                <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Statuts des commandes</h2>
+                                <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Répartition sur la période sélectionnée</p>
                                 {orderStatusData.length === 0 ? (
-                                    <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de commandes</p>
+                                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>Pas encore de commandes</p>
                                 ) : (
                                     <div className="flex flex-col gap-4">
                                         {orderStatusData.map(s => {
@@ -624,9 +623,9 @@ export default function StatsPage() {
                                             return (
                                                 <div key={s.statut}>
                                                     <div className="flex items-center justify-between mb-1.5">
-                                                        <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{s.statut}</span>
+                                                        <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>{s.statut}</span>
                                                         <span className="text-sm font-semibold" style={{ color: s.color }}>
-                                                            {pct}% <span className="font-normal text-xs" style={{ color: "#71717a" }}>({s.count})</span>
+                                                            {pct}% <span className="font-normal text-xs" style={{ color: "var(--text-muted)" }}>({s.count})</span>
                                                         </span>
                                                     </div>
                                                     <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -639,22 +638,22 @@ export default function StatsPage() {
                                 )}
                             </div>
 
-                            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(129,140,248,0.12)" }}>
-                                <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Top produits</h2>
-                                <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Par chiffre d&apos;affaires — commandes payées</p>
+                            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                                <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Top produits</h2>
+                                <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Par chiffre d&apos;affaires — commandes payées</p>
                                 {topProducts.length === 0 ? (
-                                    <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée produit disponible</p>
+                                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucune donnée produit disponible</p>
                                 ) : (
                                     <div className="flex flex-col gap-3">
                                         {topProducts.map((p, i) => (
                                             <div key={p.name} className="flex items-center gap-3">
                                                 <span className="text-xs font-bold w-5 text-center shrink-0"
-                                                    style={{ color: i === 0 ? "#818cf8" : "#52525b" }}>{i + 1}</span>
+                                                    style={{ color: i === 0 ? "var(--accent)" : "var(--text-faint)" }}>{i + 1}</span>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate" style={{ color: "#e4e4e7" }}>{p.name}</p>
-                                                    <p className="text-xs" style={{ color: "#52525b" }}>{p.qty} unité{p.qty > 1 ? "s" : ""} vendue{p.qty > 1 ? "s" : ""}</p>
+                                                    <p className="text-sm font-medium truncate" style={{ color: "var(--text-muted)" }}>{p.name}</p>
+                                                    <p className="text-xs" style={{ color: "var(--text-faint)" }}>{p.qty} unité{p.qty > 1 ? "s" : ""} vendue{p.qty > 1 ? "s" : ""}</p>
                                                 </div>
-                                                <span className="text-sm font-semibold shrink-0" style={{ color: "#818cf8" }}>
+                                                <span className="text-sm font-semibold shrink-0" style={{ color: "var(--accent)" }}>
                                                     {p.ca.toFixed(0)} €
                                                 </span>
                                             </div>
@@ -665,30 +664,30 @@ export default function StatsPage() {
                         </div>
 
                         {/* Séparateur fin bloc */}
-                        <div className="h-px" style={{ background: "rgba(129,140,248,0.1)" }} />
+                        <div className="h-px" style={{ background: "var(--border)" }} />
                     </>
                 );
             })()}
 
             {/* ── Évolution de la clientèle ── */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
-                <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Évolution de la clientèle</h2>
-                <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Nouveaux clients par mois + total cumulé — 12 derniers mois</p>
+            <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Évolution de la clientèle</h2>
+                <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Nouveaux clients par mois + total cumulé — 12 derniers mois</p>
                 {totalClients === 0 ? (
-                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "var(--text-muted)" }}>
                         Aucun client avec email enregistré
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={220}>
                         <ComposedChart data={clientGrowthData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,255,145,0.08)" vertical={false} />
-                            <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
-                            <YAxis yAxisId="left" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                            <YAxis yAxisId="right" orientation="right" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="month" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                            <YAxis yAxisId="left" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <YAxis yAxisId="right" orientation="right" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip {...tooltipStyle} />
-                            <Bar yAxisId="left" dataKey="nouveaux" fill="rgba(0,255,145,0.3)" radius={[4, 4, 0, 0]} name="Nouveaux" />
-                            <Area yAxisId="right" type="monotone" dataKey="total" stroke="#00ff91" strokeWidth={2}
-                                fill="rgba(0,255,145,0.05)" dot={false} activeDot={{ r: 4, fill: "#00ff91" }} name="Total cumulé" />
+                            <Bar yAxisId="left" dataKey="nouveaux" fill="var(--border-hi)" radius={[4, 4, 0, 0]} name="Nouveaux" />
+                            <Area yAxisId="right" type="monotone" dataKey="total" stroke="var(--accent)" strokeWidth={2}
+                                fill="var(--accent-muted)" dot={false} activeDot={{ r: 4, fill: "var(--accent)" }} name="Total cumulé" />
                         </ComposedChart>
                     </ResponsiveContainer>
                 )}
@@ -698,35 +697,35 @@ export default function StatsPage() {
             <div className="grid lg:grid-cols-2 gap-6">
 
                 {/* Top 5 clients */}
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center gap-2 mb-1">
-                        <UserPlus className="w-4 h-4" style={{ color: "#00ff91" }} />
-                        <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Clients les plus actifs</h2>
+                        <UserPlus className="w-4 h-4" style={{ color: "var(--accent)" }} />
+                        <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Clients les plus actifs</h2>
                     </div>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Par nombre total d&apos;interactions</p>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Par nombre total d&apos;interactions</p>
                     {topClients.length === 0 ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Aucun client avec email enregistré</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucun client avec email enregistré</p>
                     ) : (
                         <div className="flex flex-col gap-3">
                             {topClients.map((client, i) => (
                                 <div key={client.email} className="flex items-center gap-3">
-                                    <span className="text-xs font-bold w-5 text-center shrink-0" style={{ color: i === 0 ? "#FFC745" : "#52525b" }}>
+                                    <span className="text-xs font-bold w-5 text-center shrink-0" style={{ color: i === 0 ? "var(--accent)" : "var(--text-faint)" }}>
                                         {i + 1}
                                     </span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate" style={{ color: "#e4e4e7" }}>{client.name}</p>
-                                        <p className="text-xs truncate" style={{ color: "#52525b" }}>{client.email}</p>
+                                        <p className="text-sm font-medium truncate" style={{ color: "var(--text-muted)" }}>{client.name}</p>
+                                        <p className="text-xs truncate" style={{ color: "var(--text-faint)" }}>{client.email}</p>
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0">
                                         {client.reservations > 0 && (
                                             <span className="text-xs px-2 py-0.5 rounded-full"
-                                                style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745" }}>
+                                                style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>
                                                 {client.reservations} rés.
                                             </span>
                                         )}
                                         {client.quotes > 0 && (
                                             <span className="text-xs px-2 py-0.5 rounded-full"
-                                                style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91" }}>
+                                                style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
                                                 {client.quotes} devis
                                             </span>
                                         )}
@@ -738,38 +737,38 @@ export default function StatsPage() {
                 </div>
 
                 {/* Fidélité */}
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center gap-2 mb-1">
-                        <UserCheck className="w-4 h-4" style={{ color: "#00ff91" }} />
-                        <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Fidélité client</h2>
+                        <UserCheck className="w-4 h-4" style={{ color: "var(--accent)" }} />
+                        <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Fidélité client</h2>
                     </div>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Répartition une visite vs récurrents</p>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Répartition une visite vs récurrents</p>
                     {totalClients === 0 ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de données clients</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Pas encore de données clients</p>
                     ) : (
                         <div className="flex flex-col gap-5">
                             {/* Visual split bar */}
                             <div>
                                 <div className="flex overflow-hidden rounded-full h-3 mb-2">
-                                    <div className="h-3 transition-all duration-500" style={{ background: "#00ff91", width: `${loyalPct}%` }} />
+                                    <div className="h-3 transition-all duration-500" style={{ background: "var(--accent)", width: `${loyalPct}%` }} />
                                     <div className="h-3 flex-1" style={{ background: "rgba(255,255,255,0.06)" }} />
                                 </div>
-                                <div className="flex items-center justify-between text-xs" style={{ color: "#71717a" }}>
-                                    <span style={{ color: "#00ff91" }}>{loyalPct}% fidèles</span>
+                                <div className="flex items-center justify-between text-xs" style={{ color: "var(--text-muted)" }}>
+                                    <span style={{ color: "var(--accent)" }}>{loyalPct}% fidèles</span>
                                     <span>{100 - loyalPct}% passagers</span>
                                 </div>
                             </div>
                             {/* Legend */}
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-lg p-3" style={{ background: "rgba(0,255,145,0.06)", border: "1px solid rgba(0,255,145,0.12)" }}>
-                                    <p className="text-2xl font-bold" style={{ color: "#00ff91" }}>{loyalClients}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>Clients fidèles</p>
-                                    <p className="text-[10px] mt-0.5" style={{ color: "#3f3f46" }}>2 interactions +</p>
+                                <div className="rounded-lg p-3" style={{ background: "var(--accent-muted)", border: "1px solid var(--accent-muted)" }}>
+                                    <p className="text-2xl font-bold" style={{ color: "var(--accent)" }}>{loyalClients}</p>
+                                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Clients fidèles</p>
+                                    <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>2 interactions +</p>
                                 </div>
                                 <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <p className="text-2xl font-bold" style={{ color: "#a1a1aa" }}>{totalClients - loyalClients}</p>
-                                    <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>Clients passagers</p>
-                                    <p className="text-[10px] mt-0.5" style={{ color: "#3f3f46" }}>1 seule interaction</p>
+                                    <p className="text-2xl font-bold" style={{ color: "var(--text-muted)" }}>{totalClients - loyalClients}</p>
+                                    <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Clients passagers</p>
+                                    <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>1 seule interaction</p>
                                 </div>
                             </div>
                         </div>
@@ -781,30 +780,30 @@ export default function StatsPage() {
             {(hasReservations || hasQuotes) && (
                 <div className="grid lg:grid-cols-2 gap-6">
                     {hasReservations && (
-                        <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Réservations par mois</h2>
-                            <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Créées sur la période sélectionnée</p>
+                        <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Réservations par mois</h2>
+                            <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Créées sur la période sélectionnée</p>
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={getMonthlyData()} barSize={28}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" vertical={false} />
-                                    <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
-                                    <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                    <XAxis dataKey="month" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                    <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                                     <Tooltip {...tooltipStyle} />
-                                    <Bar dataKey="réservations" fill="#FFC745" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="réservations" fill="var(--accent)" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     )}
 
                     {hasQuotes && (
-                        <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Statuts des devis</h2>
-                            <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Répartition sur la période sélectionnée</p>
+                        <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Statuts des devis</h2>
+                            <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Répartition sur la période sélectionnée</p>
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={getQuoteStatusData()} barSize={40} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" horizontal={false} />
-                                    <XAxis type="number" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                                    <YAxis type="category" dataKey="statut" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} width={80} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                                    <XAxis type="number" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                    <YAxis type="category" dataKey="statut" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} width={80} />
                                     <Tooltip {...tooltipStyle} />
                                     <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                                         {getQuoteStatusData().map((entry, index) => (
@@ -823,20 +822,20 @@ export default function StatsPage() {
                 <div className="grid lg:grid-cols-2 gap-6">
 
                     {/* Taux de présence */}
-                    <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                    <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                         <div className="flex items-center gap-2 mb-1">
-                            <CalendarClock className="w-4 h-4" style={{ color: "#FFC745" }} />
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Taux de présence</h2>
+                            <CalendarClock className="w-4 h-4" style={{ color: "var(--accent)" }} />
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Taux de présence</h2>
                         </div>
-                        <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Bilan de toutes les réservations passées</p>
+                        <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Bilan de toutes les réservations passées</p>
                         {attendanceData.total === 0 ? (
-                            <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de données</p>
+                            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Pas encore de données</p>
                         ) : (
                             <div className="flex flex-col gap-4">
                                 {[
-                                    { label: "Venu", count: attendanceData.attended, icon: CheckCircle, color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-                                    { label: "No Show", count: attendanceData.noShow, icon: XCircle, color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
-                                    { label: "Planifié", count: attendanceData.scheduled, icon: Clock, color: "#FFC745", bg: "rgba(255,199,69,0.1)" },
+                                    { label: "Venu", count: attendanceData.attended, icon: CheckCircle, color: "var(--accent)", bg: "var(--accent-muted)" },
+                                    { label: "No Show", count: attendanceData.noShow, icon: XCircle, color: "var(--danger)", bg: "var(--danger-bg)" },
+                                    { label: "Planifié", count: attendanceData.scheduled, icon: Clock, color: "var(--accent)", bg: "var(--warning-bg)" },
                                 ].map(({ label, count, icon: Icon, color, bg }) => {
                                     const pct = attendanceData.total > 0 ? Math.round((count / attendanceData.total) * 100) : 0;
                                     return (
@@ -846,10 +845,10 @@ export default function StatsPage() {
                                                     <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: bg }}>
                                                         <Icon className="w-3.5 h-3.5" style={{ color }} />
                                                     </div>
-                                                    <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{label}</span>
+                                                    <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>{label}</span>
                                                 </div>
                                                 <span className="text-sm font-semibold" style={{ color }}>
-                                                    {pct}% <span className="font-normal text-xs" style={{ color: "#71717a" }}>({count})</span>
+                                                    {pct}% <span className="font-normal text-xs" style={{ color: "var(--text-muted)" }}>({count})</span>
                                                 </span>
                                             </div>
                                             <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -863,18 +862,18 @@ export default function StatsPage() {
                     </div>
 
                     {/* Jour de la semaine */}
-                    <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
-                        <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Jours les plus demandés</h2>
-                        <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Basé sur toutes les réservations</p>
+                    <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
+                        <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Jours les plus demandés</h2>
+                        <p className="text-sm mt-0.5 mb-6" style={{ color: "var(--text-muted)" }}>Basé sur toutes les réservations</p>
                         <ResponsiveContainer width="100%" height={200}>
                             <BarChart data={dayOfWeekData} barSize={36}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" vertical={false} />
-                                <XAxis dataKey="jour" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
-                                <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                <XAxis dataKey="jour" stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
+                                <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                                 <Tooltip {...tooltipStyle} />
                                 <Bar dataKey="réservations" radius={[4, 4, 0, 0]}>
                                     {dayOfWeekData.map((entry, index) => (
-                                        <Cell key={index} fill={entry.réservations === maxDayCount && maxDayCount > 0 ? "#FFC745" : "rgba(255, 199, 69, 0.3)"} />
+                                        <Cell key={index} fill={entry.réservations === maxDayCount && maxDayCount > 0 ? "var(--accent)" : "var(--accent-glow)"} />
                                     ))}
                                 </Bar>
                             </BarChart>
@@ -884,27 +883,27 @@ export default function StatsPage() {
             )}
 
             {/* ── Heures de pointe ── */}
-            {hasReservations && <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            {hasReservations && <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                 <div className="flex items-center gap-2 mb-1">
-                    <Clock className="w-4 h-4" style={{ color: "#818cf8" }} />
-                    <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Heures de pointe</h2>
+                    <Clock className="w-4 h-4" style={{ color: "var(--accent)" }} />
+                    <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Heures de pointe</h2>
                 </div>
-                <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Créneaux horaires les plus demandés pour les rendez-vous</p>
+                <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Créneaux horaires les plus demandés pour les rendez-vous</p>
                 {peakHoursData.every(d => d.count === 0) ? (
-                    <div className="flex items-center justify-center h-[160px] text-sm" style={{ color: "#71717a" }}>
+                    <div className="flex items-center justify-center h-[160px] text-sm" style={{ color: "var(--text-muted)" }}>
                         Pas encore de données
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={180}>
                         <BarChart data={peakHoursData} barSize={14}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,255,145,0.06)" vertical={false} />
-                            <XAxis dataKey="hour" stroke="#a1a1aa" style={{ fontSize: "11px" }} axisLine={false} tickLine={false}
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--accent-muted)" vertical={false} />
+                            <XAxis dataKey="hour" stroke="var(--text-muted)" style={{ fontSize: "11px" }} axisLine={false} tickLine={false}
                                 interval={1} />
-                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip {...tooltipStyle} />
                             <Bar dataKey="count" radius={[3, 3, 0, 0]} name="Demandes">
                                 {peakHoursData.map((entry, index) => (
-                                    <Cell key={index} fill={entry.count === maxPeakCount && maxPeakCount > 0 ? "#818cf8" : "rgba(129,140,248,0.3)"} />
+                                    <Cell key={index} fill={entry.count === maxPeakCount && maxPeakCount > 0 ? "var(--accent)" : "var(--accent-muted)"} />
                                 ))}
                             </Bar>
                         </BarChart>

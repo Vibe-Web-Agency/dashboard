@@ -37,13 +37,12 @@ const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Se
 
 const tooltipStyle = {
     contentStyle: {
-        background: "#002928",
-        border: "1px solid rgba(0, 255, 145, 0.15)",
+        background: "var(--bg-elev)", border: "1px solid var(--border)",
         borderRadius: "8px",
-        color: "#ffffff",
+        color: "var(--text)",
         fontSize: "13px",
     },
-    cursor: { fill: "rgba(0,255,145,0.05)" },
+    cursor: { fill: "var(--accent-muted)" },
 };
 
 export default function AnalyticsPage() {
@@ -162,9 +161,9 @@ export default function AnalyticsPage() {
         const total = mobile + tablet + desktop;
         if (total === 0) return null;
         return [
-            { label: "Mobile", count: mobile, pct: Math.round((mobile / total) * 100), color: "#00ff91" },
-            { label: "Tablette", count: tablet, pct: Math.round((tablet / total) * 100), color: "#FFC745" },
-            { label: "Desktop", count: desktop, pct: Math.round((desktop / total) * 100), color: "#818cf8" },
+            { label: "Mobile", count: mobile, pct: Math.round((mobile / total) * 100), color: "var(--accent)" },
+            { label: "Tablette", count: tablet, pct: Math.round((tablet / total) * 100), color: "var(--accent)" },
+            { label: "Desktop", count: desktop, pct: Math.round((desktop / total) * 100), color: "var(--info)" },
         ];
     };
 
@@ -172,19 +171,19 @@ export default function AnalyticsPage() {
         return (
             <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Analyse web</h1>
-                    <p className="mt-1" style={{ color: "#c3c3d4" }}>Trafic et comportement des visiteurs</p>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Analyse web</h1>
+                    <p className="mt-1" style={{ color: "var(--text-muted)" }}>Trafic et comportement des visiteurs</p>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                             <Skeleton className="w-9 h-9 rounded-lg mb-3" />
                             <Skeleton className="h-8 w-16 mb-2" />
                             <Skeleton className="h-4 w-24" />
                         </div>
                     ))}
                 </div>
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                     <Skeleton className="h-5 w-48 mb-2" />
                     <Skeleton className="h-4 w-64 mb-6" />
                     <Skeleton className="w-full h-[200px] rounded-lg" />
@@ -205,26 +204,26 @@ export default function AnalyticsPage() {
             <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Analyse web</h1>
+                        <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Analyse web</h1>
                         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                            style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91" }}>
+                            style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
                             <span className="relative flex w-2 h-2">
-                                <span className="absolute w-2 h-2 rounded-full animate-ping" style={{ background: "rgba(0,255,145,0.5)" }} />
-                                <span className="relative w-2 h-2 rounded-full" style={{ background: "#00ff91" }} />
+                                <span className="absolute w-2 h-2 rounded-full animate-ping" style={{ background: "var(--accent)" }} />
+                                <span className="relative w-2 h-2 rounded-full" style={{ background: "var(--accent)" }} />
                             </span>
                             {activeUsers} en ligne
                         </span>
                     </div>
-                    <p className="mt-1" style={{ color: "#c3c3d4" }}>Trafic trackée par le script VWA</p>
+                    <p className="mt-1" style={{ color: "var(--text-muted)" }}>Trafic trackée par le script VWA</p>
                 </div>
                 <div className="flex gap-1 p-1 rounded-lg"
-                    style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    style={{ background: "var(--accent-muted)", border: "1px solid var(--accent-muted)" }}>
                     {(["7days", "30days", "90days"] as TrafficPeriod[]).map(p => (
                         <button key={p} onClick={() => setTrafficPeriod(p)}
                             className="px-3 py-1.5 text-sm rounded-md transition-all duration-200"
                             style={trafficPeriod === p
-                                ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 }
-                                : { color: "#c3c3d4" }}>
+                                ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 }
+                                : { color: "var(--text-muted)" }}>
                             {p === "7days" ? "7 jours" : p === "30days" ? "30 jours" : "90 jours"}
                         </button>
                     ))}
@@ -239,34 +238,34 @@ export default function AnalyticsPage() {
                     { label: "Sessions", value: uniqueSessions, icon: Globe },
                 ].map(({ label, value, icon: Icon }) => (
                     <div key={label} className="rounded-xl p-4 sm:p-5"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                        style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-                            style={{ background: "rgba(0,255,145,0.1)" }}>
-                            <Icon className="w-4 h-4" style={{ color: "#00ff91" }} />
+                            style={{ background: "var(--accent-muted)" }}>
+                            <Icon className="w-4 h-4" style={{ color: "var(--accent)" }} />
                         </div>
-                        <p className="text-2xl font-bold" style={{ color: "#fff" }}>{value}</p>
-                        <p className="text-sm mt-1" style={{ color: "#c3c3d4" }}>{label}</p>
+                        <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{value}</p>
+                        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{label}</p>
                     </div>
                 ))}
             </div>
 
             {/* Sessions over time */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Sessions par jour</h3>
-                <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Sur les {trafficDays} derniers jours</p>
+            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Sessions par jour</h3>
+                <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Sur les {trafficDays} derniers jours</p>
                 {sessionsInPeriod.length === 0 ? (
-                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "#71717a" }}>
+                    <div className="flex items-center justify-center h-[200px] text-sm" style={{ color: "var(--text-muted)" }}>
                         Aucune donnée — intégrez le script de tracking sur votre site
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={200}>
                         <LineChart data={trafficChartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,255,145,0.08)" vertical={false} />
-                            <XAxis dataKey="date" stroke="#a1a1aa" style={{ fontSize: "11px" }} axisLine={false} tickLine={false}
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                            <XAxis dataKey="date" stroke="var(--text-muted)" style={{ fontSize: "11px" }} axisLine={false} tickLine={false}
                                 interval={trafficDays <= 30 ? Math.floor(trafficDays / 7) : 0} />
-                            <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                            <YAxis stroke="var(--text-muted)" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip {...tooltipStyle} />
-                            <Line type="monotone" dataKey="sessions" stroke="#00ff91" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#00ff91" }} />
+                            <Line type="monotone" dataKey="sessions" stroke="var(--accent)" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "var(--accent)" }} />
                         </LineChart>
                     </ResponsiveContainer>
                 )}
@@ -274,11 +273,11 @@ export default function AnalyticsPage() {
 
             {/* Top pages + referrers */}
             <div className="grid lg:grid-cols-2 gap-6">
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Pages les plus visitées</h3>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Top 5 sur la période</p>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Pages les plus visitées</h3>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Top 5 sur la période</p>
                     {topPages.length === 0 ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucune donnée</p>
                     ) : (
                         <div className="flex flex-col gap-3">
                             {topPages.map(([path, count]) => {
@@ -286,11 +285,11 @@ export default function AnalyticsPage() {
                                 return (
                                     <div key={path}>
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-mono truncate max-w-[75%]" style={{ color: "#e4e4e7" }}>{path}</span>
-                                            <span className="text-sm font-semibold" style={{ color: "#00ff91" }}>{count}</span>
+                                            <span className="text-sm font-mono truncate max-w-[75%]" style={{ color: "var(--text-muted)" }}>{path}</span>
+                                            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{count}</span>
                                         </div>
-                                        <div className="h-1 rounded-full" style={{ background: "rgba(0,255,145,0.1)" }}>
-                                            <div className="h-1 rounded-full" style={{ background: "#00ff91", width: `${(count / max) * 100}%` }} />
+                                        <div className="h-1 rounded-full" style={{ background: "var(--accent-muted)" }}>
+                                            <div className="h-1 rounded-full" style={{ background: "var(--accent)", width: `${(count / max) * 100}%` }} />
                                         </div>
                                     </div>
                                 );
@@ -299,11 +298,11 @@ export default function AnalyticsPage() {
                     )}
                 </div>
 
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Sources de trafic</h3>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Top 5 referrers</p>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Sources de trafic</h3>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Top 5 referrers</p>
                     {topReferrers.length === 0 ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Aucun referrer — trafic direct ou données insuffisantes</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucun referrer — trafic direct ou données insuffisantes</p>
                     ) : (
                         <div className="flex flex-col gap-3">
                             {topReferrers.map(([host, count]) => {
@@ -311,11 +310,11 @@ export default function AnalyticsPage() {
                                 return (
                                     <div key={host}>
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm truncate max-w-[75%]" style={{ color: "#e4e4e7" }}>{host}</span>
-                                            <span className="text-sm font-semibold" style={{ color: "#FFC745" }}>{count}</span>
+                                            <span className="text-sm truncate max-w-[75%]" style={{ color: "var(--text-muted)" }}>{host}</span>
+                                            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{count}</span>
                                         </div>
-                                        <div className="h-1 rounded-full" style={{ background: "rgba(255,199,69,0.1)" }}>
-                                            <div className="h-1 rounded-full" style={{ background: "#FFC745", width: `${(count / max) * 100}%` }} />
+                                        <div className="h-1 rounded-full" style={{ background: "var(--accent-dim)" }}>
+                                            <div className="h-1 rounded-full" style={{ background: "var(--accent)", width: `${(count / max) * 100}%` }} />
                                         </div>
                                     </div>
                                 );
@@ -327,32 +326,32 @@ export default function AnalyticsPage() {
 
             {/* Avg duration + devices */}
             <div className="grid lg:grid-cols-2 gap-6">
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Durée moyenne par session</h3>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Temps total passé sur le site par session</p>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Durée moyenne par session</h3>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Temps total passé sur le site par session</p>
                     {avgDuration === null ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Pas encore de données — disponible après le prochain déploiement du tracker</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Pas encore de données — disponible après le prochain déploiement du tracker</p>
                     ) : (
                         <div className="flex items-end gap-3">
-                            <p className="text-5xl font-bold" style={{ color: "#00ff91" }}>{avgDuration}</p>
-                            <p className="text-sm mb-2" style={{ color: "#a1a1aa" }}>en moyenne</p>
+                            <p className="text-5xl font-bold" style={{ color: "var(--accent)" }}>{avgDuration}</p>
+                            <p className="text-sm mb-2" style={{ color: "var(--text-muted)" }}>en moyenne</p>
                         </div>
                     )}
                 </div>
 
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Appareils</h3>
-                    <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Répartition des sessions par type d&apos;appareil</p>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--text)" }}>Appareils</h3>
+                    <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Répartition des sessions par type d&apos;appareil</p>
                     {deviceData === null ? (
-                        <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée</p>
+                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucune donnée</p>
                     ) : (
                         <div className="flex flex-col gap-4">
                             {deviceData.map(({ label, count, pct, color }) => (
                                 <div key={label}>
                                     <div className="flex items-center justify-between mb-1.5">
-                                        <span className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{label}</span>
+                                        <span className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>{label}</span>
                                         <span className="text-sm font-semibold" style={{ color }}>
-                                            {pct}% <span className="font-normal text-xs" style={{ color: "#71717a" }}>({count})</span>
+                                            {pct}% <span className="font-normal text-xs" style={{ color: "var(--text-muted)" }}>({count})</span>
                                         </span>
                                     </div>
                                     <div className="h-2 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>

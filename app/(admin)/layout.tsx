@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     if (!(result.profile as any).is_admin) redirect("/");
 
     return (
-        <div className="flex flex-col min-h-screen" style={{ background: '#001C1C' }}>
+        <div className="flex flex-col min-h-screen" style={{ background: '#0E0D0B' }}>
             <AdminNavbar />
             <main className="flex-1 overflow-auto">
                 <div className="p-6 md:p-8">

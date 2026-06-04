@@ -55,7 +55,7 @@ export function subscriptionConfirmedHtml({
                     <tr>
                         <td align="center" style="padding-bottom: 32px;">
                             <div style="display: inline-block; padding: 12px 24px; border-radius: 12px; background: rgba(0,41,40,0.8); border: 1px solid rgba(0,255,145,0.1);">
-                                <span style="font-size: 20px; font-weight: 800; color: #FFC745; letter-spacing: -0.5px;">Vibe Web Agency</span>
+                                <span style="font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px;">Vibe Web Agency</span>
                             </div>
                         </td>
                     </tr>
@@ -72,7 +72,7 @@ export function subscriptionConfirmedHtml({
                             </div>
 
                             <!-- Title -->
-                            <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: #FFC745; line-height: 1.3;">
+                            <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1.3;">
                                 ${title}
                             </h1>
                             <p style="margin: 0 0 28px; font-size: 14px; color: #a1a1aa; line-height: 1.6;">
@@ -91,7 +91,7 @@ export function subscriptionConfirmedHtml({
                                     <td style="padding: 14px 16px; border-bottom: 1px solid rgba(0,255,145,0.08); color: #e4e4e7; font-size: 14px; font-weight: 600;">
                                         ${planLabel}
                                     </td>
-                                    <td style="padding: 14px 16px; border-bottom: 1px solid rgba(0,255,145,0.08); text-align: right; color: #FFC745; font-size: 14px; font-weight: 600;">
+                                    <td style="padding: 14px 16px; border-bottom: 1px solid rgba(0,255,145,0.08); text-align: right; color: var(--accent); font-size: 14px; font-weight: 600;">
                                         Formule principale
                                     </td>
                                 </tr>
@@ -100,7 +100,7 @@ export function subscriptionConfirmedHtml({
                                     <td style="padding: 14px 16px; color: #e4e4e7; font-size: 15px; font-weight: 700;">
                                         Total mensuel
                                     </td>
-                                    <td style="padding: 14px 16px; text-align: right; color: #FFC745; font-size: 18px; font-weight: 800;">
+                                    <td style="padding: 14px 16px; text-align: right; color: var(--accent); font-size: 18px; font-weight: 800;">
                                         ${totalMonthly}€<span style="font-size: 12px; font-weight: 400; color: #71717a;">/mois</span>
                                     </td>
                                 </tr>
@@ -115,7 +115,7 @@ export function subscriptionConfirmedHtml({
 
                             <!-- CTA Dashboard -->
                             <a href="${process.env.NEXT_PUBLIC_SITE_URL || "https://app.vibewebagency.fr"}"
-                                style="display: block; text-align: center; padding: 14px; background: #FFC745; color: #001C1C; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px;">
+                                style="display: block; text-align: center; padding: 14px; background: var(--accent); color: #001C1C; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px;">
                                 Accéder à mon dashboard →
                             </a>
                         </td>

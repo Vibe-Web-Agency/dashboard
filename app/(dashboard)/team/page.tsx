@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, X, Pencil, Phone, Mail, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ function getInitials(name: string) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
-const AVATAR_COLORS = ["#FFC745", "#00ff91", "#a78bfa", "#fb923c", "#38bdf8"];
+const AVATAR_COLORS = ["var(--accent)", "var(--info)", "var(--success)", "var(--warning)", "var(--danger)"];
 
 export default function TeamPage() {
     const { profile, loading: profileLoading } = useUserProfile();
@@ -42,12 +43,22 @@ export default function TeamPage() {
     const [inviteError, setInviteError] = useState<string | null>(null);
     const [inviteSuccess, setInviteSuccess] = useState(false);
 
+    const searchParams = useSearchParams();
+    const openCreateCalledRef = useRef(false);
+
     useEffect(() => {
         if (!profileLoading) {
             if (profile?.business_id) fetchEmployees();
             else setLoading(false);
         }
     }, [profile?.business_id, profileLoading]);
+
+    useEffect(() => {
+        if (!loading && !openCreateCalledRef.current && searchParams.get("new") === "1") {
+            openCreateCalledRef.current = true;
+            openCreate();
+        }
+    }, [loading, searchParams]);
 
     const fetchEmployees = async () => {
         if (!profile?.business_id) return;
@@ -131,19 +142,19 @@ export default function TeamPage() {
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>Équipe</h1>
-                    <p className="text-sm mt-1" style={{ color: "#71717a" }}>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Équipe</h1>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                         {active.length} membre{active.length > 1 ? "s" : ""} actif{active.length > 1 ? "s" : ""}
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <Button onClick={() => { setShowInviteModal(true); setInviteSuccess(false); setInviteError(null); }}
                         className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
-                        style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }}>
+                        style={{ background: "var(--accent-muted)", color: "var(--accent)", border: "1px solid var(--border-hi)" }}>
                         <UserPlus className="w-4 h-4" />
                         <span className="hidden sm:inline">Inviter</span>
                     </Button>
-                    <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                    <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">Ajouter un membre</span>
                         <span className="sm:hidden">Ajouter</span>
@@ -153,7 +164,7 @@ export default function TeamPage() {
 
             {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" style={{ background: "#001C1C" }} />)}
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" style={{ background: "var(--bg)" }} />)}
                 </div>
             ) : (
                 <>
@@ -168,7 +179,7 @@ export default function TeamPage() {
 
                     {inactive.length > 0 && (
                         <>
-                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#52525b" }}>Inactifs</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-faint)" }}>Inactifs</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {inactive.map((employee, index) => (
                                     <EmployeeCard key={employee.id} employee={employee} color={AVATAR_COLORS[(active.length + index) % AVATAR_COLORS.length]}
@@ -179,10 +190,10 @@ export default function TeamPage() {
                     )}
 
                     {employees.length === 0 && (
-                        <div className="text-center py-16" style={{ color: "#71717a" }}>
+                        <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
                             <User className="w-10 h-10 mx-auto mb-3 opacity-30" />
                             <p className="text-sm">Aucun membre dans l&apos;équipe</p>
-                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 Ajouter un membre
                             </Button>
                         </div>
@@ -192,33 +203,33 @@ export default function TeamPage() {
 
             {showInviteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Inviter un membre</h2>
-                            <button onClick={() => setShowInviteModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>Inviter un membre</h2>
+                            <button onClick={() => setShowInviteModal(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
                         </div>
 
                         {inviteSuccess ? (
                             <div className="text-center py-6">
-                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(0,255,145,0.1)" }}>
-                                    <UserPlus className="w-6 h-6" style={{ color: "#00ff91" }} />
+                                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-muted)" }}>
+                                    <UserPlus className="w-6 h-6" style={{ color: "var(--accent)" }} />
                                 </div>
-                                <p className="font-semibold mb-1" style={{ color: "#ffffff" }}>Invitation envoyée !</p>
-                                <p className="text-sm" style={{ color: "#71717a" }}>
+                                <p className="font-semibold mb-1" style={{ color: "var(--text)" }}>Invitation envoyée !</p>
+                                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                                     {inviteEmail || "Le membre"} recevra un email pour créer son compte.
                                 </p>
-                                <Button onClick={() => setShowInviteModal(false)} className="mt-5 w-full text-sm font-semibold py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                                <Button onClick={() => setShowInviteModal(false)} className="mt-5 w-full text-sm font-semibold py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                     Fermer
                                 </Button>
                             </div>
                         ) : (
                             <>
-                                <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>
+                                <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
                                     La personne recevra un email avec un lien pour créer son compte et accéder au dashboard.
                                 </p>
                                 <div className="space-y-4">
                                     <div>
-                                        <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Adresse email *</Label>
+                                        <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Adresse email *</Label>
                                         <Input
                                             type="email"
                                             value={inviteEmail}
@@ -229,14 +240,14 @@ export default function TeamPage() {
                                         />
                                     </div>
                                     {inviteError && (
-                                        <p className="text-sm" style={{ color: "#f87171" }}>{inviteError}</p>
+                                        <p className="text-sm" style={{ color: "var(--danger)" }}>{inviteError}</p>
                                     )}
                                 </div>
                                 <div className="flex gap-2 mt-6">
-                                    <Button onClick={() => setShowInviteModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa" }}>
+                                    <Button onClick={() => setShowInviteModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
                                         Annuler
                                     </Button>
-                                    <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                                    <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                         {inviting ? "Envoi..." : "Envoyer l'invitation"}
                                     </Button>
                                 </div>
@@ -248,43 +259,43 @@ export default function TeamPage() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
                                 {editingEmployee ? "Modifier le membre" : "Nouveau membre"}
                             </h2>
-                            <button onClick={() => setShowModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                            <button onClick={() => setShowModal(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Nom complet *</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Nom complet *</Label>
                                 <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Sophie Martin" style={inputStyle} />
                             </div>
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Poste / Rôle</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Poste / Rôle</Label>
                                 <Input value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} placeholder="Ex: Coiffeuse senior" style={inputStyle} />
                             </div>
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Email</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Email</Label>
                                 <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="prenom@entreprise.fr" style={inputStyle} />
                             </div>
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Téléphone</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Téléphone</Label>
                                 <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="06 00 00 00 00" style={inputStyle} />
                             </div>
                         </div>
 
                         <div className="flex gap-2 mt-6">
                             {editingEmployee && (
-                                <Button onClick={() => handleDelete(editingEmployee.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                                <Button onClick={() => handleDelete(editingEmployee.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
                                     Supprimer
                                 </Button>
                             )}
-                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa" }}>
+                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
                                 Annuler
                             </Button>
-                            <Button onClick={handleSave} disabled={!form.name.trim() || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={handleSave} disabled={!form.name.trim() || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 {saving ? "..." : editingEmployee ? "Enregistrer" : "Ajouter"}
                             </Button>
                         </div>
@@ -297,42 +308,42 @@ export default function TeamPage() {
 
 function EmployeeCard({ employee, color, onEdit, onToggle }: { employee: Employee; color: string; onEdit: () => void; onToggle: () => void }) {
     return (
-        <div className="rounded-xl p-4" style={{ background: "#001C1C", border: `1px solid ${employee.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.2)"}`, opacity: employee.active ? 1 : 0.6 }}>
+        <div className="rounded-xl p-4" style={{ background: "var(--bg)", border: `1px solid ${employee.active ? "var(--border-hi)" : "rgba(113,113,122,0.2)"}`, opacity: employee.active ? 1 : 0.6 }}>
             <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ background: employee.active ? color : "#27272a", color: employee.active ? "#001C1C" : "#71717a" }}>
+                    style={{ background: employee.active ? color : "#27272a", color: employee.active ? "#0E0D0B" : "var(--text-muted)" }}>
                     {getInitials(employee.name)}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                        <span className="font-semibold text-sm truncate" style={{ color: "#ffffff" }}>{employee.name}</span>
-                        <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded-md transition-all shrink-0" style={{ color: "#71717a" }}
-                            onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; e.currentTarget.style.background = "rgba(255,199,69,0.1)"; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.background = "transparent"; }}>
+                        <span className="font-semibold text-sm truncate" style={{ color: "var(--text)" }}>{employee.name}</span>
+                        <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded-md transition-all shrink-0" style={{ color: "var(--text-muted)" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
                             <Pencil className="w-3 h-3" />
                         </button>
                     </div>
-                    {employee.role && <p className="text-xs mt-0.5 truncate" style={{ color: "#71717a" }}>{employee.role}</p>}
+                    {employee.role && <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{employee.role}</p>}
                 </div>
             </div>
 
             <div className="mt-3 space-y-1.5">
                 {employee.email && (
                     <div className="flex items-center gap-2">
-                        <Mail className="w-3 h-3 shrink-0" style={{ color: "#52525b" }} />
-                        <span className="text-xs truncate" style={{ color: "#a1a1aa" }}>{employee.email}</span>
+                        <Mail className="w-3 h-3 shrink-0" style={{ color: "var(--text-faint)" }} />
+                        <span className="text-xs truncate" style={{ color: "var(--text-muted)" }}>{employee.email}</span>
                     </div>
                 )}
                 {employee.phone && (
                     <div className="flex items-center gap-2">
-                        <Phone className="w-3 h-3 shrink-0" style={{ color: "#52525b" }} />
-                        <span className="text-xs" style={{ color: "#a1a1aa" }}>{employee.phone}</span>
+                        <Phone className="w-3 h-3 shrink-0" style={{ color: "var(--text-faint)" }} />
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{employee.phone}</span>
                     </div>
                 )}
             </div>
 
             <button onClick={onToggle} className="mt-3 w-full text-[11px] py-1 rounded-lg transition-all"
-                style={{ background: employee.active ? "rgba(0,255,145,0.08)" : "rgba(113,113,122,0.1)", color: employee.active ? "#00ff91" : "#71717a", border: `1px solid ${employee.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.15)"}` }}>
+                style={{ background: employee.active ? "var(--border)" : "rgba(113,113,122,0.1)", color: employee.active ? "var(--accent)" : "var(--text-muted)", border: `1px solid ${employee.active ? "var(--border-hi)" : "rgba(113,113,122,0.15)"}` }}>
                 {employee.active ? "Actif · Désactiver" : "Inactif · Activer"}
             </button>
         </div>

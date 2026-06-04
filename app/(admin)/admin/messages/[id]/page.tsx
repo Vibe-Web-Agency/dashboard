@@ -22,7 +22,7 @@ interface Ticket {
 }
 
 const STATUS_OPTIONS = [
-    { value: "open", label: "Ouvert", color: "#FFC745" },
+    { value: "open", label: "Ouvert", color: "var(--accent)" },
     { value: "in_progress", label: "En cours", color: "#00ff91" },
     { value: "resolved", label: "Résolu", color: "#71717a" },
 ] as const;
@@ -76,7 +76,7 @@ export default function AdminMessageDetailPage() {
         <div className="flex flex-col gap-5 max-w-3xl">
             <Link href="/admin/messages" className="flex items-center gap-2 text-sm w-fit transition-colors"
                 style={{ color: "#a1a1aa" }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "#FFC745"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = "#a1a1aa"; }}>
                 <ArrowLeft className="w-4 h-4" />
                 Tous les tickets
@@ -86,7 +86,7 @@ export default function AdminMessageDetailPage() {
                 <div className="flex flex-col gap-3">
                     <Skeleton className="h-8 w-64" />
                     <Skeleton className="h-4 w-48" />
-                    <div className="rounded-xl p-6 mt-2" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    <div className="rounded-xl p-6 mt-2" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                         {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg mb-3" />)}
                     </div>
                 </div>
@@ -120,7 +120,7 @@ export default function AdminMessageDetailPage() {
 
                     {/* Conversation */}
                     <div className="rounded-xl p-5 flex flex-col gap-3 min-h-[300px]"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                         {messages.length === 0 ? (
                             <p className="text-sm text-center py-8" style={{ color: "#71717a" }}>Aucun message</p>
                         ) : messages.map((m) => (
@@ -131,7 +131,7 @@ export default function AdminMessageDetailPage() {
                                     </p>
                                     <div className="rounded-xl px-4 py-3"
                                         style={m.sender === "admin"
-                                            ? { background: "#FFC745", color: "#001C1C" }
+                                            ? { background: "var(--accent)", color: "var(--on-accent)" }
                                             : { background: "rgba(0,255,145,0.08)", color: "#ffffff", border: "1px solid rgba(0,255,145,0.12)" }}>
                                         <p className="text-sm">{m.content}</p>
                                         <p className="text-[10px] mt-1 opacity-60">
@@ -151,10 +151,10 @@ export default function AdminMessageDetailPage() {
                             onChange={(e) => setContent(e.target.value)}
                             placeholder="Répondre au client..."
                             className="flex-1 rounded-xl px-4 py-3 text-sm outline-none"
-                            style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)", color: "#ffffff" }} />
+                            style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.15)", color: "#ffffff" }} />
                         <button type="submit" disabled={sending || !content.trim()}
                             className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all"
-                            style={{ background: content.trim() ? "#FFC745" : "rgba(255,199,69,0.1)", color: content.trim() ? "#001C1C" : "#71717a" }}>
+                            style={{ background: content.trim() ? "var(--accent)" : "var(--accent-dim)", color: content.trim() ? "#0E0D0B" : "#71717a" }}>
                             <Send className="w-4 h-4" />
                         </button>
                     </form>

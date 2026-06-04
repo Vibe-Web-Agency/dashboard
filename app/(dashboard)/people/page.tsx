@@ -53,7 +53,7 @@ function getInitials(name: string) {
     return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
-const AVATAR_COLORS = ["#FFC745", "#00ff91", "#a78bfa", "#fb923c", "#38bdf8"];
+const AVATAR_COLORS = ["var(--accent)", "var(--info)", "var(--success)", "var(--warning)", "var(--danger)"];
 
 const emptyForm = {
     first_name: "", last_name: "", slug: "", specialty: "", description: "",
@@ -229,12 +229,12 @@ export default function PeoplePage() {
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>{catalogLabel}</h1>
-                    <p className="text-sm mt-1" style={{ color: "#71717a" }}>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>{catalogLabel}</h1>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                         {active.length} actif{active.length > 1 ? "s" : ""} · {people.length} au total
                     </p>
                 </div>
-                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Ajouter</span>
                     <span className="sm:hidden">+</span>
@@ -243,7 +243,7 @@ export default function PeoplePage() {
 
             {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" style={{ background: "#001C1C" }} />)}
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" style={{ background: "var(--bg)" }} />)}
                 </div>
             ) : (
                 <>
@@ -258,7 +258,7 @@ export default function PeoplePage() {
 
                     {inactive.length > 0 && (
                         <>
-                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#52525b" }}>Inactifs</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-faint)" }}>Inactifs</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {inactive.map((person, index) => (
                                     <PersonCard key={person.id} person={person} color={AVATAR_COLORS[(active.length + index) % AVATAR_COLORS.length]}
@@ -269,10 +269,10 @@ export default function PeoplePage() {
                     )}
 
                     {people.length === 0 && (
-                        <div className="text-center py-16" style={{ color: "#71717a" }}>
+                        <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
                             <UserSquare2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
                             <p className="text-sm">Aucun profil pour le moment</p>
-                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 Ajouter un profil
                             </Button>
                         </div>
@@ -282,40 +282,40 @@ export default function PeoplePage() {
 
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-lg rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                    <div className="w-full max-w-lg rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
                                 {editingPerson ? "Modifier" : "Ajouter un profil"}
                             </h2>
-                            <button onClick={() => setShowModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                            <button onClick={() => setShowModal(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="space-y-4">
                             {/* Nom */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Prénom *</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prénom *</Label>
                                     <Input value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="Léa" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Nom *</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Nom *</Label>
                                     <Input value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Martin" style={inputStyle} />
                                 </div>
                             </div>
 
                             {/* Slug URL */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>
-                                    URL <span style={{ color: "#52525b" }}>(auto-généré si vide)</span>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>
+                                    URL <span style={{ color: "var(--text-faint)" }}>(auto-généré si vide)</span>
                                 </Label>
                                 <div className="flex items-center rounded-md overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-                                    <span className="px-3 py-2 text-xs shrink-0" style={{ background: "rgba(255,255,255,0.04)", color: "#52525b" }}>/talents/</span>
+                                    <span className="px-3 py-2 text-xs shrink-0" style={{ background: "rgba(255,255,255,0.04)", color: "var(--text-faint)" }}>/talents/</span>
                                     <input
                                         value={form.slug}
                                         onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
                                         placeholder={slugify(`${form.first_name}-${form.last_name}`) || "prenom-nom"}
                                         className="flex-1 px-3 py-2 text-sm bg-transparent outline-none"
-                                        style={{ color: "#ffffff" }}
+                                        style={{ color: "var(--text)" }}
                                     />
                                 </div>
                             </div>
@@ -323,7 +323,7 @@ export default function PeoplePage() {
                             {/* Catégorie + Genre */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Catégorie</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Catégorie</Label>
                                     <select value={form.specialty} onChange={e => setForm({ ...form, specialty: e.target.value })} style={{ ...inputStyle, cursor: "pointer" }}>
                                         <option value="">Choisir...</option>
                                         <option value="Enfant">Enfant</option>
@@ -332,7 +332,7 @@ export default function PeoplePage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Genre</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Genre</Label>
                                     <Input value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })} placeholder="Féminin / Masculin" style={inputStyle} />
                                 </div>
                             </div>
@@ -340,11 +340,11 @@ export default function PeoplePage() {
                             {/* Âge + Date de naissance */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Âge</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Âge</Label>
                                     <Input type="number" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} placeholder="Ex: 12" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Date de naissance</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Date de naissance</Label>
                                     <Input value={form.date_of_birth} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} placeholder="JJ/MM/AAAA" style={inputStyle} />
                                 </div>
                             </div>
@@ -352,34 +352,34 @@ export default function PeoplePage() {
                             {/* Taille + Yeux + Cheveux */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Taille</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Taille</Label>
                                     <Input value={form.height} onChange={e => setForm({ ...form, height: e.target.value })} placeholder="1m45" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Yeux</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Yeux</Label>
                                     <Input value={form.eye_color} onChange={e => setForm({ ...form, eye_color: e.target.value })} placeholder="Marron" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Cheveux</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Cheveux</Label>
                                     <Input value={form.hair_color} onChange={e => setForm({ ...form, hair_color: e.target.value })} placeholder="Châtain" style={inputStyle} />
                                 </div>
                             </div>
 
                             {/* Langues */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Langues <span style={{ color: "#52525b" }}>(séparées par des virgules)</span></Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Langues <span style={{ color: "var(--text-faint)" }}>(séparées par des virgules)</span></Label>
                                 <Input value={form.languages} onChange={e => setForm({ ...form, languages: e.target.value })} placeholder="Français, Anglais, Espagnol" style={inputStyle} />
                             </div>
 
                             {/* Compétences */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Compétences <span style={{ color: "#52525b" }}>(séparées par des virgules)</span></Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Compétences <span style={{ color: "var(--text-faint)" }}>(séparées par des virgules)</span></Label>
                                 <Input value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} placeholder="Danse, Chant, Sport" style={inputStyle} />
                             </div>
 
                             {/* Description */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Description</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Description</Label>
                                 <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
                                     placeholder="Description du talent..." rows={4}
                                     className="w-full rounded-md text-sm px-3 py-2 resize-none"
@@ -388,32 +388,32 @@ export default function PeoplePage() {
 
                             {/* Portfolio + Photo */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Lien book / portfolio</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Lien book / portfolio</Label>
                                 <Input value={form.portfolio_url} onChange={e => setForm({ ...form, portfolio_url: e.target.value })} placeholder="https://..." style={inputStyle} />
                             </div>
 
                             {/* Photo upload */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Photo de profil</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Photo de profil</Label>
                                 <div className="flex items-center gap-3">
                                     {form.photo_url && (
                                         <img src={form.photo_url} alt="preview" className="w-14 h-14 rounded-full object-cover shrink-0" />
                                     )}
                                     <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg text-sm transition-all"
-                                        style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}>
+                                        style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(255,199,69,0.2)" }}>
                                         {uploadingPhoto ? "Upload..." : <><Upload className="w-4 h-4" /> Choisir une photo</>}
                                         <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
                                     </label>
                                     {form.photo_url && (
-                                        <button onClick={() => setForm(f => ({ ...f, photo_url: "" }))} className="text-xs" style={{ color: "#71717a" }}>Supprimer</button>
+                                        <button onClick={() => setForm(f => ({ ...f, photo_url: "" }))} className="text-xs" style={{ color: "var(--text-muted)" }}>Supprimer</button>
                                     )}
                                 </div>
                             </div>
 
                             {/* Book photos */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>
-                                    Photos book <span style={{ color: "#52525b" }}>(plusieurs possibles)</span>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>
+                                    Photos book <span style={{ color: "var(--text-faint)" }}>(plusieurs possibles)</span>
                                 </Label>
                                 {form.photos.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-3">
@@ -422,7 +422,7 @@ export default function PeoplePage() {
                                                 <img src={url} alt={`book-${i}`} className="w-16 h-16 rounded-lg object-cover" />
                                                 <button onClick={() => removeBookPhoto(url)}
                                                     className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    style={{ background: "#ef4444", color: "#fff" }}>
+                                                    style={{ background: "var(--danger)", color: "#fff" }}>
                                                     <X className="w-3 h-3" />
                                                 </button>
                                             </div>
@@ -430,7 +430,7 @@ export default function PeoplePage() {
                                     </div>
                                 )}
                                 <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg text-sm w-fit transition-all"
-                                    style={{ background: "rgba(0,255,145,0.05)", color: "#a1a1aa", border: "1px solid rgba(0,255,145,0.15)" }}>
+                                    style={{ background: "var(--accent-muted)", color: "var(--text-muted)", border: "1px solid var(--border-hi)" }}>
                                     {uploadingBook ? "Upload..." : <><Upload className="w-4 h-4" /> Ajouter des photos</>}
                                     <input type="file" accept="image/*" multiple className="hidden" onChange={handleBookUpload} disabled={uploadingBook} />
                                 </label>
@@ -439,14 +439,14 @@ export default function PeoplePage() {
 
                         <div className="flex gap-2 mt-6">
                             {editingPerson && (
-                                <Button onClick={() => handleDelete(editingPerson.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                                <Button onClick={() => handleDelete(editingPerson.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
                                     Supprimer
                                 </Button>
                             )}
-                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "#a1a1aa" }}>
+                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
                                 Annuler
                             </Button>
-                            <Button onClick={handleSave} disabled={(!form.first_name.trim() && !form.last_name.trim()) || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                            <Button onClick={handleSave} disabled={(!form.first_name.trim() && !form.last_name.trim()) || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 {saving ? "..." : editingPerson ? "Enregistrer" : "Ajouter"}
                             </Button>
                         </div>
@@ -463,30 +463,30 @@ function PersonCard({ person, color, onEdit, onToggle }: { person: Person; color
         : person.name;
 
     return (
-        <div className="rounded-xl p-4" style={{ background: "#001C1C", border: `1px solid ${person.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.2)"}`, opacity: person.active ? 1 : 0.6 }}>
+        <div className="rounded-xl p-4" style={{ background: "var(--bg)", border: `1px solid ${person.active ? "var(--border-hi)" : "rgba(113,113,122,0.2)"}`, opacity: person.active ? 1 : 0.6 }}>
             <div className="flex items-start gap-3">
                 {person.photo_url ? (
                     <img src={person.photo_url} alt={displayName} className="h-12 w-12 shrink-0 rounded-full object-cover" />
                 ) : (
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                        style={{ background: person.active ? color : "#27272a", color: person.active ? "#001C1C" : "#71717a" }}>
+                        style={{ background: person.active ? color : "#27272a", color: person.active ? "#0E0D0B" : "var(--text-muted)" }}>
                         {getInitials(displayName)}
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                        <span className="font-semibold text-sm truncate" style={{ color: "#ffffff" }}>{displayName}</span>
-                        <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded-md transition-all shrink-0" style={{ color: "#71717a" }}
-                            onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; e.currentTarget.style.background = "rgba(255,199,69,0.1)"; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.background = "transparent"; }}>
+                        <span className="font-semibold text-sm truncate" style={{ color: "var(--text)" }}>{displayName}</span>
+                        <button onClick={onEdit} className="flex h-6 w-6 items-center justify-center rounded-md transition-all shrink-0" style={{ color: "var(--text-muted)" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
                             <Pencil className="w-3 h-3" />
                         </button>
                     </div>
-                    {person.specialty && <p className="text-xs mt-0.5 truncate" style={{ color: "#71717a" }}>{person.specialty}</p>}
+                    {person.specialty && <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{person.specialty}</p>}
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {person.age && <p className="text-xs" style={{ color: "#52525b" }}>{person.age} ans</p>}
-                        {person.height && <p className="text-xs" style={{ color: "#52525b" }}>{person.height}</p>}
-                        {person.gender && <p className="text-xs" style={{ color: "#52525b" }}>{person.gender}</p>}
+                        {person.age && <p className="text-xs" style={{ color: "var(--text-faint)" }}>{person.age} ans</p>}
+                        {person.height && <p className="text-xs" style={{ color: "var(--text-faint)" }}>{person.height}</p>}
+                        {person.gender && <p className="text-xs" style={{ color: "var(--text-faint)" }}>{person.gender}</p>}
                     </div>
                 </div>
             </div>
@@ -494,14 +494,14 @@ function PersonCard({ person, color, onEdit, onToggle }: { person: Person; color
             {person.skills && person.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-3">
                     {person.skills.slice(0, 3).map(skill => (
-                        <span key={skill} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(0,255,145,0.08)", color: "#00ff91" }}>{skill}</span>
+                        <span key={skill} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--border)", color: "var(--accent)" }}>{skill}</span>
                     ))}
-                    {person.skills.length > 3 && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(113,113,122,0.1)", color: "#52525b" }}>+{person.skills.length - 3}</span>}
+                    {person.skills.length > 3 && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(113,113,122,0.1)", color: "var(--text-faint)" }}>+{person.skills.length - 3}</span>}
                 </div>
             )}
 
             {!person.slug && (
-                <p className="mt-3 text-[10px] px-2 py-1 rounded" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
+                <p className="mt-3 text-[10px] px-2 py-1 rounded" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>
                     ⚠ URL manquante — ouvrir et sauvegarder pour générer
                 </p>
             )}
@@ -509,14 +509,14 @@ function PersonCard({ person, color, onEdit, onToggle }: { person: Person; color
             {person.portfolio_url && (
                 <a href={person.portfolio_url} target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 mt-3 text-xs transition-all"
-                    style={{ color: "#FFC745" }}
+                    style={{ color: "var(--accent)" }}
                     onClick={e => e.stopPropagation()}>
                     <Link2 className="w-3 h-3" /> Book / Portfolio
                 </a>
             )}
 
             <button onClick={onToggle} className="mt-3 w-full text-[11px] py-1 rounded-lg transition-all"
-                style={{ background: person.active ? "rgba(0,255,145,0.08)" : "rgba(113,113,122,0.1)", color: person.active ? "#00ff91" : "#71717a", border: `1px solid ${person.active ? "rgba(0,255,145,0.15)" : "rgba(113,113,122,0.15)"}` }}>
+                style={{ background: person.active ? "var(--border)" : "rgba(113,113,122,0.1)", color: person.active ? "var(--accent)" : "var(--text-muted)", border: `1px solid ${person.active ? "var(--border-hi)" : "rgba(113,113,122,0.15)"}` }}>
                 {person.active ? "Actif · Désactiver" : "Inactif · Activer"}
             </button>
         </div>

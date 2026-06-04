@@ -55,19 +55,19 @@ export default function NewClientPage() {
         return (
             <div className="max-w-md mx-auto mt-16 text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-                    style={{ background: 'rgba(0, 255, 145, 0.1)' }}>
+                    style={{ background: 'var(--border)' }}>
                     <CheckCircle className="w-8 h-8" style={{ color: '#00ff91' }} />
                 </div>
                 <h2 className="text-2xl font-bold mb-3" style={{ color: '#ffffff' }}>Client créé !</h2>
                 <p className="text-sm mb-8" style={{ color: '#a1a1aa' }}>
-                    Un email d&apos;invitation a été envoyé à <strong style={{ color: '#FFC745' }}>{form.email}</strong> pour qu&apos;il définisse son mot de passe.
+                    Un email d&apos;invitation a été envoyé à <strong style={{ color: 'var(--accent)' }}>{form.email}</strong> pour qu&apos;il définisse son mot de passe.
                 </p>
                 <div className="flex gap-3 justify-center">
                     <Button onClick={() => { setSuccess(false); setForm({ businessName: "", businessTypeId: "", email: "", phone: "" }); }}
-                        variant="outline" style={{ background: 'transparent', border: '1px solid rgba(0, 255, 145, 0.2)', color: '#c3c3d4' }}>
+                        variant="outline" style={{ background: 'transparent', border: '1px solid var(--border-2)', color: '#c3c3d4' }}>
                         Nouveau client
                     </Button>
-                    <Button onClick={() => router.push("/admin")} style={{ background: '#FFC745', color: '#001C1C' }}>
+                    <Button onClick={() => router.push("/admin")} style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                         Voir tous les clients
                     </Button>
                 </div>
@@ -80,14 +80,14 @@ export default function NewClientPage() {
             <div className="flex items-center gap-3 mb-8">
                 <Link href="/admin" className="flex items-center gap-2 text-sm transition-colors"
                     style={{ color: '#a1a1aa' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#FFC745'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.color = '#a1a1aa'; }}>
                     <ArrowLeft className="w-4 h-4" />
                     Retour
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2" style={{ color: '#FFC745' }}>Nouveau client</h1>
+            <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent)' }}>Nouveau client</h1>
             <p className="text-sm mb-8" style={{ color: '#c3c3d4' }}>
                 Un email d&apos;invitation sera envoyé automatiquement pour qu&apos;il active son compte.
             </p>
@@ -107,7 +107,7 @@ export default function NewClientPage() {
                         required
                         placeholder="BSK Barbershop"
                         className="mt-1"
-                        style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#ffffff' }}
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: '#ffffff' }}
                     />
                 </div>
 
@@ -117,7 +117,7 @@ export default function NewClientPage() {
                         value={form.businessTypeId}
                         onChange={(e) => setForm(p => ({ ...p, businessTypeId: e.target.value }))}
                         className="mt-1 w-full rounded-md px-3 py-2 text-sm"
-                        style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#ffffff' }}
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: '#ffffff' }}
                     >
                         <option value="">Aucun type</option>
                         {businessTypes.map((bt) => (
@@ -135,7 +135,7 @@ export default function NewClientPage() {
                         required
                         placeholder="client@example.com"
                         className="mt-1"
-                        style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#ffffff' }}
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: '#ffffff' }}
                     />
                     <p className="text-xs mt-1" style={{ color: '#a1a1aa' }}>L&apos;invitation sera envoyée à cette adresse.</p>
                 </div>
@@ -148,7 +148,7 @@ export default function NewClientPage() {
                         onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))}
                         placeholder="+33 6 12 34 56 78"
                         className="mt-1"
-                        style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.15)', color: '#ffffff' }}
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: '#ffffff' }}
                     />
                 </div>
 
@@ -156,7 +156,7 @@ export default function NewClientPage() {
                     type="submit"
                     disabled={loading}
                     className="w-full font-semibold mt-2"
-                    style={{ background: '#FFC745', color: '#001C1C' }}
+                    style={{ background: 'var(--accent)', color: '#0E0D0B' }}
                 >
                     {loading ? "Création en cours..." : "Créer le client & envoyer l'invitation"}
                 </Button>

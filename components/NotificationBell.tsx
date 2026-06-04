@@ -39,7 +39,7 @@ export default function NotificationBell({
     const [open, setOpen] = useState(false);
     const [notifs, setNotifs] = useState<Notification[]>([]);
     const [lastSeen, setLastSeen] = useState<string | null>(null);
-    const [dropdownPos, setDropdownPos] = useState({ bottom: 0, left: 0 });
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
     const ref = useRef<HTMLDivElement>(null);
     const btnRef = useRef<HTMLButtonElement>(null);
     const [mounted, setMounted] = useState(false);
@@ -173,7 +173,7 @@ export default function NotificationBell({
         if (!open && btnRef.current) {
             const rect = btnRef.current.getBoundingClientRect();
             setDropdownPos({
-                bottom: window.innerHeight - rect.top + 8,
+                top: rect.bottom + 8,
                 left: Math.max(8, rect.right - 320),
             });
         }
@@ -191,8 +191,8 @@ export default function NotificationBell({
 
     const colorForType = (type: Notification["type"]) => {
         if (type === "quote") return { bg: "rgba(168,85,247,0.15)", color: "#a855f7" };
-        if (type === "reservation") return { bg: "rgba(255,199,69,0.15)", color: "#FFC745" };
-        return { bg: "rgba(56,189,248,0.15)", color: "#38bdf8" };
+        if (type === "reservation") return { bg: "var(--accent-muted)", color: "var(--accent)" };
+        return { bg: "rgba(96,165,250,0.15)", color: "var(--info)" };
     };
 
     const dropdown = open && mounted ? createPortal(
@@ -204,18 +204,21 @@ export default function NotificationBell({
             />
             {/* Dropdown */}
             <div
-                className="fixed z-[999] w-80 rounded-xl shadow-2xl overflow-hidden"
+                className="fixed z-[999] w-80 rounded-[12px] shadow-2xl overflow-hidden"
                 style={{
-                    bottom: dropdownPos.bottom,
+                    top: dropdownPos.top,
                     left: dropdownPos.left,
-                    background: "#001C1C",
-                    border: "1px solid rgba(0,255,145,0.15)",
+                    background: "var(--bg-elev)",
+                    border: "1px solid var(--border-hi)",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.48)",
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid rgba(0,255,145,0.08)" }}>
-                    <span className="text-sm font-semibold" style={{ color: "#ffffff" }}>Notifications</span>
-                    <button onClick={() => setOpen(false)} style={{ color: "#71717a" }}>
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                    <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Notifications</span>
+                    <button onClick={() => setOpen(false)} style={{ color: "var(--text-faint)" }}
+                        onMouseEnter={e => { e.currentTarget.style.color = "var(--text-muted)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = "var(--text-faint)"; }}>
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -223,7 +226,7 @@ export default function NotificationBell({
                 {/* List */}
                 <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
                     {notifs.length === 0 ? (
-                        <div className="py-10 text-center text-sm" style={{ color: "#52525b" }}>
+                        <div className="py-10 text-center text-sm" style={{ color: "var(--text-faint)" }}>
                             Aucune notification
                         </div>
                     ) : (
@@ -236,20 +239,20 @@ export default function NotificationBell({
                                     href={n.href}
                                     onClick={() => setOpen(false)}
                                     className="flex items-start gap-3 px-4 py-3 transition-colors no-underline"
-                                    style={{ background: isNew ? "rgba(0,255,145,0.03)" : "transparent" }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,199,69,0.05)"; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = isNew ? "rgba(0,255,145,0.03)" : "transparent"; }}
+                                    style={{ background: isNew ? "var(--surface)" : "transparent" }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hi)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = isNew ? "var(--surface)" : "transparent"; }}
                                 >
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: bg, color }}>
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px]" style={{ background: bg, color }}>
                                         {iconForType(n.type)}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate" style={{ color: "#ffffff" }}>{n.title}</p>
-                                        <p className="text-xs truncate mt-0.5" style={{ color: "#71717a" }}>{n.subtitle}</p>
+                                        <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>{n.title}</p>
+                                        <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{n.subtitle}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-1 shrink-0">
-                                        <span className="text-[10px]" style={{ color: "#52525b" }}>{timeAgo(n.createdAt)}</span>
-                                        {isNew && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ef4444" }} />}
+                                        <span className="text-[10px]" style={{ color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>{timeAgo(n.createdAt)}</span>
+                                        {isNew && <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--danger)" }} />}
                                     </div>
                                 </Link>
                             );
@@ -266,17 +269,17 @@ export default function NotificationBell({
             <button
                 ref={btnRef}
                 onClick={handleOpen}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200"
-                style={{ color: open ? "#FFC745" : "#c3c3d4" }}
-                onMouseEnter={e => { if (!open) { e.currentTarget.style.background = "rgba(255,199,69,0.1)"; e.currentTarget.style.color = "#FFC745"; } }}
-                onMouseLeave={e => { if (!open) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#c3c3d4"; } }}
+                className="relative flex h-9 w-9 items-center justify-center rounded-[6px] transition-all duration-200"
+                style={{ color: open ? "var(--accent)" : "var(--text-muted)" }}
+                onMouseEnter={e => { if (!open) { e.currentTarget.style.background = "var(--accent-muted)"; e.currentTarget.style.color = "var(--accent)"; } }}
+                onMouseLeave={e => { if (!open) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; } }}
                 aria-label="Notifications"
             >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
                     <span
                         className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                        style={{ background: "#ef4444", color: "#fff" }}
+                        style={{ background: "var(--danger)", color: "#fff" }}
                     >
                         {unreadCount > 9 ? "9+" : unreadCount}
                     </span>

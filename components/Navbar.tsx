@@ -226,8 +226,8 @@ export default function Navbar() {
             <header
                 className="sticky top-0 z-40 flex h-16 items-center justify-between px-4 md:px-6"
                 style={{
-                    background: "#002928",
-                    borderBottom: "1px solid rgba(0, 255, 145, 0.1)",
+                    background: "var(--surface)",
+                    borderBottom: "1px solid var(--border)",
                 }}
             >
                 {/* Logo */}
@@ -241,7 +241,7 @@ export default function Navbar() {
                             priority
                         />
                     </div>
-                    <span className="text-base font-semibold" style={{ color: "#FFC745" }}>
+                    <span className="text-base font-semibold" style={{ color: "var(--accent)" }}>
                         VWA Dashboard
                     </span>
                 </Link>
@@ -259,23 +259,23 @@ export default function Navbar() {
                                 style={
                                     isActive
                                         ? {
-                                              background: "#FFC745",
-                                              color: "#001C1C",
+                                              background: "var(--accent)",
+                                              color: "var(--on-accent)",
                                               fontWeight: 700,
-                                              boxShadow: "0 4px 20px rgba(255, 199, 69, 0.3)",
+                                              boxShadow: "0 4px 20px var(--accent-glow)",
                                           }
-                                        : { color: "#c3c3d4" }
+                                        : { color: "var(--text-muted)" }
                                 }
                                 onMouseEnter={(e) => {
                                     if (!isActive) {
-                                        e.currentTarget.style.background = "rgba(255, 199, 69, 0.1)";
-                                        e.currentTarget.style.color = "#FFC745";
+                                        e.currentTarget.style.background = "var(--accent-dim)";
+                                        e.currentTarget.style.color = "var(--accent)";
                                     }
                                 }}
                                 onMouseLeave={(e) => {
                                     if (!isActive) {
                                         e.currentTarget.style.background = "transparent";
-                                        e.currentTarget.style.color = "#c3c3d4";
+                                        e.currentTarget.style.color = "var(--text-muted)";
                                     }
                                 }}
                             >
@@ -283,25 +283,25 @@ export default function Navbar() {
                                 {item.title}
                                 {item.href === "/quotes" && pendingQuotes > 0 && (
                                     <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {pendingQuotes}
                                     </span>
                                 )}
                                 {item.href === "/reservations" && todayReservations > 0 && (
                                     <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {todayReservations}
                                     </span>
                                 )}
                                 {item.href === "/reviews" && unrepliedReviews > 0 && (
                                     <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {unrepliedReviews}
                                     </span>
                                 )}
                                 {item.href === "/messages" && unreadMessages > 0 && (
                                     <span className="ml-1 w-2 h-2 rounded-full shrink-0"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745" }} />
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)" }} />
                                 )}
                             </Link>
                         );
@@ -314,26 +314,26 @@ export default function Navbar() {
                         <div
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
                             style={{
-                                background: "rgba(255, 199, 69, 0.05)",
-                                border: "1px solid rgba(255, 199, 69, 0.1)",
+                                background: "var(--accent-dim)",
+                                border: "1px solid var(--accent-dim)",
                             }}
                         >
                             <div
                                 className="flex h-7 w-7 items-center justify-center rounded-full shrink-0"
-                                style={{ background: "#FFC745" }}
+                                style={{ background: "var(--accent)" }}
                             >
-                                <User className="h-3.5 w-3.5" style={{ color: "#001C1C" }} />
+                                <User className="h-3.5 w-3.5" style={{ color: "var(--on-accent)" }} />
                             </div>
                             <div className="flex flex-col min-w-0">
                                 <span
                                     className="text-xs font-medium leading-tight truncate max-w-[120px]"
-                                    style={{ color: "#ffffff" }}
+                                    style={{ color: "var(--text)" }}
                                 >
                                     {userProfile.business_name || "Mon entreprise"}
                                 </span>
                                 <span
                                     className="text-[10px] leading-tight truncate max-w-[120px]"
-                                    style={{ color: "#a1a1aa" }}
+                                    style={{ color: "var(--text-muted)" }}
                                 >
                                     {userProfile.email}
                                 </span>
@@ -346,14 +346,14 @@ export default function Navbar() {
                     <Link
                         href="/settings"
                         className="flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200"
-                        style={{ color: "#c3c3d4" }}
+                        style={{ color: "var(--text-muted)" }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(255, 199, 69, 0.1)";
-                            e.currentTarget.style.color = "#FFC745";
+                            e.currentTarget.style.background = "var(--accent-dim)";
+                            e.currentTarget.style.color = "var(--accent)";
                         }}
                         onMouseLeave={(e) => {
                             e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "#c3c3d4";
+                            e.currentTarget.style.color = "var(--text-muted)";
                         }}
                     >
                         <Settings className="h-4 w-4" />
@@ -364,9 +364,9 @@ export default function Navbar() {
                         onClick={handleLogout}
                         disabled={isLoggingOut}
                         className="flex h-9 w-9 items-center justify-center rounded-lg p-0 transition-all duration-200"
-                        style={{ color: "#f87171" }}
+                        style={{ color: "var(--danger)" }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+                            e.currentTarget.style.background = "var(--danger-bg)";
                         }}
                         onMouseLeave={(e) => {
                             e.currentTarget.style.background = "transparent";
@@ -379,7 +379,7 @@ export default function Navbar() {
                 {/* Burger mobile */}
                 <button
                     className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200"
-                    style={{ color: "#c3c3d4" }}
+                    style={{ color: "var(--text-muted)" }}
                     onClick={() => setMenuOpen((v) => !v)}
                     aria-label="Menu"
                 >
@@ -401,8 +401,8 @@ export default function Navbar() {
                 className="fixed top-16 left-0 right-0 z-30 md:hidden transition-all duration-300 overflow-hidden"
                 style={{
                     maxHeight: menuOpen ? "100vh" : "0",
-                    background: "#002928",
-                    borderBottom: menuOpen ? "1px solid rgba(0, 255, 145, 0.1)" : "none",
+                    background: "var(--surface)",
+                    borderBottom: menuOpen ? "1px solid var(--border)" : "none",
                 }}
             >
                 <nav className="flex flex-col p-4 gap-1">
@@ -417,36 +417,36 @@ export default function Navbar() {
                                 style={
                                     isActive
                                         ? {
-                                              background: "#FFC745",
-                                              color: "#001C1C",
+                                              background: "var(--accent)",
+                                              color: "var(--on-accent)",
                                               fontWeight: 700,
                                           }
-                                        : { color: "#c3c3d4" }
+                                        : { color: "var(--text-muted)" }
                                 }
                             >
                                 <Icon className="h-5 w-5" />
                                 {item.title}
                                 {item.href === "/quotes" && pendingQuotes > 0 && (
                                     <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {pendingQuotes}
                                     </span>
                                 )}
                                 {item.href === "/reservations" && todayReservations > 0 && (
                                     <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {todayReservations}
                                     </span>
                                 )}
                                 {item.href === "/reviews" && unrepliedReviews > 0 && (
                                     <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)", color: isActive ? "var(--accent)" : "#0E0D0B" }}>
                                         {unrepliedReviews}
                                     </span>
                                 )}
                                 {item.href === "/messages" && unreadMessages > 0 && (
                                     <span className="ml-auto w-2 h-2 rounded-full shrink-0"
-                                        style={{ background: isActive ? "#001C1C" : "#FFC745" }} />
+                                        style={{ background: isActive ? "#0E0D0B" : "var(--accent)" }} />
                                 )}
                             </Link>
                         );
@@ -454,13 +454,13 @@ export default function Navbar() {
 
                     <div
                         className="my-2"
-                        style={{ height: "1px", background: "rgba(0, 255, 145, 0.1)" }}
+                        style={{ height: "1px", background: "var(--border)" }}
                     />
 
                     <Link
                         href="/settings"
                         className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200"
-                        style={{ color: "#c3c3d4" }}
+                        style={{ color: "var(--text-muted)" }}
                     >
                         <Settings className="h-5 w-5" />
                         Paramètres
@@ -470,24 +470,24 @@ export default function Navbar() {
                         <div
                             className="flex items-center gap-3 px-4 py-3 rounded-lg mx-0 mt-1"
                             style={{
-                                background: "rgba(255, 199, 69, 0.05)",
-                                border: "1px solid rgba(255, 199, 69, 0.1)",
+                                background: "var(--accent-dim)",
+                                border: "1px solid var(--accent-dim)",
                             }}
                         >
                             <div
                                 className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
-                                style={{ background: "#FFC745" }}
+                                style={{ background: "var(--accent)" }}
                             >
-                                <User className="h-4 w-4" style={{ color: "#001C1C" }} />
+                                <User className="h-4 w-4" style={{ color: "var(--on-accent)" }} />
                             </div>
                             <div className="flex flex-col min-w-0">
                                 <span
                                     className="text-sm font-medium truncate"
-                                    style={{ color: "#ffffff" }}
+                                    style={{ color: "var(--text)" }}
                                 >
                                     {userProfile.business_name || "Mon entreprise"}
                                 </span>
-                                <span className="text-xs truncate" style={{ color: "#a1a1aa" }}>
+                                <span className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
                                     {userProfile.email}
                                 </span>
                             </div>
@@ -499,7 +499,7 @@ export default function Navbar() {
                         onClick={handleLogout}
                         disabled={isLoggingOut}
                         className="flex items-center justify-start gap-3 px-4 py-3 rounded-lg text-sm font-medium w-full mt-1"
-                        style={{ color: "#f87171" }}
+                        style={{ color: "var(--danger)" }}
                     >
                         <LogOut className="h-5 w-5" />
                         {isLoggingOut ? "Déconnexion..." : "Déconnexion"}

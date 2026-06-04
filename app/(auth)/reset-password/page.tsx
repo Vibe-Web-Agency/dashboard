@@ -80,30 +80,29 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#001C1C' }}>
-            <div className="absolute inset-0 overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg)' }}>
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div
-                    className="absolute -top-40 -right-40 w-96 h-96 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"
-                    style={{ background: 'radial-gradient(circle, #FFC745, transparent)' }}
+                    className="absolute -top-40 -right-40 w-96 h-96 rounded-full filter blur-3xl opacity-10"
+                    style={{ background: 'radial-gradient(circle, var(--accent), transparent)' }}
                 />
                 <div
-                    className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"
-                    style={{ background: 'radial-gradient(circle, #00ff91, transparent)', animationDelay: '2s' }}
+                    className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full filter blur-3xl opacity-6"
+                    style={{ background: 'radial-gradient(circle, var(--accent-deep), transparent)' }}
                 />
             </div>
 
             <Card
-                className="w-full max-w-md relative border shadow-2xl"
+                className="w-full max-w-sm relative border"
                 style={{
-                    background: 'rgba(0, 41, 40, 0.8)',
-                    backdropFilter: 'blur(20px)',
-                    borderColor: 'rgba(0, 255, 145, 0.1)',
-                    boxShadow: '0 0 60px rgba(255, 199, 69, 0.1), 0 8px 32px rgba(0, 0, 0, 0.4)'
+                    background: 'var(--bg-elev)',
+                    borderColor: 'var(--border-hi)',
+                    boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
                 }}
             >
-                <CardHeader className="space-y-1 text-center">
+                <CardHeader className="space-y-1 text-center pb-4">
                     <div className="flex justify-center mb-4">
-                        <div className="relative w-20 h-20">
+                        <div className="relative w-14 h-14">
                             <Image
                                 src="/assets/logo.png"
                                 alt="Vibe Web Agency Logo"
@@ -115,12 +114,12 @@ export default function ResetPasswordPage() {
                     </div>
 
                     <CardTitle
-                        className="text-2xl font-bold"
-                        style={{ color: '#FFC745' }}
+                        className="font-normal"
+                        style={{ fontSize: '1.5rem', color: 'var(--text)', letterSpacing: '-0.02em' }}
                     >
                         Nouveau mot de passe
                     </CardTitle>
-                    <CardDescription style={{ color: '#c3c3d4' }}>
+                    <CardDescription style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
                         Choisissez un nouveau mot de passe sécurisé
                     </CardDescription>
                 </CardHeader>
@@ -129,11 +128,12 @@ export default function ResetPasswordPage() {
                     <CardContent className="space-y-4">
                         {error && (
                             <div
-                                className="p-3 rounded-lg text-sm"
+                                className="p-3 rounded-[6px] text-sm"
                                 style={{
-                                    background: 'rgba(239, 68, 68, 0.15)',
-                                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: '#fca5a5'
+                                    background: 'var(--danger-bg)',
+                                    border: '1px solid var(--danger)',
+                                    color: 'var(--danger)',
+                                    fontSize: '12px',
                                 }}
                             >
                                 {error}
@@ -142,19 +142,20 @@ export default function ResetPasswordPage() {
 
                         {success && (
                             <div
-                                className="p-3 rounded-lg text-sm"
+                                className="p-3 rounded-[6px] text-sm"
                                 style={{
-                                    background: 'rgba(34, 197, 94, 0.15)',
-                                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                                    color: '#86efac'
+                                    background: 'var(--success-bg)',
+                                    border: '1px solid var(--success)',
+                                    color: 'var(--success)',
+                                    fontSize: '12px',
                                 }}
                             >
                                 ✅ {success}
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password" style={{ color: '#e4e4e7' }}>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="password" style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
                                 Nouveau mot de passe
                             </Label>
                             <Input
@@ -166,20 +167,20 @@ export default function ResetPasswordPage() {
                                 onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
-                                className="transition-all duration-200"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
+                                    background: 'var(--surface)',
+                                    border: '1px solid var(--border)',
+                                    color: 'var(--text)',
+                                    fontSize: '13px',
                                 }}
                             />
-                            <p className="text-xs" style={{ color: '#71717a' }}>
+                            <p className="text-xs" style={{ color: 'var(--text-faint)' }}>
                                 Minimum 6 caractères
                             </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" style={{ color: '#e4e4e7' }}>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="confirmPassword" style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
                                 Confirmer le mot de passe
                             </Label>
                             <Input
@@ -191,25 +192,25 @@ export default function ResetPasswordPage() {
                                 onChange={handleInputChange}
                                 required
                                 disabled={isLoading}
-                                className="transition-all duration-200"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
+                                    background: 'var(--surface)',
+                                    border: '1px solid var(--border)',
+                                    color: 'var(--text)',
+                                    fontSize: '13px',
                                 }}
                             />
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex flex-col space-y-4">
+                    <CardFooter className="flex flex-col space-y-4 pt-2">
                         <Button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full font-semibold py-2.5 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full font-medium py-2.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{
-                                background: '#FFC745',
-                                color: '#001C1C',
-                                boxShadow: '0 4px 20px rgba(255, 199, 69, 0.3)'
+                                background: 'var(--accent)',
+                                color: '#0E0D0B',
+                                fontSize: '13px',
                             }}
                         >
                             {isLoading ? (

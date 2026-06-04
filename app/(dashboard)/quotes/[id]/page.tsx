@@ -102,13 +102,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     const getStatusStyle = (status: string) => {
         switch (status) {
             case "pending":
-                return { bg: 'rgba(255, 199, 69, 0.15)', color: '#FFC745', label: 'En attente' };
+                return { bg: 'var(--accent-dim)', color: 'var(--accent)', label: 'En attente' };
             case "approved":
-                return { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', label: 'Approuvé' };
+                return { bg: 'var(--success-bg)', color: 'var(--success)', label: 'Approuvé' };
             case "rejected":
-                return { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', label: 'Refusé' };
+                return { bg: 'var(--danger-bg)', color: 'var(--danger)', label: 'Refusé' };
             default:
-                return { bg: 'rgba(113, 113, 122, 0.15)', color: '#71717a', label: status };
+                return { bg: 'rgba(113, 113, 122, 0.15)', color: 'var(--muted)', label: status };
         }
     };
 
@@ -135,8 +135,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                     <Skeleton className="h-9 w-56" />
                     <Skeleton className="h-4 w-64" />
                 </div>
-                <div className="rounded-xl p-6 space-y-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
-                    <div className="flex items-center justify-between pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="rounded-xl p-6 space-y-6" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+                    <div className="flex items-center justify-between pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
                         <div className="flex items-center gap-4">
                             <Skeleton className="w-16 h-16 rounded-full shrink-0" />
                             <div className="space-y-2">
@@ -168,9 +168,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     if (!quote) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p style={{ color: '#c3c3d4' }}>Devis non trouvé</p>
+                <p style={{ color: 'var(--text-2)' }}>Devis non trouvé</p>
                 <Link href="/quotes">
-                    <Button style={{ background: '#FFC745', color: '#001C1C' }}>Retour aux devis</Button>
+                    <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux devis</Button>
                 </Link>
             </div>
         );
@@ -184,7 +184,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <Link
                 href="/quotes"
                 className="flex items-center gap-2 w-fit transition-colors"
-                style={{ color: '#FFC745' }}
+                style={{ color: 'var(--accent)' }}
             >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm font-medium">Retour aux devis</span>
@@ -194,11 +194,11 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <div>
                 <h1
                     className="text-2xl sm:text-3xl font-bold mb-2"
-                    style={{ color: '#FFC745' }}
+                    style={{ color: 'var(--accent)' }}
                 >
                     Détails du devis
                 </h1>
-                <p style={{ color: '#c3c3d4' }}>
+                <p style={{ color: 'var(--text-2)' }}>
                     Informations complètes et gestion du statut
                 </p>
             </div>
@@ -207,24 +207,23 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <div
                 className="rounded-xl p-6"
                 style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                    background: 'var(--bg-elev)', border: '1px solid var(--border)'
                 }}
             >
                 {/* Customer Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
                     <div className="flex items-center gap-4">
                         <div
                             className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold"
-                            style={{ background: '#FFC745', color: '#001C1C' }}
+                            style={{ background: 'var(--accent)', color: '#0E0D0B' }}
                         >
                             {quote.customer_name?.charAt(0).toUpperCase() || "?"}
                         </div>
                         <div>
-                            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+                            <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                                 {quote.customer_name}
                             </h2>
-                            <p className="text-sm" style={{ color: '#a1a1aa' }}>
+                            <p className="text-sm" style={{ color: 'var(--muted)' }}>
                                 Demande créée le {formatDate(quote.created_at)}
                             </p>
                         </div>
@@ -246,13 +245,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
+                                style={{ background: 'var(--surface-2)' }}
                             >
-                                <Mail className="w-5 h-5" style={{ color: '#00ff91' }} />
+                                <Mail className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Email</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Email</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {quote.customer_email}
                                 </p>
                             </div>
@@ -263,13 +262,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(0, 255, 145, 0.08)' }}
+                                style={{ background: 'var(--surface-2)' }}
                             >
-                                <Phone className="w-5 h-5" style={{ color: '#00ff91' }} />
+                                <Phone className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div>
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Téléphone</p>
-                                <p className="font-semibold" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Téléphone</p>
+                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
                                     {quote.customer_phone}
                                 </p>
                             </div>
@@ -280,13 +279,13 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                         <div className="flex items-start gap-3">
                             <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(255, 199, 69, 0.12)' }}
+                                style={{ background: 'var(--accent-dim)' }}
                             >
-                                <MessageSquare className="w-5 h-5" style={{ color: '#FFC745' }} />
+                                <MessageSquare className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: '#c3c3d4' }}>Message / Détails du projet</p>
-                                <p className="italic" style={{ color: '#ffffff' }}>
+                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Message / Détails du projet</p>
+                                <p className="italic" style={{ color: 'var(--text)' }}>
                                     &quot;{quote.message}&quot;
                                 </p>
                             </div>
@@ -297,9 +296,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                 {/* Status Actions */}
                 <div
                     className="p-4 rounded-lg"
-                    style={{ background: 'rgba(0, 255, 145, 0.03)' }}
+                    style={{ background: 'var(--surface-2)' }}
                 >
-                    <p className="text-sm font-medium mb-3" style={{ color: '#c3c3d4' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-2)' }}>
                         Mettre à jour le statut
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -309,14 +308,14 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                             style={
                                 quote.status === 'pending'
                                     ? {
-                                        background: '#FFC745',
-                                        color: '#001C1C',
+                                        background: 'var(--accent)',
+                                        color: '#0E0D0B',
                                         fontWeight: 600
                                     }
                                     : {
-                                        background: 'rgba(255, 199, 69, 0.1)',
-                                        color: '#FFC745',
-                                        border: '1px solid rgba(255, 199, 69, 0.3)'
+                                        background: 'var(--accent-dim)',
+                                        color: 'var(--accent)',
+                                        border: '1px solid var(--accent-glow)'
                                     }
                             }
                         >
@@ -328,14 +327,14 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                             style={
                                 quote.status === 'approved'
                                     ? {
-                                        background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                        color: '#ffffff',
+                                        background: 'linear-gradient(135deg, var(--success), #16a34a)',
+                                        color: 'var(--text)',
                                         fontWeight: 600
                                     }
                                     : {
-                                        background: 'rgba(34, 197, 94, 0.1)',
-                                        color: '#22c55e',
-                                        border: '1px solid rgba(34, 197, 94, 0.3)'
+                                        background: 'var(--success-bg)',
+                                        color: 'var(--success)',
+                                        border: '1px solid var(--success)'
                                     }
                             }
                         >
@@ -347,14 +346,14 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                             style={
                                 quote.status === 'rejected'
                                     ? {
-                                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                        color: '#ffffff',
+                                        background: 'linear-gradient(135deg, var(--danger), var(--danger))',
+                                        color: 'var(--text)',
                                         fontWeight: 600
                                     }
                                     : {
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        color: '#ef4444',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)'
+                                        background: 'var(--danger-bg)',
+                                        color: 'var(--danger)',
+                                        border: '1px solid var(--danger)'
                                     }
                             }
                         >
@@ -367,20 +366,20 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                 <div
                     className="p-4 rounded-lg mt-4"
                     style={{
-                        background: 'rgba(239, 68, 68, 0.05)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                        background: 'var(--danger-bg)',
+                        border: '1px solid var(--danger-bg)'
                     }}
                 >
-                    <p className="text-sm font-medium mb-3" style={{ color: '#ef4444' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--danger)' }}>
                         Zone de danger
                     </p>
                     <Button
                         onClick={() => setShowDeleteModal(true)}
                         className="w-full flex items-center justify-center gap-2"
                         style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                            background: 'var(--danger-bg)',
+                            color: 'var(--danger)',
+                            border: '1px solid var(--danger)'
                         }}
                     >
                         <Trash2 className="w-4 h-4" />
@@ -399,31 +398,31 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                     <div
                         className="w-full max-w-md rounded-2xl p-6"
                         style={{
-                            background: '#002928',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(239, 68, 68, 0.1)'
+                            background: 'var(--surface)',
+                            border: '1px solid var(--danger)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--danger-bg)'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center gap-3 mb-4">
                             <div
                                 className="w-12 h-12 rounded-full flex items-center justify-center"
-                                style={{ background: 'rgba(239, 68, 68, 0.15)' }}
+                                style={{ background: 'var(--danger-bg)' }}
                             >
-                                <AlertTriangle className="w-6 h-6" style={{ color: '#ef4444' }} />
+                                <AlertTriangle className="w-6 h-6" style={{ color: 'var(--danger)' }} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                                     Confirmer la suppression
                                 </h3>
-                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>
                                     Cette action est irréversible
                                 </p>
                             </div>
                         </div>
 
-                        <p className="mb-6" style={{ color: '#c3c3d4' }}>
-                            Êtes-vous sûr de vouloir supprimer le devis de <strong style={{ color: '#ffffff' }}>{quote.customer_name}</strong> ?
+                        <p className="mb-6" style={{ color: 'var(--text-2)' }}>
+                            Êtes-vous sûr de vouloir supprimer le devis de <strong style={{ color: 'var(--text)' }}>{quote.customer_name}</strong> ?
                             Cette action ne peut pas être annulée.
                         </p>
 
@@ -432,9 +431,9 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                                 onClick={() => setShowDeleteModal(false)}
                                 className="flex-1"
                                 style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    color: '#c3c3d4',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)'
+                                    background: 'var(--surface-2)',
+                                    color: 'var(--text-2)',
+                                    border: '1px solid var(--border)'
                                 }}
                             >
                                 Annuler
@@ -444,8 +443,8 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
                                 disabled={deleting}
                                 className="flex-1 flex items-center justify-center gap-2"
                                 style={{
-                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                    color: '#ffffff',
+                                    background: 'linear-gradient(135deg, var(--danger), var(--danger))',
+                                    color: 'var(--text)',
                                     fontWeight: 600
                                 }}
                             >

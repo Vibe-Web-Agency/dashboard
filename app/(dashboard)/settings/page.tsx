@@ -276,45 +276,53 @@ export default function SettingsPage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div
                     className="animate-spin w-8 h-8 border-2 rounded-full"
-                    style={{
-                        borderColor: '#FFC745',
-                        borderTopColor: 'transparent'
-                    }}
+                    style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }}
                 />
             </div>
         );
     }
 
+    const sectionCardStyle = { background: 'var(--bg-elev)', border: '1px solid var(--border)' };
+    const iconBgStyle = { background: 'var(--accent-muted)' };
+    const fieldCardStyle = { background: 'var(--surface)' };
+    const labelStyle = { color: 'var(--text-muted)', fontSize: '12px' as const };
+    const successStyle = { background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success)' };
+    const errorStyle = { background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' };
+    const cancelBtnStyle = { background: 'var(--surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' };
+
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
             {/* Header */}
             <div>
-                <h1
-                    className="text-2xl sm:text-3xl font-bold"
-                    style={{ color: '#FFC745' }}
-                >
+                <h1 style={{
+                    fontSize: "clamp(1.4rem, 3vw, 1.75rem)",
+                    fontWeight: 400,
+                    color: "var(--text)",
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1.2,
+                }}>
                     Paramètres
                 </h1>
-                <p className="mt-1" style={{ color: '#c3c3d4' }}>
+                <p className="mt-1" style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--text-muted)" }}>
                     Gérez les paramètres de votre compte
                 </p>
             </div>
 
             {/* Section Compte */}
-            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+            <div className="rounded-[12px] p-6" style={sectionCardStyle}>
                 <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
-                            <User className="w-5 h-5" style={{ color: '#FFC745' }} />
+                        <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={iconBgStyle}>
+                            <User className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon compte</h2>
-                            <p className="text-sm" style={{ color: '#c3c3d4' }}>Identifiants de connexion</p>
+                            <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Mon compte</h2>
+                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Identifiants de connexion</p>
                         </div>
                     </div>
                     {!isEditingAccount && (
                         <Button onClick={() => setIsEditingAccount(true)} className="flex items-center gap-2"
-                            style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745', border: '1px solid rgba(255, 199, 69, 0.3)' }}>
+                            style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}>
                             <Pencil className="w-4 h-4" /> Modifier
                         </Button>
                     )}
@@ -327,20 +335,19 @@ export default function SettingsPage() {
                                 { icon: Mail, label: "Email", value: accountData.email },
                                 { icon: Phone, label: "Téléphone", value: accountData.phone },
                             ].map(({ icon: Icon, label, value }) => (
-                                <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
+                                <div key={label} className="p-4 rounded-[8px]" style={fieldCardStyle}>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                        <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
+                                        <Icon className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                                        <span className="text-sm" style={labelStyle}>{label}</span>
                                     </div>
-                                    <p className="font-medium" style={{ color: '#ffffff' }}>
-                                        {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
+                                    <p className="font-medium" style={{ color: 'var(--text)' }}>
+                                        {value || <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>Non renseigné</span>}
                                     </p>
                                 </div>
                             ))}
                         </div>
                         {saveAccountSuccess && (
-                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                            <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={successStyle}>
                                 <Check className="w-4 h-4" /> Compte mis à jour avec succès !
                             </div>
                         )}
@@ -349,40 +356,38 @@ export default function SettingsPage() {
                     <form onSubmit={handleSaveAccount} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Mail className="w-4 h-4" style={{ color: '#FFC745' }} /> Email
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Mail className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Email
                                 </Label>
                                 <Input type="email" value={accountData.email}
                                     onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
                                     placeholder="vous@exemple.com" className="mt-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                             </div>
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} /> Téléphone
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Phone className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Téléphone
                                 </Label>
                                 <Input type="tel" value={accountData.phone}
                                     onChange={(e) => setAccountData(prev => ({ ...prev, phone: e.target.value }))}
                                     placeholder="06 12 34 56 78" className="mt-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                             </div>
                         </div>
                         {saveAccountError && (
-                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                            <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={errorStyle}>
                                 <AlertTriangle className="w-4 h-4" /> {saveAccountError}
                             </div>
                         )}
                         <div className="flex gap-3">
                             <Button type="button" onClick={() => { setIsEditingAccount(false); setSaveAccountError(null); setAccountData({ email: profile?.email || "", phone: profile?.phone || "" }); }}
-                                className="flex items-center gap-2"
-                                style={{ background: 'rgba(0, 255, 145, 0.05)', color: '#c3c3d4', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                                className="flex items-center gap-2" style={cancelBtnStyle}>
                                 <X className="w-4 h-4" /> Annuler
                             </Button>
-                            <Button type="submit" disabled={savingAccount} className="flex items-center gap-2 font-semibold"
-                                style={{ background: '#FFC745', color: '#001C1C' }}>
+                            <Button type="submit" disabled={savingAccount} className="flex items-center gap-2 font-medium"
+                                style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                 {savingAccount ? (
-                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }} /> Enregistrement...</>
+                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#0E0D0B', borderTopColor: 'transparent' }} /> Enregistrement...</>
                                 ) : (
                                     <><Save className="w-4 h-4" /> Enregistrer</>
                                 )}
@@ -393,22 +398,22 @@ export default function SettingsPage() {
             </div>
 
             {/* Section Entreprise */}
-            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+            <div className="rounded-[12px] p-6" style={sectionCardStyle}>
                 <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
-                            <Building2 className="w-5 h-5" style={{ color: '#FFC745' }} />
+                        <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={iconBgStyle}>
+                            <Building2 className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Mon entreprise</h2>
-                            <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                            <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Mon entreprise</h2>
+                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                                 {isEditing ? "Modifiez les informations de votre entreprise" : "Informations et coordonnées publiques"}
                             </p>
                         </div>
                     </div>
                     {!isEditing && (
                         <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2"
-                            style={{ background: 'rgba(255, 199, 69, 0.15)', color: '#FFC745', border: '1px solid rgba(255, 199, 69, 0.3)' }}>
+                            style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}>
                             <Pencil className="w-4 h-4" /> Modifier
                         </Button>
                     )}
@@ -425,20 +430,19 @@ export default function SettingsPage() {
                                 { icon: Phone, label: "Téléphone de contact", value: formData.contact_phone },
                                 { icon: MapPin, label: "Lien Google Maps", value: formData.maps_url },
                             ].map(({ icon: Icon, label, value }) => (
-                                <div key={label} className="p-4 rounded-lg" style={{ background: 'rgba(0, 255, 145, 0.03)' }}>
+                                <div key={label} className="p-4 rounded-[8px]" style={fieldCardStyle}>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Icon className="w-4 h-4" style={{ color: '#FFC745' }} />
-                                        <span className="text-sm" style={{ color: '#c3c3d4' }}>{label}</span>
+                                        <Icon className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+                                        <span className="text-sm" style={labelStyle}>{label}</span>
                                     </div>
-                                    <p className="font-medium" style={{ color: '#ffffff' }}>
-                                        {value || <span style={{ color: '#52525b', fontStyle: 'italic' }}>Non renseigné</span>}
+                                    <p className="font-medium" style={{ color: 'var(--text)' }}>
+                                        {value || <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>Non renseigné</span>}
                                     </p>
                                 </div>
                             ))}
                         </div>
                         {saveSuccess && (
-                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                            <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={successStyle}>
                                 <Check className="w-4 h-4" /> Entreprise mise à jour avec succès !
                             </div>
                         )}
@@ -447,84 +451,82 @@ export default function SettingsPage() {
                     <form onSubmit={handleSaveProfile} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Building2 className="w-4 h-4" style={{ color: '#FFC745' }} /> Nom de l&apos;entreprise
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Building2 className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Nom de l&apos;entreprise
                                 </Label>
                                 <Input value={formData.business_name}
                                     onChange={(e) => setFormData(prev => ({ ...prev, business_name: e.target.value }))}
                                     placeholder="Mon entreprise" className="mt-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                             </div>
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Briefcase className="w-4 h-4" style={{ color: '#FFC745' }} /> Type d&apos;activité
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Briefcase className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Type d&apos;activité
                                 </Label>
-                                <div className="mt-1 px-3 py-2 rounded-md text-sm flex items-center gap-2"
-                                    style={{ background: 'rgba(0, 255, 145, 0.02)', border: '1px solid rgba(0, 255, 145, 0.06)', color: '#71717a' }}>
+                                <div className="mt-1 px-3 py-2 rounded-[6px] text-sm flex items-center gap-2"
+                                    style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                                     <Lock className="w-3 h-3 shrink-0" />
                                     <span>{formData.business_type || "Non renseigné"}</span>
-                                    <span className="ml-auto text-xs" style={{ color: '#52525b' }}>Non modifiable</span>
+                                    <span className="ml-auto text-xs" style={{ color: 'var(--text-faint)' }}>Non modifiable</span>
                                 </div>
                             </div>
                         </div>
 
                         <div>
-                            <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} /> Adresse
+                            <Label className="flex items-center gap-2" style={labelStyle}>
+                                <MapPin className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Adresse
                             </Label>
                             <Input value={formData.address}
                                 onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                                 placeholder="123 Rue Example, 75001 Paris" className="mt-1"
-                                style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Mail className="w-4 h-4" style={{ color: '#FFC745' }} /> Email de contact
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Mail className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Email de contact
                                 </Label>
                                 <Input type="email" value={formData.contact_email}
                                     onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
                                     placeholder="contact@monbusiness.com" className="mt-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                             </div>
                             <div>
-                                <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                    <Phone className="w-4 h-4" style={{ color: '#FFC745' }} /> Téléphone de contact
+                                <Label className="flex items-center gap-2" style={labelStyle}>
+                                    <Phone className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Téléphone de contact
                                 </Label>
                                 <Input type="tel" value={formData.contact_phone}
                                     onChange={(e) => setFormData(prev => ({ ...prev, contact_phone: e.target.value }))}
                                     placeholder="06 12 34 56 78" className="mt-1"
-                                    style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                    style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                             </div>
                         </div>
 
                         <div>
-                            <Label className="flex items-center gap-2" style={{ color: '#e4e4e7' }}>
-                                <MapPin className="w-4 h-4" style={{ color: '#FFC745' }} /> Lien Google Maps
+                            <Label className="flex items-center gap-2" style={labelStyle}>
+                                <MapPin className="w-4 h-4" style={{ color: 'var(--accent)' }} /> Lien Google Maps
                             </Label>
                             <Input value={formData.maps_url}
                                 onChange={(e) => setFormData(prev => ({ ...prev, maps_url: e.target.value }))}
                                 placeholder="https://maps.google.com/..." className="mt-1"
-                                style={{ background: 'rgba(0, 255, 145, 0.05)', border: '1px solid rgba(0, 255, 145, 0.1)', color: '#ffffff' }} />
+                                style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }} />
                         </div>
 
                         {saveError && (
-                            <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                            <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={errorStyle}>
                                 <AlertTriangle className="w-4 h-4" /> {saveError}
                             </div>
                         )}
 
                         <div className="flex gap-3">
-                            <Button type="button" onClick={handleCancelEdit} className="flex items-center gap-2"
-                                style={{ background: 'rgba(0, 255, 145, 0.05)', color: '#c3c3d4', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                            <Button type="button" onClick={handleCancelEdit} className="flex items-center gap-2" style={cancelBtnStyle}>
                                 <X className="w-4 h-4" /> Annuler
                             </Button>
-                            <Button type="submit" disabled={saving} className="flex items-center gap-2 font-semibold"
-                                style={{ background: '#FFC745', color: '#001C1C' }}>
+                            <Button type="submit" disabled={saving} className="flex items-center gap-2 font-medium"
+                                style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                 {saving ? (
-                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#001C1C', borderTopColor: 'transparent' }} /> Enregistrement...</>
+                                    <><div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#0E0D0B', borderTopColor: 'transparent' }} /> Enregistrement...</>
                                 ) : (
                                     <><Save className="w-4 h-4" /> Enregistrer</>
                                 )}
@@ -535,25 +537,25 @@ export default function SettingsPage() {
             </div>
 
             {/* Section Horaires */}
-            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+            <div className="rounded-[12px] p-6" style={sectionCardStyle}>
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255, 199, 69, 0.15)' }}>
-                        <Clock className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={iconBgStyle}>
+                        <Clock className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Horaires d&apos;ouverture</h2>
-                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Affiché sur votre site</p>
+                        <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Horaires d&apos;ouverture</h2>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Affiché sur votre site</p>
                     </div>
                 </div>
                 <div className="space-y-2">
                     {DAYS.map(day => (
                         <div key={day} className="flex items-center gap-3">
-                            <span className="w-24 text-sm capitalize shrink-0" style={{ color: hours[day].open ? "#ffffff" : "#52525b" }}>{day}</span>
+                            <span className="w-24 text-sm capitalize shrink-0" style={{ color: hours[day].open ? "var(--text)" : "var(--text-faint)" }}>{day}</span>
                             <button onClick={() => setHours({ ...hours, [day]: { ...hours[day], open: !hours[day].open } })}
-                                className="text-xs px-2.5 py-1 rounded-lg shrink-0 transition-all"
+                                className="text-xs px-2.5 py-1 rounded-[6px] shrink-0 transition-all"
                                 style={hours[day].open
-                                    ? { background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }
-                                    : { background: "rgba(113,113,122,0.1)", color: "#71717a", border: "1px solid rgba(113,113,122,0.2)" }}>
+                                    ? { background: "var(--accent-muted)", color: "var(--accent)", border: "1px solid var(--border-hi)" }
+                                    : { background: "var(--surface)", color: "var(--text-faint)", border: "1px solid var(--border)" }}>
                                 {hours[day].open ? "Ouvert" : "Fermé"}
                             </button>
                             {hours[day].open && (
@@ -561,7 +563,7 @@ export default function SettingsPage() {
                                     <Input type="time" value={hours[day].from}
                                         onChange={e => setHours({ ...hours, [day]: { ...hours[day], from: e.target.value } })}
                                         className="flex-1 text-xs" style={{ ...inputStyle, padding: "4px 8px" }} />
-                                    <span className="text-xs" style={{ color: "#52525b" }}>–</span>
+                                    <span className="text-xs" style={{ color: "var(--text-faint)" }}>–</span>
                                     <Input type="time" value={hours[day].to}
                                         onChange={e => setHours({ ...hours, [day]: { ...hours[day], to: e.target.value } })}
                                         className="flex-1 text-xs" style={{ ...inputStyle, padding: "4px 8px" }} />
@@ -572,10 +574,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="mt-5">
                     <Button onClick={handleSaveHours} disabled={savingHours}
-                        className="flex items-center gap-2 text-sm font-semibold px-5 py-2 rounded-lg transition-all"
+                        className="flex items-center gap-2 text-sm font-medium px-5 py-2 rounded-[8px] transition-all"
                         style={savedHours
-                            ? { background: "rgba(0,255,145,0.15)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.3)" }
-                            : { background: "#FFC745", color: "#001C1C" }}>
+                            ? { background: "var(--success-bg)", color: "var(--success)", border: "1px solid var(--success)" }
+                            : { background: "var(--accent)", color: "var(--on-accent)" }}>
                         {savedHours ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                         {savingHours ? "Enregistrement..." : savedHours ? "Enregistré" : "Enregistrer"}
                     </Button>
@@ -583,25 +585,16 @@ export default function SettingsPage() {
             </div>
 
             {/* Password Section */}
-            <div
-                className="rounded-xl p-6"
-                style={{
-                    background: '#002928',
-                    border: '1px solid rgba(0, 255, 145, 0.1)'
-                }}
-            >
+            <div className="rounded-[12px] p-6" style={sectionCardStyle}>
                 <div className="flex items-center gap-3 mb-6">
-                    <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(255, 199, 69, 0.15)' }}
-                    >
-                        <Lock className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={iconBgStyle}>
+                        <Lock className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                        <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                             Sécurité
                         </h2>
-                        <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                             Modifiez votre mot de passe
                         </p>
                     </div>
@@ -609,25 +602,20 @@ export default function SettingsPage() {
 
                 <form onSubmit={handleChangePassword} className="space-y-4">
                     <div>
-                        <Label style={{ color: '#e4e4e7' }}>Mot de passe actuel</Label>
+                        <Label style={labelStyle}>Mot de passe actuel</Label>
                         <div className="relative mt-1">
                             <Input
                                 type={showPassword ? "text" : "password"}
                                 value={passwordData.currentPassword}
                                 onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
                                 placeholder="••••••••"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff',
-                                    paddingRight: '40px'
-                                }}
+                                style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)', paddingRight: '40px' }}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2"
-                                style={{ color: '#71717a' }}
+                                style={{ color: 'var(--text-muted)' }}
                             >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -636,60 +624,38 @@ export default function SettingsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <Label style={{ color: '#e4e4e7' }}>Nouveau mot de passe</Label>
+                            <Label style={labelStyle}>Nouveau mot de passe</Label>
                             <Input
                                 type={showPassword ? "text" : "password"}
                                 value={passwordData.newPassword}
                                 onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
                                 placeholder="••••••••"
                                 className="mt-1"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
-                                }}
+                                style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }}
                             />
                         </div>
                         <div>
-                            <Label style={{ color: '#e4e4e7' }}>Confirmer le nouveau mot de passe</Label>
+                            <Label style={labelStyle}>Confirmer le nouveau mot de passe</Label>
                             <Input
                                 type={showPassword ? "text" : "password"}
                                 value={passwordData.confirmPassword}
                                 onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                                 placeholder="••••••••"
                                 className="mt-1"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)',
-                                    color: '#ffffff'
-                                }}
+                                style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', color: 'var(--text)' }}
                             />
                         </div>
                     </div>
 
                     {passwordError && (
-                        <div
-                            className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                            style={{
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#ef4444',
-                                border: '1px solid rgba(239, 68, 68, 0.2)'
-                            }}
-                        >
+                        <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={errorStyle}>
                             <AlertTriangle className="w-4 h-4" />
                             {passwordError}
                         </div>
                     )}
 
                     {passwordSuccess && (
-                        <div
-                            className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                            style={{
-                                background: 'rgba(34, 197, 94, 0.1)',
-                                color: '#22c55e',
-                                border: '1px solid rgba(34, 197, 94, 0.2)'
-                            }}
-                        >
+                        <div className="flex items-center gap-2 p-3 rounded-[6px] text-sm" style={successStyle}>
                             <Check className="w-4 h-4" />
                             Mot de passe modifié avec succès !
                         </div>
@@ -698,19 +664,12 @@ export default function SettingsPage() {
                     <Button
                         type="submit"
                         disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                        className="flex items-center gap-2"
-                        style={{
-                            background: 'rgba(255, 199, 69, 0.15)',
-                            color: '#FFC745',
-                            border: '1px solid rgba(255, 199, 69, 0.3)'
-                        }}
+                        className="flex items-center gap-2 font-medium"
+                        style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}
                     >
                         {changingPassword ? (
                             <>
-                                <div
-                                    className="animate-spin w-4 h-4 border-2 rounded-full"
-                                    style={{ borderColor: '#FFC745', borderTopColor: 'transparent' }}
-                                />
+                                <div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
                                 Vérification et modification...
                             </>
                         ) : (
@@ -724,49 +683,40 @@ export default function SettingsPage() {
             </div>
 
             {/* Facturation */}
-            <div className="rounded-xl p-6" style={{ background: '#002928', border: '1px solid rgba(0,255,145,0.1)' }}>
+            <div className="rounded-[12px] p-6" style={sectionCardStyle}>
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,199,69,0.15)' }}>
-                        <CreditCard className="w-5 h-5" style={{ color: '#FFC745' }} />
+                    <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
+                        <CreditCard className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>Facturation</h2>
-                        <p className="text-sm" style={{ color: '#c3c3d4' }}>Gérez votre abonnement, vos moyens de paiement et téléchargez vos factures</p>
+                        <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Facturation</h2>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Gérez votre abonnement, vos moyens de paiement et téléchargez vos factures</p>
                     </div>
                 </div>
                 {portalError && (
-                    <p className="text-sm mb-4 px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
+                    <p className="text-sm mb-4 px-3 py-2 rounded-[6px]" style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
                         Aucune facturation active sur ce compte.
                     </p>
                 )}
                 <Button onClick={handlePortal} disabled={openingPortal}
-                    className="flex items-center gap-2"
-                    style={{ background: 'rgba(255,199,69,0.1)', color: '#FFC745', border: '1px solid rgba(255,199,69,0.2)' }}>
+                    className="flex items-center gap-2 font-medium"
+                    style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}>
                     <ExternalLink className="w-4 h-4" />
                     {openingPortal ? "Chargement..." : "Accéder au portail de facturation"}
                 </Button>
             </div>
 
-            {/* Danger Zone */}
-            <div
-                className="rounded-xl p-6"
-                style={{
-                    background: '#002928',
-                    border: '1px solid rgba(239, 68, 68, 0.2)'
-                }}
-            >
+            {/* Session */}
+            <div className="rounded-[12px] p-6" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3 mb-6">
-                    <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ background: 'rgba(239, 68, 68, 0.15)' }}
-                    >
-                        <LogOut className="w-5 h-5" style={{ color: '#ef4444' }} />
+                    <div className="w-10 h-10 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--danger-bg)' }}>
+                        <LogOut className="w-5 h-5" style={{ color: 'var(--danger)' }} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                        <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                             Session
                         </h2>
-                        <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                             Gérez votre session active
                         </p>
                     </div>
@@ -775,25 +725,21 @@ export default function SettingsPage() {
                 <div className="flex flex-col gap-3">
                     <div>
                         <Button onClick={handleResetOnboarding}
-                            className="flex items-center gap-2"
-                            style={{ background: 'rgba(0,255,145,0.06)', color: '#00ff91', border: '1px solid rgba(0,255,145,0.2)' }}>
+                            className="flex items-center gap-2 font-medium"
+                            style={{ background: 'var(--accent-muted)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}>
                             <CheckCircle className="w-4 h-4" />
                             Rouvrir le guide d&apos;introduction
                         </Button>
                         {onboardingReset && (
-                            <p className="text-xs mt-2" style={{ color: '#00ff91' }}>
+                            <p className="text-xs mt-2" style={{ color: 'var(--accent)' }}>
                                 Guide réinitialisé — il s&apos;affichera au prochain chargement.
                             </p>
                         )}
                     </div>
                     <Button
                         onClick={() => setShowLogoutModal(true)}
-                        className="flex items-center gap-2"
-                        style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
-                        }}
+                        className="flex items-center gap-2 font-medium"
+                        style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }}
                     >
                         <LogOut className="w-4 h-4" />
                         Se déconnecter
@@ -809,32 +755,25 @@ export default function SettingsPage() {
                     onClick={() => setShowLogoutModal(false)}
                 >
                     <div
-                        className="w-full max-w-md rounded-2xl p-6"
-                        style={{
-                            background: '#002928',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-                        }}
+                        className="w-full max-w-md rounded-[12px] p-6"
+                        style={{ background: 'var(--bg-elev)', border: '1px solid var(--border-hi)', boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)' }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center"
-                                style={{ background: 'rgba(239, 68, 68, 0.15)' }}
-                            >
-                                <LogOut className="w-6 h-6" style={{ color: '#ef4444' }} />
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--danger-bg)' }}>
+                                <LogOut className="w-6 h-6" style={{ color: 'var(--danger)' }} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                                <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
                                     Se déconnecter ?
                                 </h3>
-                                <p className="text-sm" style={{ color: '#c3c3d4' }}>
+                                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                                     Vous serez redirigé vers la page de connexion
                                 </p>
                             </div>
                         </div>
 
-                        <p className="mb-6" style={{ color: '#c3c3d4' }}>
+                        <p className="mb-6" style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
                             Êtes-vous sûr de vouloir vous déconnecter de votre compte ?
                         </p>
 
@@ -842,30 +781,19 @@ export default function SettingsPage() {
                             <Button
                                 onClick={() => setShowLogoutModal(false)}
                                 className="flex-1"
-                                style={{
-                                    background: 'rgba(0, 255, 145, 0.05)',
-                                    color: '#c3c3d4',
-                                    border: '1px solid rgba(0, 255, 145, 0.1)'
-                                }}
+                                style={cancelBtnStyle}
                             >
                                 Annuler
                             </Button>
                             <Button
                                 onClick={handleLogout}
                                 disabled={loggingOut}
-                                className="flex-1 flex items-center justify-center gap-2"
-                                style={{
-                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                    color: '#ffffff',
-                                    fontWeight: 600
-                                }}
+                                className="flex-1 flex items-center justify-center gap-2 font-medium"
+                                style={{ background: 'var(--danger)', color: '#fff' }}
                             >
                                 {loggingOut ? (
                                     <>
-                                        <div
-                                            className="animate-spin w-4 h-4 border-2 rounded-full"
-                                            style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}
-                                        />
+                                        <div className="animate-spin w-4 h-4 border-2 rounded-full" style={{ borderColor: '#fff', borderTopColor: 'transparent' }} />
                                         Déconnexion...
                                     </>
                                 ) : (

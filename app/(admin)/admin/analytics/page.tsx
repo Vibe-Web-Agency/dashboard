@@ -28,8 +28,8 @@ interface Depense {
 const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
 const tooltipStyle = {
-    contentStyle: { background: "#002928", border: "1px solid rgba(0, 255, 145, 0.15)", borderRadius: "8px", color: "#ffffff", fontSize: "13px" },
-    cursor: { fill: "rgba(255, 199, 69, 0.05)" },
+    contentStyle: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", color: "#ffffff", fontSize: "13px" },
+    cursor: { fill: "var(--accent-dim)" },
 };
 
 const emptyForm = { label: "", amount: "", type: "fixed" as "fixed" | "ponctual", date: "" };
@@ -185,12 +185,12 @@ export default function AdminAnalyticsPage() {
         return (
             <div className="flex flex-col gap-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Analytics VWA</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Analytics VWA</h1>
                     <p className="mt-1" style={{ color: "#c3c3d4" }}>Vue d&apos;ensemble de l&apos;activité Vibe Web Agency</p>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                             <div className="flex items-center justify-between mb-3"><Skeleton className="w-9 h-9 rounded-lg" /></div>
                             <Skeleton className="h-8 w-16 mb-2" /><Skeleton className="h-4 w-24 mb-1" /><Skeleton className="h-3 w-20" />
                         </div>
@@ -198,7 +198,7 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <div className="grid lg:grid-cols-2 gap-6">
                     {[...Array(2)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                             <Skeleton className="h-5 w-48 mb-2" /><Skeleton className="h-4 w-64 mb-6" /><Skeleton className="w-full h-[200px] rounded-lg" />
                         </div>
                     ))}
@@ -211,14 +211,14 @@ export default function AdminAnalyticsPage() {
         <div className="flex flex-col gap-6">
             {/* Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Analytics VWA</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Analytics VWA</h1>
                 <p className="mt-1" style={{ color: "#c3c3d4" }}>Vue d&apos;ensemble de l&apos;activité Vibe Web Agency</p>
             </div>
 
             {/* KPI — Finance + Clients */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* MRR / ARR toggleable */}
-                <div className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,255,145,0.15)" }}>
                             <Euro className="w-4 h-4" style={{ color: "#00ff91" }} />
@@ -227,7 +227,7 @@ export default function AdminAnalyticsPage() {
                             {(["MRR", "ARR"] as const).map((m) => (
                                 <button key={m} onClick={() => setKpiMode(m)}
                                     className="px-2 py-0.5 text-xs rounded font-medium transition-all duration-200"
-                                    style={kpiMode === m ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 } : { color: "#c3c3d4" }}>
+                                    style={kpiMode === m ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 } : { color: "#c3c3d4" }}>
                                     {m}
                                 </button>
                             ))}
@@ -239,7 +239,7 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 {/* Revenus cumulés */}
-                <div className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(0,255,145,0.15)" }}>
                             <TrendingUp className="w-4 h-4" style={{ color: "#00ff91" }} />
@@ -251,7 +251,7 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 {/* Total dépenses */}
-                <div className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(248,113,113,0.15)" }}>
                             <ShoppingBag className="w-4 h-4" style={{ color: "#f87171" }} />
@@ -263,7 +263,7 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 {/* Bénéfice */}
-                <div className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: profitNet >= 0 ? "rgba(0,255,145,0.15)" : "rgba(248,113,113,0.15)" }}>
                             <TrendingUp className="w-4 h-4" style={{ color: profitNet >= 0 ? "#00ff91" : "#f87171" }} />
@@ -278,7 +278,7 @@ export default function AdminAnalyticsPage() {
             {/* Charts */}
             <div className="grid lg:grid-cols-2 gap-6">
                 {/* Nouveaux clients / mois */}
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Nouveaux clients</h2>
                     <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Par mois sur les 12 derniers mois</p>
                     <ResponsiveContainer width="100%" height={200}>
@@ -289,7 +289,7 @@ export default function AdminAnalyticsPage() {
                             <Tooltip {...tooltipStyle} />
                             <Bar dataKey="clients" radius={[4, 4, 0, 0]}>
                                 {clientGrowth.map((entry, i) => (
-                                    <Cell key={i} fill={entry.clients > 0 ? "#FFC745" : "rgba(255,199,69,0.2)"} />
+                                    <Cell key={i} fill={entry.clients > 0 ? "var(--accent)" : "rgba(255,199,69,0.2)"} />
                                 ))}
                             </Bar>
                         </BarChart>
@@ -297,14 +297,14 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 {/* MRR / ARR cumulatif */}
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <div className="flex items-center justify-between mb-1">
                         <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Évolution {revenueMode}</h2>
                         <div className="flex gap-1 p-1 rounded-lg" style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.1)" }}>
                             {(["MRR", "ARR"] as const).map((m) => (
                                 <button key={m} onClick={() => setRevenueMode(m)}
                                     className="px-3 py-1 text-xs rounded-md font-medium transition-all duration-200"
-                                    style={revenueMode === m ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 } : { color: "#c3c3d4" }}>
+                                    style={revenueMode === m ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 } : { color: "#c3c3d4" }}>
                                     {m}
                                 </button>
                             ))}
@@ -330,7 +330,7 @@ export default function AdminAnalyticsPage() {
             </div>
 
             {/* Revenus mensuels 2026 */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Revenus mensuels 2026</h2>
                 <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Revenus cumulés mois par mois — janvier à décembre 2026</p>
                 <ResponsiveContainer width="100%" height={220}>
@@ -339,13 +339,13 @@ export default function AdminAnalyticsPage() {
                         <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
                         <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} unit="€" />
                         <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v.toLocaleString("fr-FR")} €`, "Revenus cumulés"]} />
-                        <Line type="monotone" dataKey="Revenus" stroke="#FFC745" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#FFC745" }} />
+                        <Line type="monotone" dataKey="Revenus" stroke="var(--accent)" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "var(--accent)" }} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>
 
             {/* Dépenses mensuelles 2026 */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Dépenses mensuelles 2026</h2>
                 <p className="text-sm mb-4" style={{ color: "#a1a1aa" }}>Charges fixes + dépenses ponctuelles par mois</p>
                 <div className="flex items-center gap-4 mb-6">
@@ -374,7 +374,7 @@ export default function AdminAnalyticsPage() {
 
             {/* LTV par client */}
             {ltvData.length > 0 && (
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Lifetime Value par client</h2>
                     <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Revenu total généré depuis le début (abonnement × mois + upsells)</p>
                     <ResponsiveContainer width="100%" height={Math.max(160, ltvData.length * 44)}>
@@ -395,7 +395,7 @@ export default function AdminAnalyticsPage() {
 
             {/* Récapitulatif revenus */}
             {activeClients.length > 0 && (
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <h2 className="text-lg font-semibold mb-1" style={{ color: "#ffffff" }}>Récapitulatif des revenus</h2>
                     <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Abonnements mensuels + upsells de tous les clients</p>
                     <div className="flex flex-col gap-3">
@@ -403,7 +403,7 @@ export default function AdminAnalyticsPage() {
                             <div key={c.business_id} className="flex items-center justify-between py-2.5 px-4 rounded-lg" style={{ background: "rgba(0,255,145,0.04)", border: "1px solid rgba(0,255,145,0.07)" }}>
                                 <span className="text-sm font-medium truncate max-w-[45%]" style={{ color: "#e4e4e7" }}>{c.business_name || "Sans nom"}</span>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-sm font-semibold" style={{ color: "#FFC745" }}>{(c.monthly_price || 0).toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>/ mois</span></span>
+                                    <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{(c.monthly_price || 0).toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>/ mois</span></span>
                                     {c.upsells > 0 && (
                                         <span className="text-sm font-semibold" style={{ color: "#00ff91" }}>+{(c.upsells || 0).toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>upsell</span></span>
                                     )}
@@ -413,7 +413,7 @@ export default function AdminAnalyticsPage() {
                         <div className="flex items-center justify-between pt-4 mt-3 border-t" style={{ borderColor: "rgba(0,255,145,0.1)" }}>
                             <span className="text-sm font-semibold" style={{ color: "#c3c3d4" }}>Total</span>
                             <div className="flex items-center gap-4">
-                                <span className="text-sm font-bold" style={{ color: "#FFC745" }}>{mrr.toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>/ mois</span></span>
+                                <span className="text-sm font-bold" style={{ color: "var(--accent)" }}>{mrr.toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>/ mois</span></span>
                                 {totalUpsells > 0 && (
                                     <span className="text-sm font-bold" style={{ color: "#00ff91" }}>+{totalUpsells.toLocaleString("fr-FR")} € <span className="font-normal text-xs" style={{ color: "#71717a" }}>upsell</span></span>
                                 )}
@@ -424,7 +424,7 @@ export default function AdminAnalyticsPage() {
             )}
 
             {/* Dépenses */}
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 {/* Header dépenses */}
                 <div className="flex items-center justify-between mb-1">
                     <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Dépenses</h2>

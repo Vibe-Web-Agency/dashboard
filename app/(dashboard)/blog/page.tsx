@@ -1,7 +1,9 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+
 import { useState, useEffect } from "react";
-import { Plus, X, Pencil, Newspaper, Trash2 } from "lucide-react";
+import { Plus, X, Pencil, Newspaper, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,13 +26,14 @@ interface BlogPost {
     category: string;
     excerpt: string;
     content: string;
+    cover_url: string | null;
     active: boolean;
     display_order: number;
 }
 
 const CATEGORIES = ["Presse", "Festival", "Projet", "Agence"];
 
-const emptyForm = { slug: "", title: "", date: "", category: "Agence", excerpt: "", content: "" };
+const emptyForm = { slug: "", title: "", date: "", category: "Agence", excerpt: "", content: "", cover_url: "" };
 
 
 function slugify(str: string) {
@@ -48,9 +51,19 @@ export default function BlogPage() {
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [showModal, setShowModal] = useState(false);
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        if (searchParams.get("new") === "1") {
+            setShowModal(true);
+            window.history.replaceState(null, "", window.location.pathname);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+        const [showModal, setShowModal] = useState(false);
     const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
     const [saving, setSaving] = useState(false);
+    const [uploadingCover, setUploadingCover] = useState(false);
     const [form, setForm] = useState(emptyForm);
 
     useEffect(() => {
@@ -79,8 +92,22 @@ export default function BlogPage() {
 
     const openEdit = (p: BlogPost) => {
         setEditingPost(p);
-        setForm({ slug: p.slug, title: p.title, date: p.date, category: p.category, excerpt: p.excerpt, content: p.content });
+        setForm({ slug: p.slug, title: p.title, date: p.date, category: p.category, excerpt: p.excerpt, content: p.content, cover_url: p.cover_url || "" });
         setShowModal(true);
+    };
+
+    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !profile?.business_id) return;
+        setUploadingCover(true);
+        const ext = file.name.split(".").pop();
+        const path = `${profile.business_id}/${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from("blog").upload(path, file, { upsert: true });
+        if (!error) {
+            const { data: { publicUrl } } = supabase.storage.from("blog").getPublicUrl(path);
+            setForm(f => ({ ...f, cover_url: publicUrl }));
+        }
+        setUploadingCover(false);
     };
 
     const handleTitleChange = (title: string) => {
@@ -98,6 +125,7 @@ export default function BlogPage() {
             category: form.category,
             excerpt: form.excerpt.trim(),
             content: form.content.trim(),
+            cover_url: form.cover_url || null,
         };
 
         if (editingPost) {
@@ -128,9 +156,9 @@ export default function BlogPage() {
     if (profileLoading || loading) {
         return (
             <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4">
-                <Skeleton className="h-8 w-48" style={{ background: "#001C1C" }} />
+                <Skeleton className="h-8 w-48" style={{ background: "var(--bg)" }} />
                 <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" style={{ background: "#001C1C" }} />)}
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" style={{ background: "var(--bg)" }} />)}
                 </div>
             </div>
         );
@@ -141,10 +169,10 @@ export default function BlogPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#ffffff" }}>Actualités</h1>
-                    <p className="text-sm mt-1" style={{ color: "#71717a" }}>{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
+                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Actualités</h1>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{posts.length} article{posts.length !== 1 ? "s" : ""}</p>
                 </div>
-                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "#FFC745", color: "#001C1C" }}>
+                <Button onClick={openCreate} className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Nouvel article</span>
                     <span className="sm:hidden">+</span>
@@ -152,10 +180,10 @@ export default function BlogPage() {
             </div>
 
             {posts.length === 0 ? (
-                <div className="text-center py-16" style={{ color: "#71717a" }}>
+                <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
                     <Newspaper className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">Aucun article pour le moment</p>
-                    <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "#FFC745", color: "#001C1C" }}>
+                    <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                         Créer le premier article
                     </Button>
                 </div>
@@ -163,46 +191,49 @@ export default function BlogPage() {
                 <div className="flex flex-col gap-2">
                     {posts.map(post => (
                         <div key={post.id} className="rounded-xl p-4"
-                            style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)", opacity: post.active ? 1 : 0.5 }}>
+                            style={{ background: "var(--bg)", border: "1px solid var(--border-hi)", opacity: post.active ? 1 : 0.5 }}>
                             <div className="flex items-start justify-between gap-3">
+                                {post.cover_url && (
+                                    <img src={post.cover_url} alt={post.title} className="w-16 h-12 object-cover rounded shrink-0" />
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                                            style={{ background: "rgba(0,255,145,0.08)", color: "#00ff91" }}>
+                                            style={{ background: "var(--border)", color: "var(--accent)" }}>
                                             {post.category}
                                         </span>
-                                        <span className="text-xs" style={{ color: "#52525b" }}>{post.date}</span>
+                                        <span className="text-xs" style={{ color: "var(--text-faint)" }}>{post.date}</span>
                                         {!post.active && (
                                             <span className="text-[10px] px-2 py-0.5 rounded-full"
-                                                style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
+                                                style={{ background: "rgba(248,113,113,0.1)", color: "var(--danger)" }}>
                                                 Masqué
                                             </span>
                                         )}
                                     </div>
-                                    <p className="font-semibold text-sm truncate" style={{ color: "#ffffff" }}>{post.title}</p>
+                                    <p className="font-semibold text-sm truncate" style={{ color: "var(--text)" }}>{post.title}</p>
                                     {post.excerpt && (
-                                        <p className="text-xs mt-1 line-clamp-1" style={{ color: "#52525b" }}>{post.excerpt}</p>
+                                        <p className="text-xs mt-1 line-clamp-1" style={{ color: "var(--text-faint)" }}>{post.excerpt}</p>
                                     )}
                                 </div>
                                 <div className="flex gap-0.5 shrink-0">
                                     <button onClick={() => handleToggleActive(post)}
                                         className="flex h-7 w-7 items-center justify-center rounded-md text-xs font-bold transition-all"
                                         title={post.active ? "Masquer" : "Publier"}
-                                        style={{ color: post.active ? "#00ff91" : "#52525b", border: "1px solid", borderColor: post.active ? "rgba(0,255,145,0.2)" : "rgba(113,113,122,0.2)" }}>
+                                        style={{ color: post.active ? "var(--accent)" : "var(--text-faint)", border: "1px solid", borderColor: post.active ? "var(--border-hi)" : "rgba(113,113,122,0.2)" }}>
                                         {post.active ? "✓" : "○"}
                                     </button>
                                     <button onClick={() => openEdit(post)}
                                         className="flex h-7 w-7 items-center justify-center rounded-md transition-all"
-                                        style={{ color: "#71717a" }}
-                                        onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; e.currentTarget.style.background = "rgba(255,199,69,0.1)"; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.background = "transparent"; }}>
+                                        style={{ color: "var(--text-muted)" }}
+                                        onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
                                         <Pencil className="w-3.5 h-3.5" />
                                     </button>
                                     <button onClick={() => handleDelete(post.id)}
                                         className="flex h-7 w-7 items-center justify-center rounded-md transition-all"
-                                        style={{ color: "#71717a" }}
-                                        onMouseEnter={e => { e.currentTarget.style.color = "#f87171"; e.currentTarget.style.background = "rgba(248,113,113,0.1)"; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = "#71717a"; e.currentTarget.style.background = "transparent"; }}>
+                                        style={{ color: "var(--text-muted)" }}
+                                        onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "rgba(248,113,113,0.1)"; }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
                                         <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -215,30 +246,54 @@ export default function BlogPage() {
             {/* Modal créer / modifier */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "#001C1C", border: "1px solid rgba(0,255,145,0.15)" }}>
+                    <div className="w-full max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>
+                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
                                 {editingPost ? "Modifier l'article" : "Nouvel article"}
                             </h2>
-                            <button onClick={() => setShowModal(false)} style={{ color: "#71717a" }}><X className="w-5 h-5" /></button>
+                            <button onClick={() => setShowModal(false)} style={{ color: "var(--text-muted)" }}><X className="w-5 h-5" /></button>
                         </div>
 
                         <div className="space-y-4">
+                            {/* Cover image */}
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Titre *</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Image de couverture</Label>
+                                <div className="flex items-center gap-3">
+                                    {form.cover_url && (
+                                        <img src={form.cover_url} alt="cover" className="w-20 h-14 object-cover rounded shrink-0" />
+                                    )}
+                                    <label className="flex items-center gap-2 text-xs px-3 py-2 rounded-md cursor-pointer transition-colors"
+                                        style={{ border: "1px solid var(--border-hi)", color: "var(--text-muted)", background: "var(--bg-secondary)" }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-hi)"; }}>
+                                        <Upload className="w-3.5 h-3.5" />
+                                        {uploadingCover ? "Upload..." : form.cover_url ? "Changer" : "Choisir une image"}
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+                                    </label>
+                                    {form.cover_url && (
+                                        <button onClick={() => setForm(f => ({ ...f, cover_url: "" }))}
+                                            className="text-xs" style={{ color: "var(--text-faint)" }}>
+                                            Supprimer
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Titre *</Label>
                                 <Input value={form.title} onChange={e => handleTitleChange(e.target.value)}
                                     placeholder="Titre de l'article" style={inputStyle} />
                             </div>
 
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Slug <span style={{ color: "#52525b" }}>(URL)</span></Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Slug <span style={{ color: "var(--text-faint)" }}>(URL)</span></Label>
                                 <Input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))}
                                     placeholder="titre-de-larticle" style={inputStyle} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Catégorie</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Catégorie</Label>
                                     <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                                         className="w-full rounded-md text-sm px-3 py-2"
                                         style={inputStyle}>
@@ -246,14 +301,14 @@ export default function BlogPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Date</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Date</Label>
                                     <Input value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                                         placeholder="15 janvier 2025" style={inputStyle} />
                                 </div>
                             </div>
 
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Extrait</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Extrait</Label>
                                 <textarea value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))}
                                     placeholder="Résumé court affiché dans la liste..." rows={2}
                                     className="w-full rounded-md text-sm px-3 py-2 resize-none"
@@ -261,7 +316,7 @@ export default function BlogPage() {
                             </div>
 
                             <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "#a1a1aa" }}>Contenu</Label>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Contenu</Label>
                                 <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
                                     placeholder="Contenu complet de l'article..." rows={6}
                                     className="w-full rounded-md text-sm px-3 py-2 resize-none"
@@ -271,11 +326,11 @@ export default function BlogPage() {
 
                         <div className="flex justify-end gap-3 mt-6">
                             <Button variant="outline" onClick={() => setShowModal(false)}
-                                className="text-sm" style={{ borderColor: "rgba(0,255,145,0.15)", color: "#a1a1aa" }}>
+                                className="text-sm" style={{ borderColor: "var(--border-hi)", color: "var(--text-muted)" }}>
                                 Annuler
                             </Button>
                             <Button onClick={handleSave} disabled={saving || !form.title.trim()}
-                                className="text-sm font-semibold" style={{ background: "#FFC745", color: "#001C1C" }}>
+                                className="text-sm font-semibold" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 {saving ? "Enregistrement..." : "Enregistrer"}
                             </Button>
                         </div>

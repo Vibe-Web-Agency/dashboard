@@ -39,7 +39,7 @@ export function reportEmailHtml(stats: ReportStats, businessName: string): strin
     <tr style="border-bottom:1px solid #1a2e1a;">
       <td style="padding:10px 0;font-size:11px;color:#a1a1aa;">${i + 1}</td>
       <td style="padding:10px 8px;font-size:11px;color:#e4e4e7;font-family:monospace;">${p.page}</td>
-      <td style="padding:10px 0;font-size:11px;color:#FFC745;text-align:right;font-weight:700;">${p.count}</td>
+      <td style="padding:10px 0;font-size:11px;color:var(--accent);text-align:right;font-weight:700;">${p.count}</td>
     </tr>`).join("");
 
     const topRefRows = current.topReferrers.slice(0, 5).map(r => {
@@ -47,7 +47,7 @@ export function reportEmailHtml(stats: ReportStats, businessName: string): strin
         return `
     <tr style="border-bottom:1px solid #1a2e1a;">
       <td style="padding:10px 0;font-size:11px;color:#e4e4e7;">${r.source}</td>
-      <td style="padding:10px 0;font-size:11px;color:#FFC745;text-align:right;font-weight:700;">${r.count}</td>
+      <td style="padding:10px 0;font-size:11px;color:var(--accent);text-align:right;font-weight:700;">${r.count}</td>
       <td style="padding:10px 0;font-size:11px;color:#71717a;text-align:right;">${pct}%</td>
     </tr>`;
     }).join("");
@@ -67,11 +67,11 @@ export function reportEmailHtml(stats: ReportStats, businessName: string): strin
           <tr>
             <td>
               <p style="margin:0 0 4px;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:1.5px;">Vibe Web Agency</p>
-              <p style="margin:0;font-size:22px;font-weight:800;color:#FFC745;">${businessName}</p>
+              <p style="margin:0;font-size:22px;font-weight:800;color:var(--accent);">${businessName}</p>
             </td>
             <td style="text-align:right;">
-              <div style="display:inline-block;background:rgba(255,199,69,0.1);border:1px solid rgba(255,199,69,0.25);border-radius:20px;padding:5px 14px;">
-                <span style="font-size:10px;color:#FFC745;font-weight:700;letter-spacing:0.5px;">${typeLabel.toUpperCase()}</span>
+              <div style="display:inline-block;background:var(--accent-dim);border:1px solid rgba(255,199,69,0.25);border-radius:20px;padding:5px 14px;">
+                <span style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:0.5px;">${typeLabel.toUpperCase()}</span>
               </div>
               <p style="margin:6px 0 0;font-size:11px;color:#71717a;">${periodLabel}</p>
             </td>
@@ -128,7 +128,7 @@ export function reportEmailHtml(stats: ReportStats, businessName: string): strin
 
     <!-- Footer -->
     <tr><td align="center" style="padding-top:12px;">
-      <p style="margin:0;font-size:11px;color:#3f3f46;">Vibe Web Agency · <a href="https://dashboard.vibewebagency.fr" style="color:#FFC745;text-decoration:none;">Accéder au dashboard</a></p>
+      <p style="margin:0;font-size:11px;color:#3f3f46;">Vibe Web Agency · <a href="https://dashboard.vibewebagency.fr" style="color:var(--accent);text-decoration:none;">Accéder au dashboard</a></p>
     </td></tr>
 
   </table>

@@ -2,113 +2,75 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
-    CalendarDays, FileText, BarChart3, Globe, Settings, LogOut,
-    User, Scissors, Users, Package, UserSquare2, Clapperboard,
-    Star, Contact, MessageCircle, Newspaper, Menu, X, ChevronRight, ShoppingCart,
+    LayoutDashboard, CalendarDays, FileText, BarChart3, Globe,
+    Scissors, Users, Package, Clapperboard, Star, Contact,
+    Newspaper, Menu, X, ChevronRight, ShoppingCart,
+    MessageCircle, Settings, LogOut, UserSquare2,
+    Calendar, Megaphone, Layers, CreditCard, Lock,
+    Gift, Mail, Bot, Heart,
+    Phone, Share2, Webhook,
+    BadgeCheck, Compass, TrendingUp,
+    Receipt, ClipboardList, Languages, BookUser,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { DEFAULT_CATALOG, DEFAULT_CATALOG_LABEL, ALL_FEATURES, getBusinessTypeUI, type FeatureKey } from "@/lib/businessConfig";
 import NotificationBell from "@/components/NotificationBell";
+import { ALL_FEATURES } from "@/lib/businessConfig";
+import { planIncludes, type PlanId } from "@/lib/plans";
 
-// ─── Badge hooks ─────────────────────────────────────────────────────────────
+// ─── Badge hooks ──────────────────────────────────────────────────────────────
 
-function usePendingQuotes(businessId?: string | null) {
+function useBadge(table: string, businessId?: string | null, filter?: Record<string, string>) {
     const [count, setCount] = useState(0);
     useEffect(() => {
         if (!businessId) return;
         const fetch = async () => {
-            const { count: c } = await supabase.from("quotes").select("*", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "pending");
+            let q = (supabase as any).from(table).select("*", { count: "exact", head: true }).eq("business_id", businessId);
+            if (filter) Object.entries(filter).forEach(([k, v]) => { q = q.eq(k, v); });
+            const { count: c } = await q;
             setCount(c || 0);
         };
         fetch();
-        const ch = supabase.channel(`sb-quotes-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "quotes", filter: `business_id=eq.${businessId}` }, fetch).subscribe();
+        const ch = supabase.channel(`badge-${table}-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table }, fetch)
+            .subscribe();
         return () => { supabase.removeChannel(ch); };
     }, [businessId]);
     return count;
 }
 
-function useTodayReservations(businessId?: string | null) {
+function useTodayResBadge(businessId?: string | null) {
     const [count, setCount] = useState(0);
     useEffect(() => {
         if (!businessId) return;
         const fetch = async () => {
             const start = new Date(); start.setHours(0, 0, 0, 0);
             const end = new Date(); end.setHours(23, 59, 59, 999);
-            const { count: c } = await supabase.from("reservations").select("*", { count: "exact", head: true }).eq("business_id", businessId).gte("date", start.toISOString()).lte("date", end.toISOString());
+            const { count: c } = await supabase.from("reservations").select("*", { count: "exact", head: true })
+                .eq("business_id", businessId).gte("date", start.toISOString()).lte("date", end.toISOString());
             setCount(c || 0);
         };
         fetch();
-        const ch = supabase.channel(`sb-res-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `business_id=eq.${businessId}` }, fetch).subscribe();
+        const ch = supabase.channel(`badge-res-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `business_id=eq.${businessId}` }, fetch)
+            .subscribe();
         return () => { supabase.removeChannel(ch); };
     }, [businessId]);
     return count;
 }
 
-function useUnrepliedReviews(businessId?: string | null) {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            const { count: c } = await (supabase as any).from("reviews").select("*", { count: "exact", head: true }).eq("business_id", businessId).is("reply", null);
-            setCount(c || 0);
-        };
-        fetch();
-        const ch = supabase.channel(`sb-reviews-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "reviews", filter: `business_id=eq.${businessId}` }, fetch).subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
-}
-
-function usePendingOrders(businessId?: string | null) {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            const { count: c } = await (supabase as any).from("orders").select("*", { count: "exact", head: true }).eq("business_id", businessId).in("status", ["pending", "processing", "shipped"]);
-            setCount(c || 0);
-        };
-        fetch();
-        const ch = (supabase as any).channel(`sb-orders-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `business_id=eq.${businessId}` }, fetch).subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
-}
-
-function useUnreadMessages(businessId?: string | null) {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            const { data } = await (supabase as any).from("tickets").select("id, ticket_messages(sender, created_at)").eq("business_id", businessId).neq("status", "resolved");
-            if (!data) return;
-            let c = 0;
-            for (const ticket of data) {
-                const msgs = ticket.ticket_messages as { sender: string; created_at: string }[];
-                if (!msgs?.length) continue;
-                const last = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).at(-1);
-                if (last?.sender === "admin") c++;
-            }
-            setCount(c);
-        };
-        fetch();
-        const ch = supabase.channel(`sb-msgs-${businessId}`).on("postgres_changes", { event: "*", schema: "public", table: "ticket_messages" }, fetch).subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface NavItem {
-    key?: FeatureKey;
     title: string;
     href: string;
     icon: React.ElementType;
     badge?: number;
+    locked?: PlanId;
 }
 
 interface NavGroup {
@@ -116,44 +78,62 @@ interface NavGroup {
     items: NavItem[];
 }
 
-const CATALOG_ICONS = { services: Scissors, people: UserSquare2, products: Package };
-const CATALOG_HREFS = { services: "/services", people: "/people", products: "/products" };
-
 // ─── NavLink ──────────────────────────────────────────────────────────────────
 
-function NavLink({ item, collapsed, onClick }: { item: NavItem; collapsed: boolean; onClick?: () => void }) {
+const PLAN_BADGE_STYLE: Record<string, { bg: string; color: string }> = {
+    pro: { bg: "rgba(201,168,118,0.15)", color: "var(--accent)" },
+    business: { bg: "rgba(167,139,250,0.15)", color: "#a78bfa" },
+};
+
+function NavLink({ item, collapsed, onClick, userPlan }: { item: NavItem; collapsed: boolean; onClick?: () => void; userPlan?: PlanId }) {
     const pathname = usePathname();
-    const isActive = pathname === item.href;
+    const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
     const Icon = item.icon;
+    const isLocked = false; // TODO: re-enable when plan column is in DB
 
     return (
         <Link
             href={item.href}
             onClick={onClick}
             title={collapsed ? item.title : undefined}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 no-underline relative group"
-            style={isActive
-                ? { background: "#FFC745", color: "#001C1C" }
-                : { color: "#a1a1aa" }
-            }
-            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,199,69,0.08)"; e.currentTarget.style.color = "#ffffff"; } }}
-            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#a1a1aa"; } }}
+            className="flex items-center gap-2 py-1.5 rounded text-xs font-medium transition-all duration-100 no-underline relative group"
+            style={{
+                ...(isActive
+                    ? { background: "var(--accent-muted)", color: "var(--accent)", borderLeft: "2px solid var(--accent)", paddingLeft: 8, paddingRight: 10 }
+                    : { color: isLocked ? "var(--text-faint)" : "var(--text-muted)", borderLeft: "2px solid transparent", paddingLeft: 8, paddingRight: 10 }
+                ),
+                opacity: isLocked ? 0.6 : 1,
+            }}
+            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = isLocked ? "var(--text-muted)" : "var(--text)"; } }}
+            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = isLocked ? "var(--text-faint)" : "var(--text-muted)"; } }}
         >
-            <Icon className="w-4 h-4 shrink-0" />
-            {!collapsed && <span className="truncate">{item.title}</span>}
-            {!collapsed && item.badge != null && item.badge > 0 && (
-                <span className="ml-auto flex h-5 min-w-5 px-1 items-center justify-center rounded-full text-[10px] font-bold"
-                    style={{ background: isActive ? "#001C1C" : "#FFC745", color: isActive ? "#FFC745" : "#001C1C" }}>
+            <Icon className="w-3.5 h-3.5 shrink-0" />
+            {!collapsed && <span className="truncate flex-1">{item.title}</span>}
+            {!collapsed && isLocked && item.locked && (
+                <span
+                    className="ml-auto flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold shrink-0"
+                    style={PLAN_BADGE_STYLE[item.locked] ?? PLAN_BADGE_STYLE.pro}
+                >
+                    <Lock className="w-2 h-2" />
+                    {item.locked === "pro" ? "Pro" : "Business"}
+                </span>
+            )}
+            {!collapsed && !isLocked && item.badge != null && item.badge > 0 && (
+                <span
+                    className="ml-auto flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded text-[9px] font-bold"
+                    style={{ background: "var(--accent-muted)", color: "var(--accent)" }}
+                >
                     {item.badge > 99 ? "99+" : item.badge}
                 </span>
             )}
-            {!collapsed && item.badge == null || collapsed ? null : null}
-            {/* Tooltip when collapsed */}
             {collapsed && (
-                <span className="absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
-                    style={{ background: "#FFC745", color: "#001C1C" }}>
+                <span
+                    className="absolute left-full ml-3 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                    style={{ background: "var(--surface-hi)", border: "1px solid var(--border-hi)", color: "var(--text)" }}
+                >
                     {item.title}
-                    {item.badge != null && item.badge > 0 && ` (${item.badge})`}
+                    {isLocked && item.locked && ` 🔒 ${item.locked === "pro" ? "Pro" : "Business"}`}
+                    {!isLocked && item.badge != null && item.badge > 0 && ` (${item.badge})`}
                 </span>
             )}
         </Link>
@@ -164,159 +144,188 @@ function NavLink({ item, collapsed, onClick }: { item: NavItem; collapsed: boole
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const router = useRouter();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { profile } = useUserProfile();
-
-    const catalog = profile?.business_type?.catalog ?? DEFAULT_CATALOG;
-    const catalogLabel = profile?.business_type?.catalog_label ?? DEFAULT_CATALOG_LABEL;
-    const features: FeatureKey[] = profile?.business_type?.features ?? ALL_FEATURES;
-    const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
-
-    const pendingQuotes = usePendingQuotes(profile?.business_id);
-    const todayRes = useTodayReservations(profile?.business_id);
-    const unrepliedReviews = useUnrepliedReviews(profile?.business_id);
-    const unreadMessages = useUnreadMessages(profile?.business_id);
-    const pendingOrders = usePendingOrders(profile?.business_id);
-
-    // Close mobile on route change
-    useEffect(() => { setMobileOpen(false); }, [pathname]);
-    useEffect(() => {
-        document.body.style.overflow = mobileOpen ? "hidden" : "";
-        return () => { document.body.style.overflow = ""; };
-    }, [mobileOpen]);
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
         await supabase.auth.signOut();
         window.location.assign("/login");
     };
+    const features = profile?.business_type?.features ?? ALL_FEATURES;
+    const userPlan: PlanId = profile?.plan ?? "starter";
 
-    // Build groups
+    const bid = profile?.business_id;
+    const todayRes = useTodayResBadge(bid);
+    const pendingQuotes = useBadge("quotes", bid, { status: "pending" });
+    const unrepliedReviews = useBadge("reviews", bid);
+    const pendingOrders = useBadge("orders", bid, { status: "pending" });
+
+    useEffect(() => { setMobileOpen(false); }, [pathname]);
+    useEffect(() => {
+        document.body.style.overflow = mobileOpen ? "hidden" : "";
+        return () => { document.body.style.overflow = ""; };
+    }, [mobileOpen]);
+
     const groups: NavGroup[] = [
+        {
+            label: "Pilotage",
+            items: [
+                { title: "Vue d'ensemble", href: "/", icon: LayoutDashboard },
+            ],
+        },
+        {
+            label: "Activité",
+            items: [
+                { title: "Réservations", href: "/reservations", icon: CalendarDays, badge: todayRes },
+                { title: "Calendrier", href: "/calendar", icon: Calendar },
+                { title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
+                { title: "Commandes", href: "/orders", icon: ShoppingCart, badge: pendingOrders },
+                { title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
+                { title: "Clients", href: "/clients", icon: Contact },
+            ],
+        },
         {
             label: "Contenu",
             items: [
-                features.includes("catalog") && { key: "catalog" as FeatureKey, title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
-                features.includes("projects") && { key: "projects" as FeatureKey, title: "Projets", href: "/projects", icon: Clapperboard },
-                features.includes("blog") && { key: "blog" as FeatureKey, title: "Actualités", href: "/blog", icon: Newspaper },
-                features.includes("team") && { key: "team" as FeatureKey, title: "Équipe", href: "/team", icon: Users },
-            ].filter(Boolean) as NavItem[],
+                { title: "Services", href: "/services", icon: Scissors },
+                { title: "Profils", href: "/people", icon: UserSquare2 },
+                { title: "Produits", href: "/products", icon: Package },
+                { title: "Équipe", href: "/team", icon: Users },
+                { title: "Projets", href: "/projects", icon: Clapperboard },
+                { title: "Actualités", href: "/blog", icon: Newspaper },
+                { title: "Contenu", href: "/content", icon: Layers },
+            ],
         },
         {
-            label: "Clients",
+            label: "Communication",
             items: [
-                features.includes("reservations") && { key: "reservations" as FeatureKey, title: businessTypeUI.reservationLabel, href: "/reservations", icon: CalendarDays, badge: todayRes },
-                features.includes("quotes") && { key: "quotes" as FeatureKey, title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
-                features.includes("orders") && { key: "orders" as FeatureKey, title: "Commandes", href: "/orders", icon: ShoppingCart, badge: pendingOrders },
-                features.includes("reviews") && { key: "reviews" as FeatureKey, title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
-                features.includes("clients") && { key: "clients" as FeatureKey, title: "Clients", href: "/clients", icon: Contact },
-            ].filter(Boolean) as NavItem[],
+                { title: "SMS", href: "/campaigns", icon: Megaphone },
+                { title: "Messageries IG & WA", href: "/messaging", icon: Phone, locked: "pro" as PlanId },
+                { title: "E-mail marketing", href: "/email", icon: Mail, locked: "pro" as PlanId },
+                { title: "Réseaux sociaux", href: "/social", icon: Share2, locked: "pro" as PlanId },
+                { title: "Chatbot web", href: "/chatbot", icon: Webhook, locked: "business" as PlanId },
+            ],
         },
         {
-            label: "Outils",
+            label: "Visibilité",
             items: [
-                features.includes("stats") && { key: "stats" as FeatureKey, title: "Statistiques", href: "/stats", icon: BarChart3 },
-                features.includes("analytics") && { key: "analytics" as FeatureKey, title: "Analyse web", href: "/analytics", icon: Globe },
-            ].filter(Boolean) as NavItem[],
+                { title: "Statistiques", href: "/stats", icon: BarChart3 },
+                { title: "Analyse web", href: "/analytics", icon: Globe },
+                { title: "Référencement", href: "/seo", icon: Compass, locked: "pro" as PlanId },
+                { title: "Avis Google", href: "/reputation", icon: BadgeCheck, locked: "pro" as PlanId },
+                { title: "Publicité digitale", href: "/ads", icon: TrendingUp, locked: "business" as PlanId },
+            ],
         },
-    ].filter(g => g.items.length > 0);
-
-    const fixedBottom: NavItem[] = [
-        { title: "Support", href: "/messages", icon: MessageCircle, badge: unreadMessages },
-        { title: "Paramètres", href: "/settings", icon: Settings },
+        {
+            label: "Modules",
+            items: [
+                { title: "Programme fidélité", href: "/loyalty", icon: Heart, locked: "pro" as PlanId },
+                { title: "Mini CRM", href: "/crm", icon: BookUser, locked: "pro" as PlanId },
+                { title: "Site multilingue", href: "/multilingual", icon: Languages, locked: "pro" as PlanId },
+                { title: "Finance", href: "/finance", icon: Receipt, locked: "pro" as PlanId },
+                { title: "Espace équipe", href: "/workspace", icon: ClipboardList, locked: "pro" as PlanId },
+                { title: "Chèques cadeaux", href: "/giftcards", icon: Gift, locked: "business" as PlanId },
+                { title: "Assistant IA", href: "/ai", icon: Bot, locked: "business" as PlanId },
+                { title: "Facturation", href: "/billing", icon: CreditCard },
+            ],
+        },
     ];
 
+
     const sidebarContent = (isMobile = false) => (
-        <div className="flex flex-col overflow-hidden" style={{ background: "#001C1C", height: "100%" }}>
+        <div className="flex flex-col overflow-hidden" style={{ background: "var(--bg-elev)", height: "100%" }}>
+
             {/* Header */}
-            <div className="flex items-center px-4 h-16 shrink-0" style={{ borderBottom: "1px solid rgba(0,255,145,0.08)" }}>
+            <div className="flex items-center shrink-0" style={{ height: 48, padding: "0 12px", borderBottom: "1px solid var(--border)" }}>
                 {(!collapsed || isMobile) ? (
-                    <Link href="/" className="flex items-center gap-2.5 no-underline">
-                        <div className="relative w-8 h-8 shrink-0">
+                    <Link href="/" className="flex items-center gap-2 no-underline flex-1 min-w-0">
+                        <div className="relative w-6 h-6 shrink-0">
                             <Image src="/assets/logo.png" alt="VWA" fill className="object-contain" />
                         </div>
-                        <span className="text-sm font-bold truncate" style={{ color: "#FFC745" }}>VWA Dashboard</span>
+                        <div className="flex flex-col min-w-0">
+                            <span className="truncate leading-tight" style={{ fontSize: "0.875rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
+                                VWA Dashboard
+                            </span>
+                            <span style={{ fontSize: "9px", color: "var(--text-faint)", letterSpacing: "0.07em" }}>v2.0</span>
+                        </div>
                     </Link>
                 ) : (
                     <Link href="/" className="mx-auto no-underline">
-                        <div className="relative w-8 h-8">
+                        <div className="relative w-7 h-7">
                             <Image src="/assets/logo.png" alt="VWA" fill className="object-contain" />
                         </div>
                     </Link>
                 )}
                 {isMobile && (
-                    <button onClick={() => setMobileOpen(false)} className="ml-auto" style={{ color: "#52525b" }}>
-                        <X className="w-5 h-5" />
+                    <button onClick={() => setMobileOpen(false)} className="ml-2 p-1.5 rounded-md" style={{ color: "var(--text-muted)" }}>
+                        <X className="w-4 h-4" />
                     </button>
                 )}
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6" style={{ scrollbarWidth: "none" }}>
+            <nav className="flex-1 min-h-0 overflow-y-auto space-y-3" style={{ padding: "10px 6px", scrollbarWidth: "none" }}>
+
                 {groups.map((group) => (
                     <div key={group.label}>
-                        {(!collapsed || isMobile) && (
-                            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2 px-3" style={{ color: "#3f3f46" }}>
+                        {(!collapsed || isMobile) ? (
+                            <p className="px-2.5 mb-1" style={{ fontSize: "9px", fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-faint)" }}>
                                 {group.label}
                             </p>
+                        ) : (
+                            <div className="h-px mx-2 mb-2" style={{ background: "var(--border)" }} />
                         )}
-                        {collapsed && !isMobile && <div className="h-px mx-3 mb-3" style={{ background: "rgba(0,255,145,0.06)" }} />}
                         <div className="space-y-0.5">
                             {group.items.map(item => (
-                                <NavLink key={item.href} item={item} collapsed={collapsed && !isMobile} onClick={isMobile ? () => setMobileOpen(false) : undefined} />
+                                <NavLink
+                                    key={item.href}
+                                    item={item}
+                                    collapsed={collapsed && !isMobile}
+                                    onClick={isMobile ? () => setMobileOpen(false) : undefined}
+                                    userPlan={userPlan}
+                                />
                             ))}
                         </div>
                     </div>
                 ))}
             </nav>
 
-            {/* Bottom */}
-            <div className="px-3 py-3 shrink-0 space-y-0.5" style={{ borderTop: "1px solid rgba(0,255,145,0.08)" }}>
-                {fixedBottom.map(item => (
-                    <NavLink key={item.href} item={item} collapsed={collapsed && !isMobile} onClick={isMobile ? () => setMobileOpen(false) : undefined} />
-                ))}
-            </div>
-
-            {/* User profile */}
-            <div className="px-3 pb-4 shrink-0" style={{ borderTop: "1px solid rgba(0,255,145,0.08)" }}>
-                {(!collapsed || isMobile) ? (
-                    <div className="flex items-center gap-3 px-3 py-3 rounded-lg mt-3" style={{ background: "rgba(255,199,69,0.05)", border: "1px solid rgba(255,199,69,0.1)" }}>
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: "#FFC745" }}>
-                            <User className="h-4 w-4" style={{ color: "#001C1C" }} />
+            {/* Mobile-only footer: support, settings, profile, logout */}
+            {isMobile && (
+                <div className="shrink-0" style={{ padding: "8px", borderTop: "1px solid var(--border)" }}>
+                    <div className="space-y-0.5 mb-3">
+                        {[
+                            { title: "Support", href: "/messages", icon: MessageCircle },
+                            { title: "Paramètres", href: "/settings", icon: Settings },
+                        ].map(item => (
+                            <NavLink key={item.href} item={item} collapsed={false} onClick={() => setMobileOpen(false)} userPlan={userPlan} />
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 px-2 py-2 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
+                            style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
+                            {profile?.business_name?.[0]?.toUpperCase() || "?"}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate" style={{ color: "#ffffff" }}>{profile?.business_name || "Mon entreprise"}</p>
-                            <p className="text-[10px] truncate" style={{ color: "#52525b" }}>{profile?.email}</p>
+                            <p className="font-medium truncate" style={{ color: "var(--text)", fontSize: "11px" }}>{profile?.business_name}</p>
+                            <p className="truncate" style={{ fontSize: "9.5px", color: "var(--text-muted)" }}>{profile?.email}</p>
                         </div>
-                        <div className="flex items-center gap-1">
-                            <NotificationBell businessId={profile?.business_id} features={features} />
-                            <button onClick={handleLogout} disabled={isLoggingOut}
-                                className="flex h-7 w-7 items-center justify-center rounded-md transition-all"
-                                style={{ color: "#f87171" }}
-                                onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                                <LogOut className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-2 mt-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: "#FFC745" }}>
-                            <User className="h-4 w-4" style={{ color: "#001C1C" }} />
-                        </div>
-                        <button onClick={handleLogout} disabled={isLoggingOut}
-                            className="flex h-7 w-7 items-center justify-center rounded-md transition-all"
-                            style={{ color: "#f87171" }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                            <LogOut className="h-4 w-4" />
+                        <button
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="flex h-6 w-6 items-center justify-center rounded-md transition-colors shrink-0"
+                            style={{ color: "var(--text-muted)" }}
+                            onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}
+                        >
+                            <LogOut className="h-3.5 w-3.5" />
                         </button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 
@@ -325,39 +334,42 @@ export default function Sidebar() {
             {/* Desktop Sidebar */}
             <aside
                 className="hidden lg:flex shrink-0 sticky top-0 transition-all duration-200 relative"
-                style={{ width: collapsed ? "64px" : "220px", height: "100vh", borderRight: "1px solid rgba(0,255,145,0.08)" }}
+                style={{ width: collapsed ? "56px" : "220px", height: "100vh", borderRight: "1px solid var(--border)" }}
             >
                 <div className="flex flex-col w-full" style={{ height: "100vh" }}>
                     {sidebarContent(false)}
                 </div>
-                {/* Collapse tab */}
                 <button
                     onClick={() => setCollapsed(v => !v)}
                     className="absolute -right-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-full z-10 transition-all duration-150"
-                    style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)", color: "#52525b" }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#FFC745"; e.currentTarget.style.borderColor = "rgba(255,199,69,0.4)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "#52525b"; e.currentTarget.style.borderColor = "rgba(0,255,145,0.15)"; }}
-                    aria-label={collapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+                    style={{ background: "var(--surface)", border: "1px solid var(--border-hi)", color: "var(--text-muted)" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.borderColor = "var(--accent-muted)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "var(--border-hi)"; }}
+                    aria-label={collapsed ? "Déplier" : "Replier"}
                 >
                     <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${collapsed ? "" : "rotate-180"}`} />
                 </button>
             </aside>
 
             {/* Mobile Top Bar */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14"
-                style={{ background: "#001C1C", borderBottom: "1px solid rgba(0,255,145,0.08)" }}>
+            <header
+                className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4"
+                style={{ height: 56, background: "var(--bg-elev)", borderBottom: "1px solid var(--border)" }}
+            >
                 <Link href="/" className="flex items-center gap-2 no-underline">
-                    <div className="relative w-7 h-7">
+                    <div className="relative w-6 h-6">
                         <Image src="/assets/logo.png" alt="VWA" fill className="object-contain" />
                     </div>
-                    <span className="text-sm font-bold" style={{ color: "#FFC745" }}>VWA</span>
+                    <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>VWA</span>
                 </Link>
                 <div className="flex items-center gap-2">
-                    <NotificationBell businessId={profile?.business_id} features={features} />
-                    <button onClick={() => setMobileOpen(true)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg"
-                        style={{ color: "#a1a1aa" }}>
-                        <Menu className="w-5 h-5" />
+                    <NotificationBell businessId={bid} features={features} />
+                    <button
+                        onClick={() => setMobileOpen(true)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md"
+                        style={{ color: "var(--text-muted)" }}
+                    >
+                        <Menu className="w-4 h-4" />
                     </button>
                 </div>
             </header>
@@ -365,11 +377,14 @@ export default function Sidebar() {
             {/* Mobile Overlay */}
             {mobileOpen && (
                 <div className="lg:hidden fixed inset-0 z-50 flex">
-                    <div className="w-64 h-full" style={{ background: "#001C1C" }}>
+                    <div className="w-64 h-full" style={{ background: "var(--bg-elev)" }}>
                         {sidebarContent(true)}
                     </div>
-                    <div className="flex-1" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-                        onClick={() => setMobileOpen(false)} />
+                    <div
+                        className="flex-1"
+                        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                        onClick={() => setMobileOpen(false)}
+                    />
                 </div>
             )}
         </>

@@ -16,7 +16,7 @@ interface Ticket {
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-    open: { label: "Ouvert", color: "#FFC745", bg: "rgba(255,199,69,0.1)" },
+    open: { label: "Ouvert", color: "var(--accent)", bg: "var(--accent-dim)" },
     in_progress: { label: "En cours", color: "#00ff91", bg: "rgba(0,255,145,0.1)" },
     resolved: { label: "Résolu", color: "#71717a", bg: "rgba(113,113,122,0.1)" },
 };
@@ -39,10 +39,10 @@ export default function AdminMessagesPage() {
     return (
         <div className="flex flex-col gap-6 max-w-4xl">
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Messages</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Messages</h1>
                 <p className="mt-1 text-sm" style={{ color: "#c3c3d4" }}>
                     {tickets.length} ticket{tickets.length > 1 ? "s" : ""}
-                    {openCount > 0 && <span style={{ color: "#FFC745" }}> · {openCount} ouvert{openCount > 1 ? "s" : ""}</span>}
+                    {openCount > 0 && <span style={{ color: "var(--accent)" }}> · {openCount} ouvert{openCount > 1 ? "s" : ""}</span>}
                 </p>
             </div>
 
@@ -52,7 +52,7 @@ export default function AdminMessagesPage() {
                     <button key={val} onClick={() => setFilter(val)}
                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                         style={filter === val
-                            ? { background: "#FFC745", color: "#001C1C" }
+                            ? { background: "var(--accent)", color: "var(--on-accent)" }
                             : { background: "rgba(255,255,255,0.05)", color: "#a1a1aa", border: "1px solid rgba(255,255,255,0.06)" }}>
                         {label}
                     </button>
@@ -62,13 +62,13 @@ export default function AdminMessagesPage() {
             {loading ? (
                 <div className="flex flex-col gap-3">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                        <div key={i} className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                             <Skeleton className="h-4 w-48 mb-2" /><Skeleton className="h-3 w-32" />
                         </div>
                     ))}
                 </div>
             ) : filtered.length === 0 ? (
-                <div className="rounded-xl p-12 text-center" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-12 text-center" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <MessageCircle className="w-10 h-10 mx-auto mb-3" style={{ color: "#71717a" }} />
                     <p className="font-medium" style={{ color: "#ffffff" }}>Aucun ticket</p>
                 </div>
@@ -81,16 +81,16 @@ export default function AdminMessagesPage() {
                         return (
                             <Link key={t.id} href={`/admin/messages/${t.id}`}>
                                 <div className="flex items-center gap-4 rounded-xl px-5 py-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
-                                    style={{ background: "#002928", border: `1px solid ${hasNewClientMessage && t.status === "open" ? "rgba(255,199,69,0.3)" : "rgba(0,255,145,0.1)"}` }}>
+                                    style={{ background: "var(--surface)", border: `1px solid ${hasNewClientMessage && t.status === "open" ? "rgba(255,199,69,0.3)" : "rgba(0,255,145,0.1)"}` }}>
                                     <div className="w-9 h-9 rounded-full flex items-center justify-center font-semibold shrink-0"
-                                        style={{ background: "#FFC745", color: "#001C1C" }}>
+                                        style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                         {(t.business?.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <p className="font-medium truncate" style={{ color: "#ffffff" }}>{t.subject}</p>
                                             {hasNewClientMessage && t.status === "open" && (
-                                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "#FFC745" }} />
+                                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: "var(--accent)" }} />
                                             )}
                                         </div>
                                         <p className="text-xs mt-0.5" style={{ color: "#71717a" }}>

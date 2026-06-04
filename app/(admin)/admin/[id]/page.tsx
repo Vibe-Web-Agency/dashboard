@@ -126,7 +126,7 @@ export default function AdminClientPage() {
             {/* Breadcrumb */}
             <Link href="/admin" className="flex items-center gap-2 text-sm w-fit transition-colors"
                 style={{ color: '#a1a1aa' }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#FFC745'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#a1a1aa'; }}>
                 <ArrowLeft className="w-4 h-4" />
                 Tous les clients
@@ -149,7 +149,7 @@ export default function AdminClientPage() {
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
-                                style={{ background: '#FFC745', color: '#001C1C' }}>
+                                style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                 {(data.business.name || "?").charAt(0).toUpperCase()}
                             </div>
                             <div>
@@ -171,7 +171,7 @@ export default function AdminClientPage() {
                             { label: "Avis", value: data.stats.reviews, icon: Star },
                         ].map(({ label, value, icon: Icon }) => (
                             <div key={label} className="rounded-xl p-4"
-                                style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                                 <div className="flex items-center gap-2 mb-1">
                                     <Icon className="w-3.5 h-3.5" style={{ color: '#a1a1aa' }} />
                                     <p className="text-xs" style={{ color: '#a1a1aa' }}>{label}</p>
@@ -180,11 +180,11 @@ export default function AdminClientPage() {
                             </div>
                         ))}
                         {/* Contact rapide */}
-                        <div className="rounded-xl p-4" style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        <div className="rounded-xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                             <p className="text-xs mb-2" style={{ color: '#a1a1aa' }}>Contact</p>
                             {data.user?.email ? (
                                 <a href={`mailto:${data.user.email}`} className="flex items-center gap-1.5 text-xs truncate hover:underline"
-                                    style={{ color: '#FFC745' }}>
+                                    style={{ color: 'var(--accent)' }}>
                                     <Mail className="w-3.5 h-3.5 shrink-0" />
                                     {data.user.email}
                                 </a>
@@ -201,13 +201,13 @@ export default function AdminClientPage() {
 
                     {/* Form */}
                     <form onSubmit={handleSave} className="rounded-xl p-6 flex flex-col gap-6"
-                        style={{ background: '#002928', border: '1px solid rgba(0, 255, 145, 0.1)' }}>
+                        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
 
                         <div className="flex items-center justify-between">
                             <h2 className="font-semibold" style={{ color: '#ffffff' }}>Paramètres</h2>
                             <Button type="submit" disabled={saving} size="sm"
                                 className="flex items-center gap-2 font-semibold"
-                                style={{ background: saved ? 'rgba(0,255,145,0.15)' : '#FFC745', color: saved ? '#00ff91' : '#001C1C' }}>
+                                style={{ background: saved ? 'rgba(0,255,145,0.15)' : 'var(--accent)', color: saved ? '#00ff91' : '#0E0D0B' }}>
                                 <Save className="w-3.5 h-3.5" />
                                 {saving ? "Enregistrement..." : saved ? "Enregistré !" : "Enregistrer"}
                             </Button>
@@ -289,10 +289,10 @@ export default function AdminClientPage() {
                     </form>
 
                     {/* Facturation Stripe */}
-                    <div className="rounded-xl p-6 flex flex-col gap-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    <div className="rounded-xl p-6 flex flex-col gap-5" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <CreditCard className="w-4 h-4" style={{ color: "#FFC745" }} />
+                                <CreditCard className="w-4 h-4" style={{ color: "var(--accent)" }} />
                                 <h2 className="font-semibold" style={{ color: "#ffffff" }}>Facturation</h2>
                                 {data.business.stripe_customer_id && (
                                     <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(0,255,145,0.08)", color: "#00ff91" }}>
@@ -303,7 +303,7 @@ export default function AdminClientPage() {
                             {data.business.stripe_customer_id && (
                                 <button onClick={handlePortal} disabled={openingPortal}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                                    style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}>
+                                    style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(255,199,69,0.2)" }}>
                                     <ExternalLink className="w-3.5 h-3.5" />
                                     {openingPortal ? "Chargement..." : "Portail client"}
                                 </button>
@@ -318,7 +318,7 @@ export default function AdminClientPage() {
                                     <div key={sub.id} className="flex items-center justify-between px-4 py-3 rounded-lg"
                                         style={{ background: "rgba(0,255,145,0.04)", border: "1px solid rgba(0,255,145,0.08)" }}>
                                         <div className="flex items-center gap-2">
-                                            {sub.type === "plan" ? <CreditCard className="w-3.5 h-3.5" style={{ color: "#FFC745" }} /> : <Puzzle className="w-3.5 h-3.5" style={{ color: "#00ff91" }} />}
+                                            {sub.type === "plan" ? <CreditCard className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} /> : <Puzzle className="w-3.5 h-3.5" style={{ color: "#00ff91" }} />}
                                             <span className="text-sm" style={{ color: "#ffffff" }}>
                                                 {sub.type === "plan" ? sub.plan?.label : sub.addon?.label}
                                             </span>
@@ -332,7 +332,7 @@ export default function AdminClientPage() {
                                                 : sub.status === "past_due"
                                                     ? { background: "rgba(239,68,68,0.1)", color: "#f87171" }
                                                     : sub.status === "incomplete" || sub.status === "incomplete_expired"
-                                                        ? { background: "rgba(255,199,69,0.1)", color: "#FFC745" }
+                                                        ? { background: "var(--accent-dim)", color: "var(--accent)" }
                                                         : { background: "rgba(113,113,122,0.1)", color: "#71717a" }}>
                                             {sub.status === "active" || sub.status === "trialing" ? "Actif"
                                                 : sub.status === "past_due" ? "Impayé"
@@ -353,7 +353,7 @@ export default function AdminClientPage() {
                                         <button key={plan.id} onClick={() => setSelectedPlanId(plan.id)}
                                             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all"
                                             style={selectedPlanId === plan.id
-                                                ? { background: "#FFC745", color: "#001C1C" }
+                                                ? { background: "var(--accent)", color: "var(--on-accent)" }
                                                 : { background: "rgba(255,255,255,0.04)", color: "#c3c3d4", border: "1px solid rgba(255,255,255,0.06)" }}>
                                             {selectedPlanId === plan.id && <Check className="w-3.5 h-3.5" />}
                                             {plan.label} — {plan.monthly_price}€/mois
@@ -387,7 +387,7 @@ export default function AdminClientPage() {
                             <div className="flex justify-end">
                                 <button onClick={handleSubscribe} disabled={subscribing || !selectedPlanId}
                                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
-                                    style={{ background: selectedPlanId ? "#FFC745" : "rgba(255,199,69,0.1)", color: selectedPlanId ? "#001C1C" : "#71717a" }}>
+                                    style={{ background: selectedPlanId ? "var(--accent)" : "var(--accent-dim)", color: selectedPlanId ? "#0E0D0B" : "#71717a" }}>
                                     <CreditCard className="w-4 h-4" />
                                     {subscribing ? "Création..." : subscriptions.length > 0 ? "Mettre à jour" : "Activer la subscription"}
                                 </button>
@@ -397,7 +397,7 @@ export default function AdminClientPage() {
                         {plans.length === 0 && (
                             <p className="text-sm" style={{ color: "#71717a" }}>
                                 Aucun plan configuré pour ce type de business.{" "}
-                                <a href="/admin/plans" className="underline" style={{ color: "#FFC745" }}>Créer des plans →</a>
+                                <a href="/admin/plans" className="underline" style={{ color: "var(--accent)" }}>Créer des plans →</a>
                             </p>
                         )}
                     </div>

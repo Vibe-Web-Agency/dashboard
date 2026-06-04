@@ -21,7 +21,7 @@ function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg
     return (
         <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className={cls} fill={rating >= s ? "#FFC745" : "transparent"} stroke={rating >= s ? "#FFC745" : "#52525b"} />
+                <Star key={s} className={cls} fill={rating >= s ? "var(--accent)" : "transparent"} stroke={rating >= s ? "var(--accent)" : "var(--text-faint)"} />
             ))}
         </div>
     );
@@ -112,17 +112,17 @@ export default function ReviewsPage() {
         <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-16">
             {/* Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Avis clients</h1>
-                <p className="mt-1" style={{ color: "#c3c3d4" }}>Gérez et répondez aux avis laissés sur votre site</p>
+                <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Avis clients</h1>
+                <p className="mt-1" style={{ color: "var(--text-muted)" }}>Gérez et répondez aux avis laissés sur votre site</p>
             </div>
 
             {/* Stats row */}
             <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-xl p-4 sm:p-5 flex flex-col justify-between"
-                    style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
                         style={{ background: "rgba(255,199,69,0.15)" }}>
-                        <Star className="w-4 h-4" style={{ color: "#FFC745" }} />
+                        <Star className="w-4 h-4" style={{ color: "var(--accent)" }} />
                     </div>
                     <div>
                         {avgRating !== null && (
@@ -134,35 +134,35 @@ export default function ReviewsPage() {
                             </div>
                         )}
                         {avgRating === null && <p className="text-2xl font-bold text-white">—</p>}
-                        <p className="text-sm mt-0.5" style={{ color: "#c3c3d4" }}>Note moyenne</p>
+                        <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>Note moyenne</p>
                     </div>
                 </div>
 
                 <div className="rounded-xl p-4 sm:p-5"
-                    style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
                         style={{ background: "rgba(255,199,69,0.15)" }}>
-                        <MessageSquare className="w-4 h-4" style={{ color: "#FFC745" }} />
+                        <MessageSquare className="w-4 h-4" style={{ color: "var(--accent)" }} />
                     </div>
                     <p className="text-2xl font-bold text-white">{reviews.length}</p>
-                    <p className="text-sm mt-1" style={{ color: "#c3c3d4" }}>Total avis</p>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Total avis</p>
                 </div>
 
                 <div className="rounded-xl p-4 sm:p-5"
-                    style={{ background: "#002928", border: `1px solid ${unansweredCount > 0 ? "rgba(239,68,68,0.2)" : "rgba(0,255,145,0.1)"}` }}>
+                    style={{ background: "var(--surface)", border: `1px solid ${unansweredCount > 0 ? "var(--danger-bg)" : "var(--accent-muted)"}` }}>
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
-                        style={{ background: unansweredCount > 0 ? "rgba(239,68,68,0.12)" : "rgba(0,255,145,0.1)" }}>
-                        <MessageSquare className="w-4 h-4" style={{ color: unansweredCount > 0 ? "#f87171" : "#00ff91" }} />
+                        style={{ background: unansweredCount > 0 ? "var(--danger-bg)" : "var(--accent-muted)" }}>
+                        <MessageSquare className="w-4 h-4" style={{ color: unansweredCount > 0 ? "var(--danger)" : "var(--accent)" }} />
                     </div>
-                    <p className="text-2xl font-bold" style={{ color: unansweredCount > 0 ? "#f87171" : "#ffffff" }}>{unansweredCount}</p>
-                    <p className="text-sm mt-1" style={{ color: "#c3c3d4" }}>Sans réponse</p>
+                    <p className="text-2xl font-bold" style={{ color: unansweredCount > 0 ? "var(--danger)" : "var(--text)" }}>{unansweredCount}</p>
+                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Sans réponse</p>
                 </div>
             </div>
 
             {/* Distribution par étoile */}
             {reviews.length > 0 && (
-                <div className="rounded-xl p-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <h2 className="text-sm font-semibold mb-4" style={{ color: "#e4e4e7" }}>Distribution des notes</h2>
+                <div className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-muted)" }}>Distribution des notes</h2>
                     <div className="flex flex-col gap-2">
                         {ratingDist.map(({ star, count, pct }) => (
                             <button
@@ -172,21 +172,21 @@ export default function ReviewsPage() {
                                 style={{ background: filterRating === star ? "rgba(255,199,69,0.08)" : "transparent" }}
                             >
                                 <div className="flex items-center gap-1 w-20 shrink-0">
-                                    <span className="text-sm font-medium w-3" style={{ color: "#e4e4e7" }}>{star}</span>
-                                    <Star className="w-3.5 h-3.5" fill="#FFC745" stroke="#FFC745" />
+                                    <span className="text-sm font-medium w-3" style={{ color: "var(--text-muted)" }}>{star}</span>
+                                    <Star className="w-3.5 h-3.5" fill="var(--accent)" stroke="var(--accent)" />
                                 </div>
                                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
                                     <div className="h-2 rounded-full transition-all duration-500"
-                                        style={{ background: "#FFC745", width: `${pct}%` }} />
+                                        style={{ background: "var(--accent)", width: `${pct}%` }} />
                                 </div>
-                                <span className="text-xs w-14 text-right shrink-0" style={{ color: "#71717a" }}>
+                                <span className="text-xs w-14 text-right shrink-0" style={{ color: "var(--text-muted)" }}>
                                     {count} ({pct}%)
                                 </span>
                             </button>
                         ))}
                     </div>
                     {filterRating !== null && (
-                        <button onClick={() => setFilterRating(null)} className="mt-3 text-xs flex items-center gap-1" style={{ color: "#71717a" }}>
+                        <button onClick={() => setFilterRating(null)} className="mt-3 text-xs flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
                             <X className="w-3 h-3" /> Effacer le filtre
                         </button>
                     )}
@@ -200,8 +200,8 @@ export default function ReviewsPage() {
                         onClick={() => setFilterUnanswered(v => !v)}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-all"
                         style={filterUnanswered
-                            ? { background: "#ef4444", color: "#fff" }
-                            : { background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                            ? { background: "var(--danger)", color: "white" }
+                            : { background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
                         <Filter className="w-3 h-3" />
                         Sans réponse {filterUnanswered ? `(${unansweredCount})` : ""}
                     </button>
@@ -209,11 +209,11 @@ export default function ReviewsPage() {
                         <button
                             onClick={() => { setFilterUnanswered(false); setFilterRating(null); }}
                             className="text-xs flex items-center gap-1"
-                            style={{ color: "#71717a" }}>
+                            style={{ color: "var(--text-muted)" }}>
                             <X className="w-3 h-3" /> Tout effacer
                         </button>
                     )}
-                    <span className="text-xs ml-auto" style={{ color: "#71717a" }}>
+                    <span className="text-xs ml-auto" style={{ color: "var(--text-muted)" }}>
                         {filtered.length} avis affiché{filtered.length > 1 ? "s" : ""}
                     </span>
                 </div>
@@ -221,15 +221,15 @@ export default function ReviewsPage() {
 
             {/* Liste */}
             {filtered.length === 0 ? (
-                <div className="rounded-xl p-12 text-center" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
-                    <p className="text-sm" style={{ color: "#71717a" }}>
+                <div className="rounded-xl p-12 text-center" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
+                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                         {reviews.length === 0 ? "Aucun avis pour le moment" : "Aucun avis correspondant aux filtres"}
                     </p>
                 </div>
             ) : (
                 <div className="flex flex-col gap-4">
                     {filtered.map((review) => (
-                        <div key={review.id} className="rounded-xl p-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                        <div key={review.id} className="rounded-xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                             <div className="flex items-start justify-between gap-4 flex-wrap">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
@@ -237,11 +237,11 @@ export default function ReviewsPage() {
                                         <StarRating rating={review.rating} />
                                     </div>
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        <p className="text-sm" style={{ color: "#71717a" }}>
+                                        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                                             {new Date(review.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                                         </p>
                                         {review.email && (
-                                            <p className="text-sm" style={{ color: "#52525b" }}>{review.email}</p>
+                                            <p className="text-sm" style={{ color: "var(--text-faint)" }}>{review.email}</p>
                                         )}
                                     </div>
                                 </div>
@@ -249,26 +249,26 @@ export default function ReviewsPage() {
                                     <button
                                         onClick={() => { setReplyingId(review.id); setReplyText(""); }}
                                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition"
-                                        style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
+                                        style={{ background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(255,199,69,0.2)" }}
                                     >
                                         <MessageSquare className="w-3.5 h-3.5" /> Répondre
                                     </button>
                                 )}
                             </div>
 
-                            <p className="mt-3 text-sm leading-relaxed" style={{ color: "#e4e4e7" }}>{review.comment}</p>
+                            <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{review.comment}</p>
 
                             {/* Réponse existante */}
                             {review.reply && replyingId !== review.id && (
-                                <div className="mt-4 pl-4 rounded-r-lg py-3" style={{ borderLeft: "2px solid #FFC745", background: "rgba(255,199,69,0.05)" }}>
+                                <div className="mt-4 pl-4 rounded-r-lg py-3" style={{ borderLeft: "2px solid var(--accent)", background: "rgba(255,199,69,0.05)" }}>
                                     <div className="flex items-center justify-between mb-1">
-                                        <p className="text-xs font-semibold" style={{ color: "#FFC745" }}>Votre réponse</p>
+                                        <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>Votre réponse</p>
                                         <div className="flex gap-2">
-                                            <button onClick={() => { setReplyingId(review.id); setReplyText(review.reply!); }} className="text-xs" style={{ color: "#71717a" }}>Modifier</button>
-                                            <button onClick={() => handleDeleteReply(review.id)} className="text-xs" style={{ color: "#ef4444" }}>Supprimer</button>
+                                            <button onClick={() => { setReplyingId(review.id); setReplyText(review.reply!); }} className="text-xs" style={{ color: "var(--text-muted)" }}>Modifier</button>
+                                            <button onClick={() => handleDeleteReply(review.id)} className="text-xs" style={{ color: "var(--danger)" }}>Supprimer</button>
                                         </div>
                                     </div>
-                                    <p className="text-sm" style={{ color: "#c3c3d4" }}>{review.reply}</p>
+                                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>{review.reply}</p>
                                 </div>
                             )}
 
@@ -281,17 +281,17 @@ export default function ReviewsPage() {
                                         onChange={(e) => setReplyText(e.target.value)}
                                         placeholder="Votre réponse..."
                                         className="w-full rounded-lg px-4 py-3 text-sm resize-none outline-none"
-                                        style={{ background: "rgba(0,255,145,0.05)", border: "1px solid rgba(0,255,145,0.15)", color: "#fff" }}
+                                        style={{ background: "var(--accent-muted)", border: "1px solid var(--border-hi)", color: "var(--text)" }}
                                     />
                                     <div className="flex gap-2 justify-end">
-                                        <button onClick={() => setReplyingId(null)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ color: "#71717a" }}>
+                                        <button onClick={() => setReplyingId(null)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ color: "var(--text-muted)" }}>
                                             <X className="w-3.5 h-3.5" /> Annuler
                                         </button>
                                         <button
                                             onClick={() => handleReply(review.id)}
                                             disabled={saving || !replyText.trim()}
                                             className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg disabled:opacity-50"
-                                            style={{ background: "#FFC745", color: "#001C1C", fontWeight: 600 }}
+                                            style={{ background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 }}
                                         >
                                             <Check className="w-3.5 h-3.5" /> {saving ? "..." : "Publier"}
                                         </button>

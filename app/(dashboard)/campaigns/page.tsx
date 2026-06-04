@@ -17,9 +17,9 @@ interface Campaign {
 }
 
 const inputStyle: React.CSSProperties = {
-    background: "rgba(0,255,145,0.05)",
-    border: "1px solid rgba(0,255,145,0.1)",
-    color: "#ffffff",
+    background: "var(--accent-muted)",
+    border: "1px solid var(--accent-muted)",
+    color: "var(--text)",
 };
 
 export default function CampaignsPage() {
@@ -95,24 +95,24 @@ export default function CampaignsPage() {
         <div className="max-w-3xl mx-auto space-y-8 pb-16">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold" style={{ color: "#FFC745" }}>Campagnes email</h1>
-                <p className="text-sm mt-1" style={{ color: "#71717a" }}>
+                <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>Campagnes email</h1>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                     Envoyez un email à tous vos clients d'un seul coup
                 </p>
             </div>
 
             {/* Compteur destinataires */}
             <div className="rounded-xl p-4 flex items-center gap-3"
-                style={{ background: "rgba(0,255,145,0.04)", border: "1px solid rgba(0,255,145,0.1)" }}>
+                style={{ background: "var(--surface)", border: "1px solid var(--accent-muted)" }}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ background: "rgba(0,255,145,0.08)" }}>
-                    <Users className="w-4 h-4" style={{ color: "#00ff91" }} />
+                    style={{ background: "var(--border)" }}>
+                    <Users className="w-4 h-4" style={{ color: "var(--accent)" }} />
                 </div>
                 <div>
-                    <p className="text-sm font-semibold" style={{ color: "#e4e4e7" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text-muted)" }}>
                         {loadingCount ? "..." : recipientCount} destinataire{recipientCount !== 1 ? "s" : ""} disponible{recipientCount !== 1 ? "s" : ""}
                     </p>
-                    <p className="text-xs" style={{ color: "#71717a" }}>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                         Clients ayant réservé ou envoyé un devis, hors désabonnés
                     </p>
                 </div>
@@ -120,13 +120,13 @@ export default function CampaignsPage() {
 
             {/* Formulaire */}
             <form onSubmit={handleSend} className="space-y-5 rounded-xl p-6"
-                style={{ background: "rgba(0,41,40,0.6)", border: "1px solid rgba(0,255,145,0.1)" }}>
-                <h2 className="font-semibold text-sm" style={{ color: "#e4e4e7" }}>
+                style={{ background: "rgba(0,41,40,0.6)", border: "1px solid var(--accent-muted)" }}>
+                <h2 className="font-semibold text-sm" style={{ color: "var(--text-muted)" }}>
                     Nouvelle campagne
                 </h2>
 
                 <div className="space-y-2">
-                    <Label style={{ color: "#c3c3d4" }}>Objet de l&apos;email</Label>
+                    <Label style={{ color: "var(--text-muted)" }}>Objet de l&apos;email</Label>
                     <Input
                         value={subject}
                         onChange={e => setSubject(e.target.value)}
@@ -138,7 +138,7 @@ export default function CampaignsPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label style={{ color: "#c3c3d4" }}>Message</Label>
+                    <Label style={{ color: "var(--text-muted)" }}>Message</Label>
                     <textarea
                         value={body}
                         onChange={e => setBody(e.target.value)}
@@ -146,18 +146,18 @@ export default function CampaignsPage() {
                         required
                         disabled={sending}
                         rows={8}
-                        className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-[rgba(0,255,145,0.3)]"
+                        className="w-full rounded-lg px-3 py-2 text-sm resize-none outline-none focus:ring-1 focus:ring-[var(--border-hi)]"
                         style={inputStyle}
                     />
                 </div>
 
                 {error && (
-                    <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>
+                    <p className="text-sm" style={{ color: "var(--danger)" }}>{error}</p>
                 )}
 
                 {result && (
                     <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                        style={{ background: "rgba(0,255,145,0.08)", border: "1px solid rgba(0,255,145,0.2)", color: "#00ff91" }}>
+                        style={{ background: "var(--border)", border: "1px solid var(--border-hi)", color: "var(--accent)" }}>
                         <CheckCircle className="w-4 h-4 shrink-0" />
                         {result.sent} email{result.sent > 1 ? "s" : ""} envoyé{result.sent > 1 ? "s" : ""} sur {result.total} destinataire{result.total > 1 ? "s" : ""}
                     </div>
@@ -167,7 +167,7 @@ export default function CampaignsPage() {
                     type="submit"
                     disabled={sending || !subject || !body || recipientCount === 0}
                     className="w-full font-semibold py-2.5 transition-all duration-300 hover:scale-[1.01] disabled:opacity-50"
-                    style={{ background: "#FFC745", color: "#001C1C" }}
+                    style={{ background: "var(--accent)", color: "var(--on-accent)" }}
                 >
                     {sending ? (
                         <span className="flex items-center gap-2">
@@ -186,20 +186,20 @@ export default function CampaignsPage() {
             {/* Historique */}
             {campaigns.length > 0 && (
                 <div className="space-y-4">
-                    <h2 className="font-semibold text-sm" style={{ color: "#e4e4e7" }}>Historique</h2>
+                    <h2 className="font-semibold text-sm" style={{ color: "var(--text-muted)" }}>Historique</h2>
                     <div className="space-y-2">
                         {campaigns.map(c => (
                             <div key={c.id} className="flex items-center justify-between p-4 rounded-xl"
-                                style={{ background: "rgba(0,41,40,0.4)", border: "1px solid rgba(0,255,145,0.08)" }}>
+                                style={{ background: "rgba(0,41,40,0.4)", border: "1px solid var(--border)" }}>
                                 <div className="flex items-center gap-3">
-                                    <Mail className="w-4 h-4 shrink-0" style={{ color: "#71717a" }} />
+                                    <Mail className="w-4 h-4 shrink-0" style={{ color: "var(--text-muted)" }} />
                                     <div>
-                                        <p className="text-sm font-medium" style={{ color: "#e4e4e7" }}>{c.subject}</p>
-                                        <p className="text-xs" style={{ color: "#71717a" }}>{formatDateNumeric(c.created_at)}</p>
+                                        <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>{c.subject}</p>
+                                        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatDateNumeric(c.created_at)}</p>
                                     </div>
                                 </div>
                                 <span className="text-xs px-2 py-1 rounded-full font-medium"
-                                    style={{ background: "rgba(0,255,145,0.08)", color: "#00ff91" }}>
+                                    style={{ background: "var(--border)", color: "var(--accent)" }}>
                                     {c.sent_count} envoyé{c.sent_count > 1 ? "s" : ""}
                                 </span>
                             </div>

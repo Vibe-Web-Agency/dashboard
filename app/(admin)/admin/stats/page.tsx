@@ -28,8 +28,8 @@ const DAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
 const tooltipStyle = {
-    contentStyle: { background: "#002928", border: "1px solid rgba(0, 255, 145, 0.15)", borderRadius: "8px", color: "#ffffff", fontSize: "13px" },
-    cursor: { fill: "rgba(255, 199, 69, 0.05)" },
+    contentStyle: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", color: "#ffffff", fontSize: "13px" },
+    cursor: { fill: "var(--accent-dim)" },
 };
 
 export default function AdminStatsPage() {
@@ -99,7 +99,7 @@ export default function AdminStatsPage() {
     });
 
     const getQuoteStatusData = () => [
-        { statut: "En attente", count: quotesInPeriod.filter((q) => q.status === "pending").length, color: "#FFC745" },
+        { statut: "En attente", count: quotesInPeriod.filter((q) => q.status === "pending").length, color: "var(--accent)" },
         { statut: "Approuvé", count: quotesInPeriod.filter((q) => q.status === "approved").length, color: "#22c55e" },
         { statut: "Refusé", count: quotesInPeriod.filter((q) => q.status === "rejected").length, color: "#ef4444" },
     ];
@@ -150,7 +150,7 @@ export default function AdminStatsPage() {
         if (total === 0) return null;
         return [
             { label: "Mobile", count: mobile, pct: Math.round((mobile / total) * 100), color: "#00ff91" },
-            { label: "Tablette", count: tablet, pct: Math.round((tablet / total) * 100), color: "#FFC745" },
+            { label: "Tablette", count: tablet, pct: Math.round((tablet / total) * 100), color: "var(--accent)" },
             { label: "Desktop", count: desktop, pct: Math.round((desktop / total) * 100), color: "#818cf8" },
         ];
     };
@@ -182,13 +182,13 @@ export default function AdminStatsPage() {
             <div className="flex flex-col gap-6">
                 <div className="flex items-start justify-between flex-wrap gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Stats clients</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Stats clients</h1>
                         <p className="mt-1" style={{ color: "#c3c3d4" }}>Analytics par client</p>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                             <div className="flex items-center justify-between mb-3"><Skeleton className="w-9 h-9 rounded-lg" /></div>
                             <Skeleton className="h-8 w-16 mb-2" /><Skeleton className="h-4 w-24 mb-1" /><Skeleton className="h-3 w-20" />
                         </div>
@@ -196,7 +196,7 @@ export default function AdminStatsPage() {
                 </div>
                 <div className="grid lg:grid-cols-2 gap-6">
                     {[...Array(2)].map((_, i) => (
-                        <div key={i} className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={i} className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                             <Skeleton className="h-5 w-48 mb-2" /><Skeleton className="h-4 w-64 mb-6" /><Skeleton className="w-full h-[200px] rounded-lg" />
                         </div>
                     ))}
@@ -210,7 +210,7 @@ export default function AdminStatsPage() {
             {/* Header */}
             <div className="flex items-start justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Stats clients</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Stats clients</h1>
                     <p className="mt-1" style={{ color: "#c3c3d4" }}>Analytics par client</p>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
@@ -223,11 +223,11 @@ export default function AdminStatsPage() {
                         ))}
                     </select>
                     {/* Sélecteur période */}
-                    <div className="flex gap-1 p-1 rounded-lg" style={{ background: "rgba(0, 255, 145, 0.05)", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                    <div className="flex gap-1 p-1 rounded-lg" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                         {(["3months", "6months", "12months"] as Period[]).map((p) => (
                             <button key={p} onClick={() => setPeriod(p)}
                                 className="px-3 py-1.5 text-sm rounded-md transition-all duration-200"
-                                style={period === p ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 } : { color: "#c3c3d4" }}>
+                                style={period === p ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 } : { color: "#c3c3d4" }}>
                                 {p === "3months" ? "3 mois" : p === "6months" ? "6 mois" : "12 mois"}
                             </button>
                         ))}
@@ -240,10 +240,10 @@ export default function AdminStatsPage() {
                 {statCards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <div key={card.title} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                        <div key={card.title} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                             <div className="flex items-center justify-between mb-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255, 199, 69, 0.15)" }}>
-                                    <Icon className="w-4 h-4" style={{ color: "#FFC745" }} />
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "var(--accent-dim)" }}>
+                                    <Icon className="w-4 h-4" style={{ color: "var(--accent)" }} />
                                 </div>
                                 {card.trend && (
                                     <span className="flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full"
@@ -263,25 +263,25 @@ export default function AdminStatsPage() {
 
             {/* Réservations par mois + Statuts devis */}
             {(hasReservations || hasQuotes) && <div className="grid lg:grid-cols-2 gap-6">
-                {hasReservations && <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                {hasReservations && <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Réservations par mois</h2>
                     <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Créées sur la période sélectionnée</p>
                     <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={getMonthlyData()} barSize={28}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                             <XAxis dataKey="month" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
                             <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <Tooltip {...tooltipStyle} />
-                            <Bar dataKey="réservations" fill="#FFC745" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="réservations" fill="var(--accent)" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>}
-                {hasQuotes && <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+                {hasQuotes && <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                     <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Statuts des devis</h2>
                     <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Répartition sur la période sélectionnée</p>
                     <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={getQuoteStatusData()} barSize={40} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" horizontal={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                             <XAxis type="number" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                             <YAxis type="category" dataKey="statut" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} width={80} />
                             <Tooltip {...tooltipStyle} />
@@ -294,18 +294,18 @@ export default function AdminStatsPage() {
             </div>}
 
             {/* Jour de la semaine */}
-            {hasReservations && <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0, 255, 145, 0.1)" }}>
+            {hasReservations && <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <h2 className="text-lg font-semibold" style={{ color: "#ffffff" }}>Réservations par jour de la semaine</h2>
                 <p className="text-sm mt-0.5 mb-6" style={{ color: "#a1a1aa" }}>Jours les plus demandés — basé sur toutes les réservations</p>
                 <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={dayOfWeekData} barSize={36}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 145, 0.08)" vertical={false} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                         <XAxis dataKey="jour" stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} />
                         <YAxis stroke="#a1a1aa" style={{ fontSize: "12px" }} axisLine={false} tickLine={false} allowDecimals={false} />
                         <Tooltip {...tooltipStyle} />
                         <Bar dataKey="réservations" radius={[4, 4, 0, 0]}>
                             {dayOfWeekData.map((entry, index) => (
-                                <Cell key={index} fill={entry.réservations === maxDayCount && maxDayCount > 0 ? "#FFC745" : "rgba(255, 199, 69, 0.35)"} />
+                                <Cell key={index} fill={entry.réservations === maxDayCount && maxDayCount > 0 ? "var(--accent)" : "var(--accent-dim)"} />
                             ))}
                         </Bar>
                     </BarChart>
@@ -316,7 +316,7 @@ export default function AdminStatsPage() {
             <div className="flex items-center justify-between flex-wrap gap-3 mt-2">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-semibold" style={{ color: "#FFC745" }}>Trafic site web</h2>
+                        <h2 className="text-xl font-semibold" style={{ color: "var(--accent)" }}>Trafic site web</h2>
                         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: "rgba(0,255,145,0.1)", color: "#00ff91" }}>
                             <span className="relative flex w-2 h-2">
                                 <span className="absolute w-2 h-2 rounded-full animate-ping" style={{ background: "rgba(0,255,145,0.5)" }} />
@@ -331,7 +331,7 @@ export default function AdminStatsPage() {
                     {(["7days", "30days", "90days"] as TrafficPeriod[]).map((p) => (
                         <button key={p} onClick={() => setTrafficPeriod(p)}
                             className="px-3 py-1.5 text-sm rounded-md transition-all duration-200"
-                            style={trafficPeriod === p ? { background: "#FFC745", color: "#001C1C", fontWeight: 600 } : { color: "#c3c3d4" }}>
+                            style={trafficPeriod === p ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 } : { color: "#c3c3d4" }}>
                             {p === "7days" ? "7 jours" : p === "30days" ? "30 jours" : "90 jours"}
                         </button>
                     ))}
@@ -344,7 +344,7 @@ export default function AdminStatsPage() {
                     { label: "Visiteurs uniques", value: uniqueVisitors, icon: Users },
                     { label: "Sessions", value: uniqueSessions, icon: Globe },
                 ].map(({ label, value, icon: Icon }) => (
-                    <div key={label} className="rounded-xl p-4 sm:p-5" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                    <div key={label} className="rounded-xl p-4 sm:p-5" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: "rgba(0,255,145,0.1)" }}>
                             <Icon className="w-4 h-4" style={{ color: "#00ff91" }} />
                         </div>
@@ -354,7 +354,7 @@ export default function AdminStatsPage() {
                 ))}
             </div>
 
-            <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+            <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                 <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Sessions par jour</h3>
                 <p className="text-sm mb-6" style={{ color: "#a1a1aa" }}>Sur les {trafficDays} derniers jours</p>
                 {sessionsInPeriod.length === 0 ? (
@@ -374,7 +374,7 @@ export default function AdminStatsPage() {
 
             {/* Top pages + Referrers */}
             <div className="grid lg:grid-cols-2 gap-6">
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Pages les plus visitées</h3>
                     <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Top 5 sur la période</p>
                     {topPages.length === 0 ? <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée</p> : (
@@ -396,7 +396,7 @@ export default function AdminStatsPage() {
                         </div>
                     )}
                 </div>
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Sources de trafic</h3>
                     <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Top 5 referrers</p>
                     {topReferrers.length === 0 ? <p className="text-sm" style={{ color: "#71717a" }}>Aucun referrer — trafic direct ou données insuffisantes</p> : (
@@ -407,10 +407,10 @@ export default function AdminStatsPage() {
                                     <div key={host}>
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-sm truncate max-w-[75%]" style={{ color: "#e4e4e7" }}>{host}</span>
-                                            <span className="text-sm font-semibold" style={{ color: "#FFC745" }}>{count}</span>
+                                            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{count}</span>
                                         </div>
-                                        <div className="h-1 rounded-full" style={{ background: "rgba(255,199,69,0.1)" }}>
-                                            <div className="h-1 rounded-full" style={{ background: "#FFC745", width: `${(count / max) * 100}%` }} />
+                                        <div className="h-1 rounded-full" style={{ background: "var(--accent-dim)" }}>
+                                            <div className="h-1 rounded-full" style={{ background: "var(--accent)", width: `${(count / max) * 100}%` }} />
                                         </div>
                                     </div>
                                 );
@@ -422,7 +422,7 @@ export default function AdminStatsPage() {
 
             {/* Durée moyenne + Appareils */}
             <div className="grid lg:grid-cols-2 gap-6">
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Durée moyenne par session</h3>
                     <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Temps total passé sur le site par session</p>
                     {avgDuration === null ? (
@@ -434,7 +434,7 @@ export default function AdminStatsPage() {
                         </div>
                     )}
                 </div>
-                <div className="rounded-xl p-6" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                <div className="rounded-xl p-6" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                     <h3 className="text-lg font-semibold mb-1" style={{ color: "#fff" }}>Appareils</h3>
                     <p className="text-sm mb-5" style={{ color: "#a1a1aa" }}>Répartition des sessions par type d&apos;appareil</p>
                     {deviceData === null ? <p className="text-sm" style={{ color: "#71717a" }}>Aucune donnée</p> : (

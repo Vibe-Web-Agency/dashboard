@@ -13,6 +13,7 @@ export interface UserProfile {
     business_id: string | null;
     business_name: string | null;
     business_type: BusinessType | null;
+    plan: "starter" | "pro" | "business" | null;
     address: string | null;
     contact_email: string | null;
     contact_phone: string | null;
@@ -56,6 +57,12 @@ export function useUserProfile() {
                     .eq('id', userData.business_id ?? '')
                     .single();
 
+                const { data: planData } = await (supabase as any)
+                    .from('businesses')
+                    .select('plan')
+                    .eq('id', userData.business_id ?? '')
+                    .single();
+
                 const businessType = bizData?.business_type
                     ? (Array.isArray(bizData.business_type) ? bizData.business_type[0] : bizData.business_type)
                     : null;
@@ -68,6 +75,7 @@ export function useUserProfile() {
                     business_id: bizData?.id ?? null,
                     business_name: bizData?.name ?? null,
                     business_type: businessType ?? null,
+                    plan: (planData?.plan as "starter" | "pro" | "business" | null) ?? null,
                     address: bizData?.address ?? null,
                     contact_email: bizData?.contact_email ?? null,
                     contact_phone: bizData?.contact_phone ?? null,

@@ -93,7 +93,7 @@ export default function PlansPage() {
     return (
         <div className="flex flex-col gap-6 max-w-4xl">
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "#FFC745" }}>Plans & Add-ons</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--accent)" }}>Plans & Add-ons</h1>
                 <p className="mt-1 text-sm" style={{ color: "#c3c3d4" }}>Gérez les offres tarifaires par type de business</p>
             </div>
 
@@ -103,7 +103,7 @@ export default function PlansPage() {
                     <button key={bt.id} onClick={() => setSelectedTypeId(bt.id)}
                         className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
                         style={selectedTypeId === bt.id
-                            ? { background: "#FFC745", color: "#001C1C" }
+                            ? { background: "var(--accent)", color: "var(--on-accent)" }
                             : { background: "rgba(255,255,255,0.05)", color: "#a1a1aa", border: "1px solid rgba(255,255,255,0.06)" }}>
                         {bt.label}
                     </button>
@@ -120,19 +120,19 @@ export default function PlansPage() {
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                                <Package className="w-4 h-4" style={{ color: "#FFC745" }} />
+                                <Package className="w-4 h-4" style={{ color: "var(--accent)" }} />
                                 <h2 className="font-semibold" style={{ color: "#ffffff" }}>Plans</h2>
-                                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(255,199,69,0.1)", color: "#FFC745" }}>{plans.length}</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>{plans.length}</span>
                             </div>
                             <button onClick={() => setShowForm(showForm === "plan" ? null : "plan")}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                                style={{ background: "#FFC745", color: "#001C1C" }}>
+                                style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                 <Plus className="w-3.5 h-3.5" /> Ajouter
                             </button>
                         </div>
 
                         {showForm === "plan" && (
-                            <div className="rounded-xl p-5 mb-3 flex flex-col gap-4" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}>
+                            <div className="rounded-xl p-5 mb-3 flex flex-col gap-4" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.15)" }}>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-xs font-medium mb-1 block" style={{ color: "#a1a1aa" }}>Label</label>
@@ -171,7 +171,7 @@ export default function PlansPage() {
                                     <button onClick={() => setShowForm(null)} className="px-4 py-2 rounded-lg text-sm" style={{ color: "#a1a1aa" }}>Annuler</button>
                                     <button onClick={() => handleCreate("plan")} disabled={saving || !form.label || !form.monthly_price}
                                         className="px-4 py-2 rounded-lg text-sm font-semibold"
-                                        style={{ background: "#FFC745", color: "#001C1C" }}>
+                                        style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
                                         {saving ? "Création..." : "Créer le plan"}
                                     </button>
                                 </div>
@@ -184,11 +184,11 @@ export default function PlansPage() {
                             <div className="flex flex-col gap-2">
                                 {plans.map(plan => (
                                     <div key={plan.id} className="flex items-center justify-between gap-4 rounded-xl px-5 py-4"
-                                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-3">
                                                 <p className="font-medium" style={{ color: "#ffffff" }}>{plan.label}</p>
-                                                <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(255,199,69,0.08)", color: "#FFC745" }}>{plan.slug}</span>
+                                                <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(255,199,69,0.08)", color: "var(--accent)" }}>{plan.slug}</span>
                                                 <span className="text-sm font-semibold" style={{ color: "#00ff91" }}>{plan.monthly_price}€/mois</span>
                                             </div>
                                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -230,7 +230,7 @@ export default function PlansPage() {
                         </div>
 
                         {showForm === "addon" && (
-                            <div className="rounded-xl p-5 mb-3 flex flex-col gap-4" style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}>
+                            <div className="rounded-xl p-5 mb-3 flex flex-col gap-4" style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.15)" }}>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-xs font-medium mb-1 block" style={{ color: "#a1a1aa" }}>Label</label>
@@ -271,7 +271,7 @@ export default function PlansPage() {
                             <div className="flex flex-col gap-2">
                                 {addons.map(addon => (
                                     <div key={addon.id} className="flex items-center justify-between gap-4 rounded-xl px-5 py-4"
-                                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}>
+                                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}>
                                         <div>
                                             <div className="flex items-center gap-3">
                                                 <p className="font-medium" style={{ color: "#ffffff" }}>{addon.label}</p>

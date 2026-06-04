@@ -1,30 +1,32 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap text-xs font-medium transition-all duration-120 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+          "rounded bg-[var(--accent)] text-[#0E0D0B] font-semibold hover:opacity-88 active:opacity-75 shadow-sm",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "rounded bg-[oklch(62%_0.22_25/0.10)] text-[oklch(72%_0.18_25)] border border-[oklch(62%_0.22_25/0.20)] hover:bg-[oklch(62%_0.22_25/0.16)]",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "rounded border border-[var(--border-2)] bg-transparent text-[var(--text-2)] hover:bg-[var(--surface-2)] hover:text-[var(--text)] hover:border-[var(--border-2)]",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "rounded bg-[var(--surface-2)] text-[var(--text-2)] border border-[var(--border)] hover:bg-[var(--surface-3)] hover:text-[var(--text)]",
+        ghost:
+          "rounded text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-2)]",
+        link:
+          "text-[var(--accent)] underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-7 px-3 py-1",
+        sm: "h-6 px-2.5 text-[10.5px] tracking-wide",
+        lg: "h-8 px-4 text-[12.5px]",
+        icon: "h-7 w-7",
+        "icon-sm": "h-6 w-6",
       },
     },
     defaultVariants: {

@@ -68,14 +68,14 @@ export default function AdminNavbar() {
     return (
         <header
             className="sticky top-0 z-40 flex h-16 items-center justify-between px-4 md:px-6"
-            style={{ background: "#002928", borderBottom: "1px solid rgba(0, 255, 145, 0.1)" }}
+            style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}
         >
             <Link href="/admin" className="flex items-center gap-3 shrink-0">
                 <div className="relative w-9 h-9">
                     <Image src="/assets/logo.png" alt="VWA Logo" fill className="object-contain" priority />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-sm font-semibold leading-tight" style={{ color: "#FFC745" }}>VWA Admin</span>
+                    <span className="text-sm font-semibold leading-tight" style={{ color: "var(--accent)" }}>VWA Admin</span>
                     <span className="text-[10px] leading-tight" style={{ color: "rgba(195,195,212,0.5)" }}>Espace administrateur</span>
                 </div>
             </Link>
@@ -90,17 +90,17 @@ export default function AdminNavbar() {
                             href={item.href}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
                             style={isActive
-                                ? { background: "#FFC745", color: "#001C1C", fontWeight: 700 }
-                                : { color: "#c3c3d4" }
+                                ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 700 }
+                                : { color: "var(--text-muted)" }
                             }
-                            onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "rgba(255,199,69,0.1)"; e.currentTarget.style.color = "#FFC745"; } }}
-                            onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#c3c3d4"; } }}
+                            onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.color = "var(--accent)"; } }}
+                            onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; } }}
                         >
                             <Icon className="h-4 w-4" />
                             {item.title}
                             {item.href === "/admin/messages" && pendingMessages > 0 && (
                                 <span className="ml-1 w-2 h-2 rounded-full shrink-0"
-                                    style={{ background: isActive ? "#001C1C" : "#FFC745" }} />
+                                    style={{ background: isActive ? "#0E0D0B" : "var(--accent)" }} />
                             )}
                         </Link>
                     );
@@ -111,9 +111,9 @@ export default function AdminNavbar() {
                 <Link
                     href="/"
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200"
-                    style={{ color: "#c3c3d4" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,199,69,0.1)"; e.currentTarget.style.color = "#FFC745"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#c3c3d4"; }}
+                    style={{ color: "var(--text-muted)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.color = "var(--accent)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
                 >
                     <Settings className="h-4 w-4" />
                     <span className="hidden sm:inline">Dashboard</span>
@@ -123,8 +123,8 @@ export default function AdminNavbar() {
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                     className="flex h-9 w-9 items-center justify-center rounded-lg p-0"
-                    style={{ color: "#f87171" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.1)"; }}
+                    style={{ color: "var(--danger)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--danger-bg)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                 >
                     <LogOut className="h-4 w-4" />

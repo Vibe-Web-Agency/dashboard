@@ -26,7 +26,7 @@ export function reminderEmailHtml({ customerName, businessName, date, time, rdvW
                     <tr>
                         <td align="center" style="padding-bottom: 28px;">
                             <div style="display: inline-block; padding: 10px 22px; border-radius: 12px; background: rgba(0,41,40,0.8); border: 1px solid rgba(0,255,145,0.1);">
-                                <span style="font-size: 18px; font-weight: 800; color: #FFC745;">${businessName}</span>
+                                <span style="font-size: 18px; font-weight: 800; color: var(--accent);">${businessName}</span>
                             </div>
                         </td>
                     </tr>
@@ -37,12 +37,12 @@ export function reminderEmailHtml({ customerName, businessName, date, time, rdvW
 
                             <!-- Icon -->
                             <div style="text-align: center; margin-bottom: 20px;">
-                                <div style="display: inline-block; width: 52px; height: 52px; border-radius: 50%; background: rgba(255,199,69,0.1); border: 1px solid rgba(255,199,69,0.2); line-height: 52px; font-size: 24px; text-align: center;">
+                                <div style="display: inline-block; width: 52px; height: 52px; border-radius: 50%; background: var(--accent-dim); border: 1px solid rgba(255,199,69,0.2); line-height: 52px; font-size: 24px; text-align: center;">
                                     🗓️
                                 </div>
                             </div>
 
-                            <h1 style="margin: 0 0 8px; font-size: 20px; font-weight: 700; color: #FFC745; text-align: center;">
+                            <h1 style="margin: 0 0 8px; font-size: 20px; font-weight: 700; color: var(--accent); text-align: center;">
                                 Rappel de votre ${rdvWord}
                             </h1>
                             <p style="margin: 0 0 28px; font-size: 14px; color: #a1a1aa; text-align: center;">
@@ -60,7 +60,7 @@ export function reminderEmailHtml({ customerName, businessName, date, time, rdvW
                                 <tr>
                                     <td style="padding: 14px 16px; ${service ? "border-bottom: 1px solid rgba(0,255,145,0.08);" : ""}">
                                         <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #71717a; display: block; margin-bottom: 4px;">Heure</span>
-                                        <span style="font-size: 15px; font-weight: 600; color: #FFC745;">${time}</span>
+                                        <span style="font-size: 15px; font-weight: 600; color: var(--accent);">${time}</span>
                                     </td>
                                 </tr>
                                 ${service ? `

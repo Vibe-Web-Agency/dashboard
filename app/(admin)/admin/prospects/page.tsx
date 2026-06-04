@@ -36,7 +36,7 @@ interface Prospect {
 type ProspectStatus = "nouveau" | "contacté" | "en_discussion" | "signé" | "perdu";
 
 const STATUS_CONFIG: Record<ProspectStatus, { label: string; color: string; bg: string }> = {
-    nouveau: { label: "Nouveau", color: "#FFC745", bg: "rgba(255,199,69,0.1)" },
+    nouveau: { label: "Nouveau", color: "var(--accent)", bg: "var(--accent-dim)" },
     contacté: { label: "Contacté", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
     en_discussion: { label: "En discussion", color: "#a78bfa", bg: "rgba(167,139,250,0.1)" },
     signé: { label: "Signé", color: "#00ff91", bg: "rgba(0,255,145,0.1)" },
@@ -314,7 +314,7 @@ Enzo – Vibe Web Agency`;
         <div className="flex flex-col gap-6 max-w-5xl mx-auto">
             {/* Header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: "#FFC745" }}>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: "var(--accent)" }}>
                     Prospection
                 </h1>
                 <p style={{ color: "#c3c3d4" }}>Trouvez des prospects via Google Places et gérez votre pipeline</p>
@@ -331,7 +331,7 @@ Enzo – Vibe Web Agency`;
                         onClick={() => setActiveTab(tab.key as "search" | "saved")}
                         className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
                         style={activeTab === tab.key
-                            ? { background: "#FFC745", color: "#001C1C", fontWeight: 700 }
+                            ? { background: "var(--accent)", color: "var(--on-accent)", fontWeight: 700 }
                             : { background: "rgba(255,199,69,0.08)", color: "#c3c3d4" }}
                     >
                         {tab.label}
@@ -344,7 +344,7 @@ Enzo – Vibe Web Agency`;
                     {/* Search Form */}
                     <div
                         className="rounded-xl p-5 flex flex-col gap-3"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}
+                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}
                     >
                         <div className="flex flex-col sm:flex-row gap-3">
                             <select
@@ -371,7 +371,7 @@ Enzo – Vibe Web Agency`;
                                 onClick={() => search()}
                                 disabled={!query || !city || searching}
                                 className="flex items-center gap-2 px-5"
-                                style={{ background: "#FFC745", color: "#001C1C", fontWeight: 600 }}
+                                style={{ background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 }}
                             >
                                 {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                                 Rechercher
@@ -381,7 +381,7 @@ Enzo – Vibe Web Agency`;
                         <label className="flex items-center gap-2 cursor-pointer w-fit">
                             <div
                                 className="relative w-10 h-5 rounded-full transition-all shrink-0"
-                                style={{ background: noWebsiteOnly ? "#FFC745" : "rgba(255,255,255,0.1)" }}
+                                style={{ background: noWebsiteOnly ? "var(--accent)" : "rgba(255,255,255,0.1)" }}
                                 onClick={() => setNoWebsiteOnly(v => !v)}
                             >
                                 <div
@@ -414,13 +414,13 @@ Enzo – Vibe Web Agency`;
                                     <div
                                         key={place.place_id}
                                         className="rounded-xl p-4 flex items-center justify-between gap-4"
-                                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}
+                                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}
                                     >
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <p className="font-semibold truncate" style={{ color: "#ffffff" }}>{place.name}</p>
                                                 {place.rating && (
-                                                    <span className="flex items-center gap-1 text-xs shrink-0" style={{ color: "#FFC745" }}>
+                                                    <span className="flex items-center gap-1 text-xs shrink-0" style={{ color: "var(--accent)" }}>
                                                         <Star className="w-3 h-3 fill-current" />
                                                         {place.rating}
                                                         {place.user_ratings_total && <span style={{ color: "#a1a1aa" }}>({place.user_ratings_total})</span>}
@@ -467,7 +467,7 @@ Enzo – Vibe Web Agency`;
                                             className="shrink-0 flex items-center gap-2 text-sm"
                                             style={isSaved
                                                 ? { background: "rgba(0,255,145,0.1)", color: "#00ff91", border: "1px solid rgba(0,255,145,0.2)" }
-                                                : { background: "rgba(255,199,69,0.1)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
+                                                : { background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid rgba(255,199,69,0.2)" }}
                                         >
                                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : isSaved ? <BookmarkCheck className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
                                             {isSaved ? "Sauvegardé" : "Sauvegarder"}
@@ -511,7 +511,7 @@ Enzo – Vibe Web Agency`;
                                 onClick={backfillHours}
                                 disabled={backfilling}
                                 className="flex items-center gap-2 text-sm"
-                                style={{ background: "rgba(255,199,69,0.08)", color: "#FFC745", border: "1px solid rgba(255,199,69,0.2)" }}
+                                style={{ background: "rgba(255,199,69,0.08)", color: "var(--accent)", border: "1px solid rgba(255,199,69,0.2)" }}
                             >
                                 {backfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
                                 Synchroniser (tél. + horaires)
@@ -533,7 +533,7 @@ Enzo – Vibe Web Agency`;
                             onClick={() => setFilterStatus("all")}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                             style={filterStatus === "all"
-                                ? { background: "#FFC745", color: "#001C1C" }
+                                ? { background: "var(--accent)", color: "var(--on-accent)" }
                                 : { background: "rgba(255,255,255,0.05)", color: "#c3c3d4" }}
                         >
                             Tous ({prospects.length})
@@ -544,7 +544,7 @@ Enzo – Vibe Web Agency`;
                                 onClick={() => setFilterStatus(key)}
                                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                                 style={filterStatus === key
-                                    ? { background: cfg.color, color: "#001C1C" }
+                                    ? { background: cfg.color, color: "var(--on-accent)" }
                                     : { background: cfg.bg, color: cfg.color }}
                             >
                                 {cfg.label} ({statusCounts[key] || 0})
@@ -595,7 +595,7 @@ Enzo – Vibe Web Agency`;
                                     <div
                                         key={prospect.id}
                                         className="rounded-xl p-4"
-                                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.1)" }}
+                                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.1)" }}
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1 min-w-0">
@@ -608,7 +608,7 @@ Enzo – Vibe Web Agency`;
                                                         {cfg.label}
                                                     </span>
                                                     {prospect.rating && (
-                                                        <span className="flex items-center gap-1 text-xs" style={{ color: "#FFC745" }}>
+                                                        <span className="flex items-center gap-1 text-xs" style={{ color: "var(--accent)" }}>
                                                             <Star className="w-3 h-3 fill-current" />
                                                             {prospect.rating}
                                                         </span>
@@ -672,7 +672,7 @@ Enzo – Vibe Web Agency`;
                                                 <button
                                                     onClick={() => { setEmailModalProspect(prospect); setCopied(false); }}
                                                     className="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
-                                                    style={{ color: "#FFC745" }}
+                                                    style={{ color: "var(--accent)" }}
                                                     title="Générer l'email"
                                                 >
                                                     <Mail className="w-4 h-4" />
@@ -718,7 +718,7 @@ Enzo – Vibe Web Agency`;
                                                             onClick={() => setEditStatus(key)}
                                                             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                                                             style={editStatus === key
-                                                                ? { background: c.color, color: "#001C1C" }
+                                                                ? { background: c.color, color: "var(--on-accent)" }
                                                                 : { background: c.bg, color: c.color }}
                                                         >
                                                             {c.label}
@@ -745,7 +745,7 @@ Enzo – Vibe Web Agency`;
                                                         onClick={saveEdit}
                                                         disabled={saving}
                                                         className="flex-1 text-sm"
-                                                        style={{ background: "#FFC745", color: "#001C1C", fontWeight: 600 }}
+                                                        style={{ background: "var(--accent)", color: "var(--on-accent)", fontWeight: 600 }}
                                                     >
                                                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enregistrer"}
                                                     </Button>
@@ -770,7 +770,7 @@ Enzo – Vibe Web Agency`;
                 >
                     <div
                         className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}
+                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.15)" }}
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
@@ -824,7 +824,7 @@ Enzo – Vibe Web Agency`;
                             <Button
                                 onClick={copySms}
                                 className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold"
-                                style={{ background: copiedSms ? "rgba(0,255,145,0.15)" : "#60a5fa", color: copiedSms ? "#00ff91" : "#001C1C" }}
+                                style={{ background: copiedSms ? "rgba(0,255,145,0.15)" : "#60a5fa", color: copiedSms ? "#00ff91" : "#0E0D0B" }}
                             >
                                 {copiedSms ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                 {copiedSms ? "Copié !" : "Copier le SMS"}
@@ -843,7 +843,7 @@ Enzo – Vibe Web Agency`;
                 >
                     <div
                         className="w-full max-w-lg rounded-2xl p-6 flex flex-col gap-4"
-                        style={{ background: "#002928", border: "1px solid rgba(0,255,145,0.15)" }}
+                        style={{ background: "var(--surface)", border: "1px solid rgba(0,255,145,0.15)" }}
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -881,7 +881,7 @@ Enzo – Vibe Web Agency`;
                         {/* Preview link */}
                         <div
                             className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
-                            style={{ background: "rgba(255,199,69,0.08)", border: "1px solid rgba(255,199,69,0.15)", color: "#FFC745" }}
+                            style={{ background: "rgba(255,199,69,0.08)", border: "1px solid rgba(255,199,69,0.15)", color: "var(--accent)" }}
                         >
                             <Globe className="w-3.5 h-3.5 shrink-0" />
                             <span className="truncate">
@@ -901,7 +901,7 @@ Enzo – Vibe Web Agency`;
                             <Button
                                 onClick={copyEmail}
                                 className="flex-1 flex items-center justify-center gap-2 text-sm font-semibold"
-                                style={{ background: copied ? "rgba(0,255,145,0.15)" : "#FFC745", color: copied ? "#00ff91" : "#001C1C" }}
+                                style={{ background: copied ? "rgba(0,255,145,0.15)" : "var(--accent)", color: copied ? "#00ff91" : "#0E0D0B" }}
                             >
                                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                 {copied ? "Copié !" : "Copier l'email"}
