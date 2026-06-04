@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { Plus, X, Pencil, Newspaper, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,10 @@ function slugify(str: string) {
 }
 
 export default function BlogPage() {
+    return <Suspense><BlogPageInner /></Suspense>;
+}
+
+function BlogPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
