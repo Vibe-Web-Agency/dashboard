@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Plus, X, Pencil, Tag, Clock, Euro, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,9 @@ interface Service {
     display_order: number;
 }
 
-export default function ServicesPage() {
+export default function ServicesPage() { return <Suspense><ServicesPageInner /></Suspense>; }
+
+function ServicesPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const catalogLabel = profile?.business_type?.catalog_label ?? "Services";
     const catalogSingular = catalogLabel.toLowerCase().replace(/s$/, "");

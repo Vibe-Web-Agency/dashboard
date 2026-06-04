@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, X, Pencil, Phone, Mail, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,9 @@ function getInitials(name: string) {
 
 const AVATAR_COLORS = ["var(--accent)", "var(--info)", "var(--success)", "var(--warning)", "var(--danger)"];
 
-export default function TeamPage() {
+export default function TeamPage() { return <Suspense><TeamPageInner /></Suspense>; }
+
+function TeamPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);

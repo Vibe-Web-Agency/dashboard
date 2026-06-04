@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, ChevronRight, MessageCircle } from "lucide-react";
@@ -21,7 +21,9 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }>
     resolved: { label: "Résolu", color: "var(--text-muted)", bg: "rgba(113,113,122,0.1)" },
 };
 
-export default function MessagesPage() {
+export default function MessagesPage() { return <Suspense><MessagesPageInner /></Suspense>; }
+
+function MessagesPageInner() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);

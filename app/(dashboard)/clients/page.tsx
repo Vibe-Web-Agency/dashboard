@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { Search, X, Download, ChevronDown, ChevronUp, FileText, CalendarDays, Star, Megaphone, Send, Loader2, CheckCircle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +130,9 @@ function Stars({ rating }: { rating: number }) {
     );
 }
 
-export default function ClientsPage() {
+export default function ClientsPage() { return <Suspense><ClientsPageInner /></Suspense>; }
+
+function ClientsPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [reservations, setReservations] = useState<Reservation[]>([]);

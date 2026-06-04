@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Plus, X, Pencil, Clapperboard, Upload, Trash2, ChevronDown, ChevronUp, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,9 @@ function Avatar({ person }: { person: Person }) {
     );
 }
 
-export default function ProjectsPage() {
+export default function ProjectsPage() { return <Suspense><ProjectsPageInner /></Suspense>; }
+
+function ProjectsPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);

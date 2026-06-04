@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { getBusinessTypeUI } from "@/lib/businessConfig";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { formatDate, formatTime, formatDateHeader } from "@/lib/formatters";
 import Link from "next/link";
 import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock, Users } from "lucide-react";
@@ -61,7 +61,9 @@ function StatusButtons({ id, status, onUpdate }: { id: string; status: string; o
     );
 }
 
-export default function ReservationsPage() {
+export default function ReservationsPage() { return <Suspense><ReservationsPageInner /></Suspense>; }
+
+function ReservationsPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
     const [tab, setTab] = useState<Tab>("upcoming");

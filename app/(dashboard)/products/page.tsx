@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Plus, X, Pencil, Tag, Euro, Package, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,9 @@ interface Product {
     display_order: number;
 }
 
-export default function ProductsPage() {
+export default function ProductsPage() { return <Suspense><ProductsPageInner /></Suspense>; }
+
+function ProductsPageInner() {
     const { profile, loading: profileLoading } = useUserProfile();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
