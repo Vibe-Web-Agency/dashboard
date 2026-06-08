@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, X, Pencil, Link2, UserSquare2, Upload } from "lucide-react";
+import { Plus, X, Pencil, Link2, UserSquare2, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { inputStyle } from "@/lib/sharedStyles";
 import { useUserProfile } from "@/lib/useUserProfile";
+
+interface Experience {
+    title: string;
+    year: string;
+    role: string;
+}
 
 interface Person {
     id: string;
@@ -27,6 +33,7 @@ interface Person {
     languages: string[];
     skills: string[];
     projects: string[];
+    experiences: Experience[];
     portfolio_url: string | null;
     photo_url: string | null;
     photos: string[];
@@ -60,6 +67,7 @@ const emptyForm = {
     age: "", date_of_birth: "", gender: "", height: "",
     eye_color: "", hair_color: "", languages: "", skills: "", projects: "",
     portfolio_url: "", photo_url: "", photos: [] as string[],
+    experiences: [] as Experience[],
 };
 
 export default function PeoplePage() {
@@ -122,6 +130,7 @@ export default function PeoplePage() {
             portfolio_url: person.portfolio_url || "",
             photo_url: person.photo_url || "",
             photos: person.photos || [],
+            experiences: person.experiences || [],
         });
         setShowModal(true);
     };
@@ -196,6 +205,7 @@ export default function PeoplePage() {
             portfolio_url: form.portfolio_url || null,
             photo_url: form.photo_url || null,
             photos: form.photos || [],
+            experiences: form.experiences || [],
         };
 
         if (editingPerson) {
@@ -375,6 +385,59 @@ export default function PeoplePage() {
                             <div>
                                 <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Compétences <span style={{ color: "var(--text-faint)" }}>(séparées par des virgules)</span></Label>
                                 <Input value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} placeholder="Danse, Chant, Sport" style={inputStyle} />
+                            </div>
+
+                            {/* Expériences professionnelles */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <Label className="text-xs" style={{ color: "var(--text-muted)" }}>Expériences professionnelles</Label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm(f => ({ ...f, experiences: [...f.experiences, { title: "", year: "", role: "" }] }))}
+                                        className="flex items-center gap-1 text-xs px-2 py-1 rounded"
+                                        style={{ background: "var(--accent-dim)", color: "var(--accent)" }}
+                                    >
+                                        <Plus className="w-3 h-3" /> Ajouter
+                                    </button>
+                                </div>
+                                {form.experiences.length === 0 && (
+                                    <p className="text-xs py-2" style={{ color: "var(--text-faint)" }}>Aucune expérience ajoutée</p>
+                                )}
+                                <div className="flex flex-col gap-2">
+                                    {form.experiences.map((exp, i) => (
+                                        <div key={i} className="grid grid-cols-[1fr_80px_80px_24px] gap-2 items-center">
+                                            <input
+                                                value={exp.title}
+                                                onChange={e => setForm(f => ({ ...f, experiences: f.experiences.map((x, j) => j === i ? { ...x, title: e.target.value } : x) }))}
+                                                placeholder="Titre / Production"
+                                                className="rounded-md text-sm px-3 py-2"
+                                                style={inputStyle}
+                                            />
+                                            <input
+                                                value={exp.year}
+                                                onChange={e => setForm(f => ({ ...f, experiences: f.experiences.map((x, j) => j === i ? { ...x, year: e.target.value } : x) }))}
+                                                placeholder="Année"
+                                                className="rounded-md text-sm px-3 py-2"
+                                                style={inputStyle}
+                                            />
+                                            <input
+                                                value={exp.role}
+                                                onChange={e => setForm(f => ({ ...f, experiences: f.experiences.map((x, j) => j === i ? { ...x, role: e.target.value } : x) }))}
+                                                placeholder="Rôle"
+                                                className="rounded-md text-sm px-3 py-2"
+                                                style={inputStyle}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm(f => ({ ...f, experiences: f.experiences.filter((_, j) => j !== i) }))}
+                                                className="flex items-center justify-center w-6 h-6 rounded"
+                                                style={{ color: "var(--danger)" }}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Description */}
