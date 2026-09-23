@@ -1,12 +1,14 @@
 -- ═════════════════════════════════════════════════════════════════════════
---  Données de référence : métiers, catalogue des modules, plans types
+--  Données de référence : métiers et catalogue des modules
 --
 --  Ce ne sont PAS des données de test : elles existeront aussi en production.
 --  Le catalogue est repris des fonctionnalités qui existent réellement
 --  aujourd'hui ; les coquilles (fidélité, cartes cadeaux, WhatsApp…) en sont
 --  volontairement absentes, elles seront ajoutées quand elles seront construites.
 --
---  ⚠️ À VALIDER : le contenu des plans et les quotas sont une proposition.
+--  Les métiers et les modules sont STRUCTURELS : sans eux, has_feature ne
+--  répond rien et aucune fonctionnalité ne s'active. Les plans, eux, sont
+--  commerciaux : ils se définissent plus tard, depuis le back-office.
 -- ═════════════════════════════════════════════════════════════════════════
 
 insert into business_types (slug, label, booking_noun) values
@@ -46,27 +48,7 @@ where (t.slug = 'restaurant' and m.slug in ('reservations','reminders','menu','r
    or (t.slug = 'agency'     and m.slug in ('projects','quotes','invoicing','blog','inbox'))
    or (t.slug = 'modeling'   and m.slug in ('talents','projects','quotes','inbox'));
 
--- Plans types de la plateforme (agency_id null) — PROPOSITION à valider
-insert into plans (agency_id, slug, name, description, price_monthly_cents) values
-  (null, 'essentiel', 'Essentiel', 'Le site vitrine et l''essentiel du quotidien',  4900),
-  (null, 'pro',       'Pro',       'Réservations, rappels et communication',       12900),
-  (null, 'business',  'Business',  'Tout, y compris facturation et planning',      24900);
-
-insert into plan_modules (plan_id, module_id)
-select p.id, m.id from plans p join modules m on true
-where p.agency_id is null and (
-      (p.slug = 'essentiel' and m.slug in ('services','reviews','blog'))
-   or (p.slug = 'pro'       and m.slug in ('services','reviews','blog','reservations','reminders','menu','campaigns','google_reviews'))
-   or (p.slug = 'business'  and m.slug in ('services','reviews','blog','reservations','reminders','menu','campaigns','google_reviews',
-                                           'shop','quotes','invoicing','inbox','planning','projects','talents')));
-
--- Quotas mensuels. Les SMS coûtent de l'argent : sans plafond, une bêta
--- gratuite peut coûter cher.
-insert into plan_quotas (plan_id, meter, monthly_limit)
-select p.id, q.meter, q.monthly_limit
-from plans p
-join (values ('essentiel','sms',0),    ('essentiel','email',500),   ('essentiel','ai_credits',0),
-             ('pro','sms',200),        ('pro','email',5000),        ('pro','ai_credits',100),
-             ('business','sms',1000),  ('business','email',20000),  ('business','ai_credits',500)
-     ) as q(plan_slug, meter, monthly_limit) on q.plan_slug = p.slug
-where p.agency_id is null;
+-- Les PLANS ne sont pas ici : ce sont des décisions commerciales, pas des
+-- données structurelles. Ils se créeront depuis le back-office, et se
+-- modifieront par un simple `update` — jamais par une migration.
+-- Un plan provisoire existe dans supabase/seed.sql, pour la base de dev.

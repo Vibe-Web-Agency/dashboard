@@ -27,10 +27,29 @@ from business_types t where t.slug = 'barbershop';
 insert into business_hours (business_id, day_of_week, open_time, close_time)
 select '33333333-3333-3333-3333-333333333333', d, '12:00', '23:00' from generate_series(1, 7) d;
 
--- Plan « Pro » pour le restaurant de démo
-insert into business_plans (business_id, agency_id, plan_id)
-select '33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', p.id
-from plans p where p.agency_id is null and p.slug = 'pro';
+-- Plan PROVISOIRE, de dev uniquement : les vraies offres se définiront plus
+-- tard depuis le back-office. Il donne tous les modules, pour pouvoir tout
+-- tester sans se poser de question.
+insert into plans (id, agency_id, slug, name, description, price_monthly_cents, is_public)
+values ('99999999-9999-9999-9999-999999999999', null, 'dev', 'Plan de test',
+        'Tous les modules — jeu de dev, à ne pas reprendre en production', 0, false);
+
+insert into plan_modules (plan_id, module_id)
+select '99999999-9999-9999-9999-999999999999', id from modules;
+
+insert into plan_quotas (plan_id, meter, monthly_limit) values
+  ('99999999-9999-9999-9999-999999999999', 'sms',        50),
+  ('99999999-9999-9999-9999-999999999999', 'email',    1000),
+  ('99999999-9999-9999-9999-999999999999', 'ai_credits', 50);
+
+insert into business_plans (business_id, agency_id, plan_id) values
+  ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111',
+   '99999999-9999-9999-9999-999999999999');
+
+-- Modules activés côté commerce (le droit ne suffit pas, il faut le choix)
+insert into business_module_settings (business_id, module_id, is_enabled)
+select '33333333-3333-3333-3333-333333333333', id, true from modules
+where slug in ('reservations', 'menu', 'customers', 'reviews', 'analytics');
 
 -- Quelques clients et réservations, aux noms inventés
 insert into customers (id, business_id, full_name, email, phone, source) values
