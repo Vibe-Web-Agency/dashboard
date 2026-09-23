@@ -15,7 +15,7 @@ await db.exec(readFileSync(schemaPath, "utf8"));
 const RANG = { viewer: 1, member: 2, administrator: 3, owner: 4 };
 const LIB = {
   viewer: "viewer", member: "member", administrator: "admin", owner: "owner",
-  plateforme: "plateforme", tous: "tout connecté",
+  plateforme: "plateforme", tous: "tout connecté", specifique: "règle propre †",
 };
 
 /** Traduit l'expression d'une politique en « portée : rôle minimum ». */
@@ -26,6 +26,10 @@ function lire(expr) {
   if (/visible_agency_ids/.test(expr)) out.push(["agence", "viewer"]);
   if (/is_platform_admin/.test(expr)) out.push(["plateforme", "plateforme"]);
   if (!out.length && /^\s*true\s*$/i.test(expr)) out.push(["—", "tous"]);
+  // Politique qui n'utilise aucune fonction d'aide (ex. « id = auth.uid() ») :
+  // on ne devine pas sa portée, mais il ne faut SURTOUT pas la présenter comme
+  // une absence de droit.
+  if (!out.length) out.push(["—", "specifique"]);
   return out;
 }
 
@@ -47,6 +51,8 @@ for (const p of policies) {
 function resume(entrees) {
   if (!entrees.length) return "—";
   if (entrees.some(([, r]) => r === "tous")) return "tout connecté";
+  const aRegleP = entrees.some(([, r]) => r === "specifique");
+  if (entrees.every(([, r]) => r === "specifique")) return "règle propre †";
   const parPortee = new Map();
   for (const [portee, role] of entrees) {
     if (role === "plateforme") { parPortee.set("plateforme", "plateforme"); continue; }
@@ -56,7 +62,9 @@ function resume(entrees) {
   const ordre = ["commerce", "agence", "plateforme"];
   return [...parPortee.entries()]
     .sort((a, b) => ordre.indexOf(a[0]) - ordre.indexOf(b[0]))
+    .filter(([, role]) => role !== "specifique")
     .map(([portee, role]) => (portee === "plateforme" ? "plateforme" : `${portee} : ${LIB[role]}`))
+    .concat(aRegleP ? ["règle propre †"] : [])   // une politique cumulée peut élargir l'accès
     .join(" · ");
 }
 
@@ -78,6 +86,10 @@ tous les commerces de l'agence, un rôle d'agence s'appliquant à ses commerces.
 Un tiret veut dire **personne via l'application** : ces écritures sont
 réservées au serveur (clé service role), par exemple le journal des envois,
 les visites du tracker ou la consommation.
+
+† **règle propre** : la politique ne repose pas sur les rôles mais sur une
+condition à elle — « son propre profil », « un message du ticket auquel j'ai
+accès ». Voir le détail dans le schéma.
 
 Hiérarchie : \`owner\` > \`administrator\` > \`member\` > \`viewer\`.
 

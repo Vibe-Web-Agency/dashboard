@@ -12,6 +12,10 @@ Un tiret veut dire **personne via l'application** : ces écritures sont
 réservées au serveur (clé service role), par exemple le journal des envois,
 les visites du tracker ou la consommation.
 
+† **règle propre** : la politique ne repose pas sur les rôles mais sur une
+condition à elle — « son propre profil », « un message du ticket auquel j'ai
+accès ». Voir le détail dans le schéma.
+
 Hiérarchie : `owner` > `administrator` > `member` > `viewer`.
 
 | Table | Lire | Créer | Modifier | Supprimer |
@@ -56,13 +60,13 @@ Hiérarchie : `owner` > `administrator` > `member` > `viewer`.
 | `order_items` | commerce : viewer | commerce : member | commerce : member | — |
 | `orders` | commerce : viewer | commerce : member | commerce : member | — |
 | `outbound_messages` | commerce : viewer | — | — | — |
-| `plan_modules` | agence : admin · plateforme | agence : admin · plateforme | agence : admin · plateforme | agence : admin · plateforme |
-| `plan_quotas` | plateforme | plateforme | plateforme | plateforme |
+| `plan_modules` | agence : admin · plateforme · règle propre † | agence : admin · plateforme | agence : admin · plateforme | agence : admin · plateforme |
+| `plan_quotas` | plateforme · règle propre † | plateforme | plateforme | plateforme |
 | `plans` | agence : viewer · plateforme | agence : admin · plateforme | agence : admin · plateforme | agence : admin · plateforme |
 | `platform_admins` | plateforme | — | — | — |
 | `product_variants` | commerce : viewer | commerce : member | commerce : member | commerce : member |
 | `products` | commerce : viewer | commerce : member | commerce : member | commerce : member |
-| `profiles` | — | — | — | — |
+| `profiles` | règle propre † | — | règle propre † | — |
 | `project_talents` | commerce : viewer | commerce : member | commerce : member | commerce : member |
 | `projects` | commerce : viewer | commerce : member | commerce : member | commerce : member |
 | `prospect_activities` | agence : viewer | agence : member | agence : member | agence : member |
@@ -76,7 +80,7 @@ Hiérarchie : `owner` > `administrator` > `member` > `viewer`.
 | `shifts` | commerce : viewer | commerce : member | commerce : member | commerce : member |
 | `talents` | commerce : viewer | commerce : member | commerce : member | commerce : member |
 | `tasks` | agence : viewer | agence : member | agence : member | agence : member |
-| `ticket_messages` | agence : viewer · plateforme | — | — | — |
+| `ticket_messages` | agence : viewer · plateforme | règle propre † | — | — |
 | `tickets` | commerce : viewer · agence : viewer · plateforme | commerce : member · agence : member · plateforme | commerce : member · agence : member · plateforme | commerce : member · agence : member · plateforme |
 | `usage_events` | commerce : viewer | — | — | — |
 
