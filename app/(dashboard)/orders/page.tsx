@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { useUserProfile } from "@/lib/useUserProfile";
 import { useEffect, useState } from "react";
-import { X, Search, ChevronLeft, ChevronRight, Download, ShoppingCart, Package, Mail, Phone } from "lucide-react";
+import { X, Search, ChevronLeft, ChevronRight, Download, ShoppingCart, Package, Mail, Phone, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,7 @@ interface Order {
     items: OrderItem[];
     notes: string | null;
     tracking_number: string | null;
+    invoice_path: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -97,7 +98,31 @@ export default function OrdersPage() {
     const [shipModal, setShipModal] = useState<Order | null>(null);
     const [trackingInput, setTrackingInput] = useState("");
     const [shipping, setShipping] = useState(false);
+    const [downloadingInvoice, setDownloadingInvoice] = useState(false);
     const PAGE_SIZE = 25;
+
+    const downloadInvoice = async (invoicePath: string, orderNumber: string) => {
+        setDownloadingInvoice(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/invoices/download?path=${encodeURIComponent(invoicePath)}`, {
+                headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+                redirect: "follow",
+            });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `facture-${orderNumber}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            alert("Impossible de télécharger la facture.");
+        } finally {
+            setDownloadingInvoice(false);
+        }
+    };
 
     useEffect(() => {
         if (profileLoading) return;
@@ -413,6 +438,30 @@ export default function OrdersPage() {
                                     <p className="vos-label mb-1">Notes</p>
                                     <p style={{ fontSize: "12.5px", color: "var(--text-2)", fontStyle: "italic" }}>{selectedOrder.notes}</p>
                                 </div>
+                            )}
+
+                            {/* Facture */}
+                            {selectedOrder.invoice_path ? (
+                                <button
+                                    onClick={() => downloadInvoice(selectedOrder.invoice_path!, selectedOrder.order_number || selectedOrder.id.slice(0, 8).toUpperCase())}
+                                    disabled={downloadingInvoice}
+                                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg transition-colors"
+                                    style={{
+                                        background: "var(--surface-2)",
+                                        border: "1px solid var(--border)",
+                                        color: downloadingInvoice ? "var(--muted)" : "var(--text)",
+                                        fontSize: "12.5px",
+                                        fontWeight: 500,
+                                        cursor: downloadingInvoice ? "not-allowed" : "pointer",
+                                    }}
+                                >
+                                    <FileText className="w-3.5 h-3.5" style={{ color: "var(--muted)" }} />
+                                    {downloadingInvoice ? "Téléchargement…" : "Télécharger la facture PDF"}
+                                </button>
+                            ) : (
+                                <p style={{ fontSize: "11px", color: "var(--muted)", textAlign: "center" }}>
+                                    Aucune facture disponible
+                                </p>
                             )}
                         </div>
                     </div>

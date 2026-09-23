@@ -17,6 +17,7 @@ interface Product {
     name: string;
     description: string | null;
     price: number | null;
+    discount_price: number | null;
     stock: number | null;
     sku: string | null;
     category: string | null;
@@ -42,7 +43,7 @@ function ProductsPageInner() {
         const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ name: "", description: "", price: "", stock: "", sku: "", category: "" });
+    const [form, setForm] = useState({ name: "", description: "", price: "", discount_price: "", stock: "", sku: "", category: "" });
 
     useEffect(() => {
         if (!profileLoading) {
@@ -67,7 +68,7 @@ function ProductsPageInner() {
 
     const openCreate = () => {
         setEditingProduct(null);
-        setForm({ name: "", description: "", price: "", stock: "", sku: "", category: "" });
+        setForm({ name: "", description: "", price: "", discount_price: "", stock: "", sku: "", category: "" });
         setShowModal(true);
     };
 
@@ -77,6 +78,7 @@ function ProductsPageInner() {
             name: product.name,
             description: product.description || "",
             price: product.price != null ? String(product.price) : "",
+            discount_price: product.discount_price != null ? String(product.discount_price) : "",
             stock: product.stock != null ? String(product.stock) : "",
             sku: product.sku || "",
             category: product.category || "",
@@ -92,6 +94,7 @@ function ProductsPageInner() {
             name: form.name,
             description: form.description || null,
             price: form.price ? parseFloat(form.price) : null,
+            discount_price: form.discount_price ? parseFloat(form.discount_price) : null,
             stock: form.stock ? parseInt(form.stock) : null,
             sku: form.sku || null,
             category: form.category || null,
@@ -205,13 +208,17 @@ function ProductsPageInner() {
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prix (€)</Label>
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prix de départ (€)</Label>
                                     <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0" style={inputStyle} />
                                 </div>
                                 <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Stock</Label>
-                                    <Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} placeholder="0" style={inputStyle} />
+                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prix après discount (€)</Label>
+                                    <Input type="number" value={form.discount_price} onChange={e => setForm({ ...form, discount_price: e.target.value })} placeholder="Laisser vide si aucun" style={inputStyle} />
                                 </div>
+                            </div>
+                            <div>
+                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Stock</Label>
+                                <Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} placeholder="0" style={inputStyle} />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -261,9 +268,19 @@ function ProductCard({ product, onEdit, onToggle }: { product: Product; onEdit: 
 
             <div className="flex items-center gap-3 flex-wrap">
                 {product.price != null && (
-                    <div className="flex items-center gap-1">
-                        <Euro className="w-3 h-3" style={{ color: "var(--accent)" }} />
-                        <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{product.price}€</span>
+                    <div className="flex items-center gap-2">
+                        <Euro className="w-3 h-3 shrink-0" style={{ color: product.discount_price != null ? "var(--text-muted)" : "var(--accent)" }} />
+                        {product.discount_price != null ? (
+                            <>
+                                <span className="text-xs line-through" style={{ color: "var(--text-muted)" }}>{product.price}€</span>
+                                <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{product.discount_price}€</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>
+                                    -{Math.round((1 - product.discount_price / product.price) * 100)}%
+                                </span>
+                            </>
+                        ) : (
+                            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{product.price}€</span>
+                        )}
                     </div>
                 )}
                 {product.stock != null && (
