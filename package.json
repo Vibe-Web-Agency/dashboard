@@ -14,7 +14,8 @@
     "db:types": "./scripts/db-dev.sh types",
     "db:status": "./scripts/db-dev.sh status",
     "db:check": "node scripts/schema-tests/run.mjs",
-    "db:matrix": "node scripts/rls-matrix.mjs"
+    "db:matrix": "node scripts/rls-matrix.mjs",
+    "db:dryrun": "node scripts/schema-tests/run-migrations.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

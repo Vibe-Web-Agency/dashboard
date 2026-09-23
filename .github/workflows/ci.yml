@@ -20,6 +20,10 @@ jobs:
       # Postgres en mémoire (PGlite). Ne touche à aucune base Supabase.
       - run: npm run db:check
 
+      # Vérifie que la base se construit depuis zéro avec les migrations
+      # (et pas seulement depuis le document de conception).
+      - run: npm run db:dryrun
+
   lint:
     name: Lint (informatif)
     runs-on: ubuntu-latest
