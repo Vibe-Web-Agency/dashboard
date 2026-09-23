@@ -26,11 +26,16 @@ await db.exec(`
 `);
 
 console.log("\n— Fiche RH");
-await accepted("contrat, taux horaire et couleur de planning",
-  `update employees set employment_type='cdi', contract_hours_per_week=35, hourly_cost_cents=1450, hired_on='2026-01-06', planning_color='#6b0b0c' where id='${EMP}'`);
-await rejected("date de fin avant l'embauche", `update employees set ended_on='2025-01-01' where id='${EMP}'`);
-await rejected("70 h par semaine", `update employees set contract_hours_per_week=70 where id='${EMP}'`);
-await rejected("type de contrat inconnu", `update employees set employment_type='stage' where id='${EMP}'`);
+await accepted("couleur de planning sur la fiche salarié",
+  `update employees set planning_color='#6b0b0c' where id='${EMP}'`);
+await accepted("contrat et taux horaire (table RH séparée)",
+  `insert into employee_hr (employee_id, business_id, employment_type, contract_hours_per_week, hourly_cost_cents, hired_on)
+   values ('${EMP}','${FIFI}','cdi',35,1450,'2026-01-06')`);
+await rejected("date de fin avant l'embauche", `update employee_hr set ended_on='2025-01-01' where employee_id='${EMP}'`);
+await rejected("70 h par semaine", `update employee_hr set contract_hours_per_week=70 where employee_id='${EMP}'`);
+await rejected("type de contrat inconnu", `update employee_hr set employment_type='stage' where employee_id='${EMP}'`);
+await rejected("fiche RH rattachée au salarié d'un autre commerce",
+  `insert into employee_hr (employee_id, business_id) values ('${EMP_TOSC}','${FIFI}')`);
 
 console.log("\n— Qui sait faire quoi");
 await accepted("Léa peut assurer le brunch", `insert into employee_services (business_id, employee_id, service_id) values ('${FIFI}','${EMP}','${SERV}')`);

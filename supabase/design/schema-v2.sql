@@ -2117,9 +2117,9 @@ alter table expenses               enable row level security;
 --
 --  employees existe déjà (domaine 4, pour l'affichage sur le site) : on y
 --  ajoute ici les colonnes RH et le planning.
---  ⚠️ Données RH sensibles (contrat, coût horaire) : lisibles seulement par
---  owner / administrator du commerce — première table où « membre du
---  commerce » ne suffit pas. À traiter dans la passe RLS.
+--  ⚠️ Données RH sensibles (contrat, coût horaire) : table employee_hr à
+--  part, réservée aux owner / administrator du commerce — première fois
+--  où « membre du commerce » ne suffit pas.
 --  La base garantit qu'un salarié n'a jamais deux créneaux qui se
 --  chevauchent (contrainte d'exclusion, pas une vérification dans le code).
 -- ═════════════════════════════════════════════════════════════════════════
@@ -2128,16 +2128,34 @@ alter table expenses               enable row level security;
 -- Sur Supabase, l'extension est installée dans le schéma `extensions`.
 create extension if not exists btree_gist;
 
--- ─── employees : colonnes RH ─────────────────────────────────────────────
+-- ─── employees : couleur de planning ─────────────────────────────────────
 alter table employees
-  add column employment_type         text check (employment_type in
-                                       ('cdi', 'cdd', 'apprentissage', 'freelance', 'extra', 'autre')),
-  add column contract_hours_per_week numeric(5,2) check (contract_hours_per_week between 0 and 60),
-  add column hourly_cost_cents       int check (hourly_cost_cents >= 0),   -- sensible
-  add column hired_on                date,
-  add column ended_on                date,
-  add column planning_color          text check (planning_color ~ '^#[0-9a-fA-F]{6}$'),
-  add check (ended_on is null or hired_on is null or ended_on >= hired_on);
+  add column planning_color text check (planning_color ~ '^#[0-9a-fA-F]{6}$');
+
+-- ─── employee_hr ─────────────────────────────────────────────────────────
+-- Contrat et rémunération dans une table SÉPARÉE, et non en colonnes de
+-- employees : le RLS protège des lignes, pas des colonnes. Une table à part
+-- se réserve aux owner / administrator sans piéger le moindre `select *`,
+-- et sans exiger que chaque requête liste ses colonnes.
+create table employee_hr (
+  employee_id             uuid primary key,
+  business_id             uuid not null,
+  employment_type         text check (employment_type in
+                            ('cdi', 'cdd', 'apprentissage', 'freelance', 'extra', 'autre')),
+  contract_hours_per_week numeric(5,2) check (contract_hours_per_week between 0 and 60),
+  hourly_cost_cents       int check (hourly_cost_cents >= 0),
+  hired_on                date,
+  ended_on                date,
+  note                    text,
+  created_at              timestamptz not null default now(),
+  updated_at              timestamptz not null default now(),
+  foreign key (employee_id, business_id) references employees (id, business_id) on delete cascade,
+  check (ended_on is null or hired_on is null or ended_on >= hired_on)
+);
+create index on employee_hr (business_id);
+create trigger employee_hr_updated_at before update on employee_hr
+  for each row execute function set_updated_at();
+alter table employee_hr enable row level security;
 
 -- ─── employee_services ───────────────────────────────────────────────────
 -- Qui sait faire quoi : sert à proposer les bons salariés à la réservation
@@ -2302,3 +2320,372 @@ alter table audit_log enable row level security;
 -- ═══════════════════════════════════════════════════════════════════════
 -- Disparaissent : users, team_members, add_ons, portfolio (inutilisée), blog,
 -- crm_clients, stripe_subscriptions, depenses, portfolio_projects, people_projects.
+
+
+-- ═════════════════════════════════════════════════════════════════════════
+--  POLITIQUES RLS — domaines 3 à 9
+--
+--  Trois modèles seulement, réutilisés partout :
+--    A. donnée d'un COMMERCE   business_id in (select accessible_business_ids(rôle))
+--    B. donnée d'une AGENCE    agency_id   in (select accessible_agency_ids(rôle))
+--    C. catalogue PLATEFORME   lecture pour tout connecté, écriture plateforme
+--
+--  Niveaux : viewer lit · member fait le travail courant · administrator
+--  configure · owner engage (facturation, archivage).
+--  `in (select …)` et non un appel par ligne : Postgres évalue la liste une
+--  seule fois par requête.
+--  Aucune politique d'écriture = réservé au serveur (clé service role) :
+--  usage_events, outbound_messages, sessions, audit_log, document_sequences.
+--  Les sites publics n'ont AUCUNE politique : ils passeront par des fonctions.
+-- ═════════════════════════════════════════════════════════════════════════
+
+-- ─── Domaine 3 — Offre & droits ──────────────────────────────────────────
+-- Catalogue : visible de tous les connectés (une agence doit voir ce qu'elle
+-- peut proposer), modifiable par la plateforme seule.
+create policy lecture on modules for select to authenticated using (true);
+create policy plateforme on modules for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+create policy lecture on business_type_modules for select to authenticated using (true);
+create policy plateforme on business_type_modules for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+create policy lecture on agency_plans for select to authenticated using (true);
+create policy plateforme on agency_plans for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+create policy lecture on agency_plan_modules for select to authenticated using (true);
+create policy plateforme on agency_plan_modules for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+-- Plans : ceux de la plateforme (agency_id null) sont visibles de tous ;
+-- ceux d'une agence, d'elle seule. Une agence gère SES plans.
+create policy lecture on plans for select to authenticated
+  using (agency_id is null or agency_id in (select visible_agency_ids()));
+create policy agence on plans for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('administrator')))
+  with check (agency_id in (select accessible_agency_ids('administrator')));
+create policy plateforme on plans for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+-- Contenu d'un plan : visible si le plan l'est (la sous-requête applique
+-- déjà la politique de `plans`).
+create policy lecture on plan_modules for select to authenticated
+  using (plan_id in (select id from plans));
+create policy agence on plan_modules for all to authenticated
+  using      (plan_id in (select id from plans where agency_id in (select accessible_agency_ids('administrator'))))
+  with check (plan_id in (select id from plans where agency_id in (select accessible_agency_ids('administrator'))));
+create policy plateforme on plan_modules for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+create policy lecture on plan_quotas for select to authenticated
+  using (plan_id in (select id from plans));
+create policy plateforme on plan_quotas for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+-- Abonnement de l'agence à la plateforme : elle le lit, la plateforme le gère.
+create policy lecture on agency_subscriptions for select to authenticated
+  using (agency_id in (select accessible_agency_ids('administrator')));
+create policy plateforme on agency_subscriptions for all to authenticated
+  using (is_platform_admin()) with check (is_platform_admin());
+
+-- Plan et options d'un commerce : le commerce les voit, l'AGENCE les décide
+-- (c'est elle qui vend, pas son client).
+create policy lecture on business_plans for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy agence on business_plans for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('administrator')))
+  with check (agency_id in (select accessible_agency_ids('administrator')));
+
+create policy lecture on business_addons for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy agence on business_addons for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('administrator')))
+  with check (agency_id in (select accessible_agency_ids('administrator')));
+
+-- Activation et réglages : c'est le commerce qui décide de s'en servir.
+create policy lecture on business_module_settings for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy configuration on business_module_settings for all to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+-- Consommation : lecture seule. Seul le serveur écrit (clé service role).
+create policy lecture on usage_events for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+
+-- ─── Domaine 4 — Contenu public des sites ────────────────────────────────
+-- Lecture dès viewer, écriture dès member : publier un article ou changer un
+-- prix fait partie du travail courant.
+create policy lecture on services for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on services for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on products for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on products for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on product_variants for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on product_variants for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on talents for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on talents for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on projects for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on projects for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on project_talents for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on project_talents for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on blog_posts for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on blog_posts for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on menu_sections for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on menu_sections for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on menu_items for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on menu_items for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Avis : modérer et répondre relève du quotidien, mais on ne SUPPRIME pas
+-- un avis (on le masque) — d'où insert/update seulement, pas de delete.
+create policy lecture on reviews for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy moderation on reviews for update to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+create policy ajout on reviews for insert to authenticated
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- ─── Domaine 5 — Activité des commerces ──────────────────────────────────
+create policy lecture on customers for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on customers for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on customer_notes for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on customer_notes for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on reservations for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on reservations for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Commandes : on annule, on ne supprime pas. Pas de politique de delete.
+create policy lecture on orders for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ajout on orders for insert to authenticated
+  with check (business_id in (select accessible_business_ids('member')));
+create policy modification on orders for update to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on order_items for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ajout on order_items for insert to authenticated
+  with check (business_id in (select accessible_business_ids('member')));
+create policy modification on order_items for update to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on quotes for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on quotes for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on quote_items for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on quote_items for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Factures : écriture réservée à administrator (c'est un engagement légal).
+-- Pas de delete : le déclencheur guard_issued_invoice bloque déjà les
+-- factures émises, et on ne supprime pas une facture depuis l'application.
+create policy lecture on invoices for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ajout on invoices for insert to authenticated
+  with check (business_id in (select accessible_business_ids('administrator')));
+create policy modification on invoices for update to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+create policy lecture on invoice_items for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on invoice_items for all to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+-- ─── Domaine 6 — Communication ───────────────────────────────────────────
+create policy lecture on campaigns for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on campaigns for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Désabonnements : un commerce voit et gère les siens ; ceux de la
+-- plateforme (business_id null : adresses invalides, plaintes) lui échappent.
+create policy lecture on communication_optouts for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on communication_optouts for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Journal des envois : lecture seule, le serveur écrit.
+create policy lecture on outbound_messages for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+
+create policy lecture on conversations for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on conversations for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on conversation_messages for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on conversation_messages for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Support : un commerce voit ses tickets ; l'agence voit les siens et ceux
+-- de ses commerces ; la plateforme voit ceux qui lui sont adressés.
+create policy lecture on tickets for select to authenticated
+  using (
+    business_id in (select accessible_business_ids('viewer'))
+    or agency_id in (select accessible_agency_ids('viewer'))
+    or (level = 'platform' and is_platform_admin())
+  );
+create policy ecriture on tickets for all to authenticated
+  using (
+    business_id in (select accessible_business_ids('member'))
+    or agency_id in (select accessible_agency_ids('member'))
+    or (level = 'platform' and is_platform_admin())
+  )
+  with check (
+    business_id in (select accessible_business_ids('member'))
+    or agency_id in (select accessible_agency_ids('member'))
+    or (level = 'platform' and is_platform_admin())
+  );
+
+-- Messages d'un ticket : visibles si le ticket l'est. Les notes internes
+-- restent réservées à l'agence et à la plateforme.
+create policy lecture on ticket_messages for select to authenticated
+  using (
+    ticket_id in (select id from tickets)
+    and (not is_internal
+         or (select agency_id from tickets t where t.id = ticket_id) in (select accessible_agency_ids('viewer'))
+         or is_platform_admin())
+  );
+create policy ecriture on ticket_messages for insert to authenticated
+  with check (ticket_id in (select id from tickets));
+
+-- ─── Domaine 7 — Espace agence ───────────────────────────────────────────
+create policy lecture on prospects for select to authenticated
+  using (agency_id in (select accessible_agency_ids('viewer')));
+create policy ecriture on prospects for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('member')))
+  with check (agency_id in (select accessible_agency_ids('member')));
+
+create policy lecture on prospect_activities for select to authenticated
+  using (agency_id in (select accessible_agency_ids('viewer')));
+create policy ecriture on prospect_activities for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('member')))
+  with check (agency_id in (select accessible_agency_ids('member')));
+
+create policy lecture on tasks for select to authenticated
+  using (agency_id in (select accessible_agency_ids('viewer')));
+create policy ecriture on tasks for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('member')))
+  with check (agency_id in (select accessible_agency_ids('member')));
+
+create policy lecture on agency_portfolio_items for select to authenticated
+  using (agency_id in (select accessible_agency_ids('viewer')));
+create policy ecriture on agency_portfolio_items for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('member')))
+  with check (agency_id in (select accessible_agency_ids('member')));
+
+-- Dépenses : donnée financière, réservée à administrator.
+create policy lecture on expenses for select to authenticated
+  using (agency_id in (select accessible_agency_ids('administrator')));
+create policy ecriture on expenses for all to authenticated
+  using      (agency_id in (select accessible_agency_ids('administrator')))
+  with check (agency_id in (select accessible_agency_ids('administrator')));
+
+-- ─── Domaine 8 — Équipe & planning ───────────────────────────────────────
+-- La fiche d'un salarié se lit dès viewer (elle alimente aussi le site) ;
+-- la gérer relève de l'administrateur, comme l'embauche.
+create policy lecture on employees for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on employees for all to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+create policy lecture on employee_services for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on employee_services for all to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+-- Le planning se lit dès viewer et s'organise dès member.
+create policy lecture on shifts for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on shifts for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on employee_availabilities for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on employee_availabilities for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+create policy lecture on employee_absences for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+create policy ecriture on employee_absences for all to authenticated
+  using      (business_id in (select accessible_business_ids('member')))
+  with check (business_id in (select accessible_business_ids('member')));
+
+-- Contrats et rémunérations : owner / administrator du commerce UNIQUEMENT.
+-- Un serveur connecté au dashboard ne voit pas le coût horaire de l'équipe.
+create policy direction on employee_hr for all to authenticated
+  using      (business_id in (select accessible_business_ids('administrator')))
+  with check (business_id in (select accessible_business_ids('administrator')));
+
+-- ─── Domaine 9 — Mesure & traçabilité ────────────────────────────────────
+-- Visites : lecture seule (le tracker écrit avec la clé service role).
+create policy lecture on sessions for select to authenticated
+  using (business_id in (select accessible_business_ids('viewer')));
+
+-- Journal d'audit : consultable par l'agence concernée, jamais modifiable.
+create policy lecture on audit_log for select to authenticated
+  using (agency_id in (select accessible_agency_ids('administrator')) or is_platform_admin());
