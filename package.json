@@ -12,7 +12,8 @@
     "db:push": "./scripts/db-dev.sh push",
     "db:reset": "./scripts/db-dev.sh reset",
     "db:types": "./scripts/db-dev.sh types",
-    "db:status": "./scripts/db-dev.sh status"
+    "db:status": "./scripts/db-dev.sh status",
+    "db:check": "node scripts/schema-tests/run.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -38,6 +39,7 @@
     "twilio": "^5.13.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
