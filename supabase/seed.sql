@@ -1,0 +1,10 @@
+-- ─────────────────────────────────────────────────────────────────────────
+-- Données FICTIVES pour la base de dev.
+--
+-- ⚠️ Ne jamais copier la production ici : elle contient de vraies
+-- coordonnées (noms, téléphones, e-mails de clients finaux).
+--
+-- Rempli au fur et à mesure des migrations : une agence de test, deux
+-- commerces, des réservations aux noms inventés, etc.
+-- Rejoué automatiquement par `supabase db reset`.
+-- ─────────────────────────────────────────────────────────────────────────

@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:link": "./scripts/db-dev.sh link",
+    "db:new": "./scripts/db-dev.sh new",
+    "db:push": "./scripts/db-dev.sh push",
+    "db:reset": "./scripts/db-dev.sh reset",
+    "db:types": "./scripts/db-dev.sh types",
+    "db:status": "./scripts/db-dev.sh status"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
