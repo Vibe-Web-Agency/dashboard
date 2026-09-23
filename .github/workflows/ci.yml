@@ -27,10 +27,6 @@ jobs:
   lint:
     name: Lint (informatif)
     runs-on: ubuntu-latest
-    # NON BLOQUANT pour l'instant : le code actuel compte 125 erreurs
-    # préexistantes (95 « any »). Une CI rouge en permanence ne sert à rien.
-    # À repasser en bloquant quand la reconstruction v2 aura remplacé ces pages.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,4 +34,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint
+      # Le code actuel compte 125 erreurs préexistantes (95 « any »). On les
+      # compte et on les affiche en AVERTISSEMENT, sans faire échouer la PR :
+      # une croix rouge permanente, on apprend à l'ignorer, et on finit par
+      # rater les vraies régressions.
+      # À repasser en bloquant quand la reconstruction v2 aura remplacé ces pages.
+      - name: Lint
+        run: |
+          npm run lint 2>&1 | tee /tmp/lint.txt || true
+          n=$(grep -cE "^\s+[0-9]+:[0-9]+\s+error" /tmp/lint.txt || true)
+          echo "::warning::${n} erreurs de lint (code hérité, non bloquant)"
+          echo "### Lint : ${n} erreurs (non bloquant)" >> "$GITHUB_STEP_SUMMARY"
