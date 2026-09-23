@@ -120,6 +120,42 @@ await denied("écrire une visite depuis le navigateur (réservé au tracker)", F
   `insert into sessions (business_id, session_id) values ('${FIFI}','s-2')`);
 check("la plateforme voit tous les plans des deux agences", (await count(PA, `select * from plans`)) >= 2);
 
+// ─── Un client, plusieurs commerces ──────────────────────────────────────
+// Cas réel : un client possède plusieurs sociétés. Une adhésion par commerce,
+// avec un rôle différent sur chacun — et rien au-delà.
+console.log("\n— Un même client sur plusieurs commerces");
+const MULTI = U(8);
+const [FIFI2, FIFI3] = [18, 19].map(U);
+await db.query("insert into auth.users (id, email) values ($1, $2)", [MULTI, "multi@test.fr"]);
+await db.exec(`
+  insert into businesses (id, agency_id, business_type_id, name, slug) values
+    ('${FIFI2}','${AG}','${TYPE}','Seconde société','societe-2'),
+    ('${FIFI3}','${AG}','${TYPE}','Société tierce','societe-3');
+  insert into memberships (profile_id, agency_id, business_id, role) values
+    ('${MULTI}','${AG}','${FIFI}','owner'),
+    ('${MULTI}','${AG}','${FIFI2}','viewer'),
+    ('${MULTI}','${AG_B}','${B1}','administrator');
+  insert into customers (business_id, full_name) values
+    ('${FIFI2}','Client société 2'), ('${FIFI3}','Client société 3');
+`);
+check("il voit ses 3 commerces sur les 4 existants",
+  (await count(MULTI, `select * from businesses`)) === 3);
+check("le 4e commerce de la même agence lui reste invisible",
+  (await count(MULTI, `select * from businesses where id = '${FIFI3}'`)) === 0);
+check("ses commerces peuvent appartenir à deux agences différentes",
+  (await as(MULTI, () => db.query(`select distinct agency_id from businesses`))).rows.length === 2);
+check("il voit les clients de ses commerces, pas des autres",
+  (await count(MULTI, `select * from customers`)) === 2);
+// Le rôle est porté par l'adhésion, donc il change d'un commerce à l'autre.
+await allowed("propriétaire sur le 1er commerce : il crée un client", MULTI,
+  `insert into customers (business_id, full_name) values ('${FIFI}','Nouveau')`);
+await denied("simple lecteur sur le 2e : il ne crée rien", MULTI,
+  `insert into customers (business_id, full_name) values ('${FIFI2}','Nouveau')`);
+const rangs = await as(MULTI, () => db.query(
+  `select effective_rank('${AG}','${FIFI}') a, effective_rank('${AG}','${FIFI2}') b`));
+check("son rang diffère selon le commerce", rangs.rows[0].a > rangs.rows[0].b,
+  `${rangs.rows[0].a} vs ${rangs.rows[0].b}`);
+
 console.log("\n— Garde-fou : aucune table oubliée");
 // C'est ce contrôle qui a rattrapé l'oubli des politiques sur `employees` :
 // une table sans politique est TOTALEMENT fermée, et l'écran reste vide sans
