@@ -3,6 +3,7 @@ import { getAdminClient } from "@/lib/supabase-admin";
 import { twilioClient, TWILIO_FROM } from "@/lib/twilio";
 import { resend, FROM_EMAIL } from "@/lib/resend";
 import { reminderEmailHtml, reminderEmailSubject } from "@/lib/emails/reminderEmail";
+import { parisDayBounds, parisDateLabel, parisTimeLabel } from "@/lib/paris-time";
 
 export async function GET(req: NextRequest) {
     // Sécuriser le cron avec un secret
@@ -13,13 +14,10 @@ export async function GET(req: NextRequest) {
 
     const admin = getAdminClient() as any;
 
-    // Récupérer tous les RDV de demain (non rappelés, non annulés)
-    // UTC+2 (heure française en été)
-    const now = new Date();
-    const offset = 2 * 60 * 60 * 1000;
-    const localNow = new Date(now.getTime() + offset);
-    const start = new Date(localNow); start.setUTCHours(0 - 2, 0, 0, 0);
-    const end = new Date(localNow); end.setUTCHours(23 - 2, 59, 59, 999);
+    // Bornes de la journée parisienne en cours. Le décalage n'est plus écrit
+    // en dur : il était faux six mois par an, du dernier dimanche d'octobre
+    // au dernier dimanche de mars.
+    const { start, end } = parisDayBounds();
 
     const { data: reservations, error } = await admin
         .from("reservations")
@@ -40,36 +38,57 @@ export async function GET(req: NextRequest) {
 
     // Récupérer les noms et types des businesses
     const businessIds = [...new Set(reservations.map((r: any) => r.business_id))];
-    const { data: businesses } = await admin
+    // `reminders_enabled` peut ne pas encore exister en base : dans ce cas on
+    // relit sans la colonne et on considère tout le monde comme actif, ce qui
+    // est le comportement d'avant. Le déploiement et la migration peuvent
+    // ainsi se faire dans n'importe quel ordre.
+    let businesses: any[] | null = null;
+    const withFlag = await admin
         .from("businesses")
-        .select("id, name, business_type:business_types(slug)")
+        .select("id, name, reminders_enabled, business_type:business_types(slug)")
         .in("id", businessIds);
+
+    if (withFlag.error) {
+        console.warn("Colonne reminders_enabled absente, repli :", withFlag.error.message);
+        const fallback = await admin
+            .from("businesses")
+            .select("id, name, business_type:business_types(slug)")
+            .in("id", businessIds);
+        businesses = fallback.data;
+    } else {
+        businesses = withFlag.data;
+    }
 
     const RDVWORD: Record<string, string> = {
         restaurant: "réservation",
         coach: "séance",
     };
 
-    const bizMap: Record<string, { name: string; rdvWord: string }> = {};
+    const bizMap: Record<string, { name: string; rdvWord: string; enabled: boolean }> = {};
     (businesses || []).forEach((b: any) => {
         const slug = Array.isArray(b.business_type) ? b.business_type[0]?.slug : b.business_type?.slug;
         bizMap[b.id] = {
             name: b.name || "Votre prestataire",
             rdvWord: RDVWORD[slug] || "rendez-vous",
+            // `undefined` = colonne absente, `null` = jamais renseignée : dans
+            // les deux cas on garde le comportement existant. Seul un `false`
+            // explicite coupe les rappels.
+            enabled: b.reminders_enabled !== false,
         };
     });
 
-    const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-    const DAYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+    // Un rappel non demandé, c'est un SMS facturé pour déranger le client d'un
+    // commerce qui n'a rien souscrit. On écarte avant d'envoyer, pas après.
+    const actives = reservations.filter((r: any) => bizMap[r.business_id]?.enabled !== false);
+    const skipped = reservations.length - actives.length;
 
     let sent = 0;
     const failed: string[] = [];
 
-    for (const reservation of reservations) {
+    for (const reservation of actives) {
         const rdvDate = new Date(reservation.date);
-        const rdvLocal = new Date(rdvDate.getTime() + 2 * 60 * 60 * 1000);
-        const dateStr = `${DAYS_FR[rdvLocal.getUTCDay()]} ${rdvLocal.getUTCDate()} ${MONTHS_FR[rdvLocal.getUTCMonth()]}`;
-        const timeStr = `${rdvLocal.getUTCHours()}h${String(rdvLocal.getUTCMinutes()).padStart(2, "0")}`;
+        const dateStr = parisDateLabel(rdvDate);
+        const timeStr = parisTimeLabel(rdvDate);
         const { name: businessName, rdvWord } = bizMap[reservation.business_id] || { name: "Votre prestataire", rdvWord: "rendez-vous" };
         const customerName = reservation.customer_name || "Client";
         const rdvWordCap = rdvWord.charAt(0).toUpperCase() + rdvWord.slice(1);
@@ -118,5 +137,10 @@ export async function GET(req: NextRequest) {
         }
     }
 
-    return NextResponse.json({ sent, failed: failed.length, total: reservations.length });
+    return NextResponse.json({
+        sent,
+        failed: failed.length,
+        skipped,
+        total: reservations.length,
+    });
 }
