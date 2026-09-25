@@ -13,9 +13,23 @@ insert into agencies (id, name, slug, is_internal, status) values
   ('11111111-1111-1111-1111-111111111111', 'Vibe Web Agency', 'vwa',      true,  'active'),
   ('22222222-2222-2222-2222-222222222222', 'Agence Démo',     'demo',     false, 'trial');
 
-insert into businesses (id, agency_id, business_type_id, name, slug, city, timezone, email, phone)
+-- FiFi est le vrai commerce, avec ses vraies coordonnées : elles sont
+-- publiques (c'est ce qu'affiche le site), et un jeu de dev représentatif
+-- attrape des bugs qu'un « Restaurant Démo » laisserait passer — un numéro
+-- au format français, une fermeture après minuit, un service continu.
+insert into businesses (id, agency_id, business_type_id, name, slug,
+                        email, phone, website_url, social_links,
+                        address_line, postal_code, city, country,
+                        maps_url, timezone, description)
 select '33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', t.id,
-       'FiFi Bouillon (démo)', 'fifi-demo', 'Paris', 'Europe/Paris', 'contact@exemple.fr', '01 23 45 67 89'
+       'FiFi — Bouillon & Brasserie', 'fifi',
+       'fifirestaurantparis@gmail.com', '+33 9 51 28 34 18', 'https://www.fifibouillon.com',
+       '{"instagram": "https://www.instagram.com/fifibouillonparis",
+         "tiktok": "https://www.tiktok.com/@fifibouillon"}'::jsonb,
+       '56B rue de Clichy', '75009', 'Paris', 'FR',
+       'https://www.google.com/maps/search/?api=1&query=56B+rue+de+Clichy%2C+75009+Paris',
+       'Europe/Paris',
+       'Bouillon & brasserie dans le 9ᵉ arrondissement de Paris. La cuisine française de toujours, généreuse et à prix juste.'
 from business_types t where t.slug = 'restaurant';
 
 insert into businesses (id, agency_id, business_type_id, name, slug, city)
@@ -23,9 +37,15 @@ select '44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-22222222
        'Client de la Démo', 'client-demo', 'Lyon'
 from business_types t where t.slug = 'barbershop';
 
--- Service continu, 12h–23h du lundi au dimanche
+-- Horaires réels de FiFi : service continu 7j/7 à partir de 11h, fermeture à
+-- minuit du dimanche au jeudi et à 2h le vendredi et le samedi.
+-- La fermeture antérieure à l'ouverture se lit comme le lendemain : c'est
+-- exactement le cas que `close_time <= open_time` est censé couvrir, et il
+-- n'était vérifié nulle part avec de vraies données.
 insert into business_hours (business_id, day_of_week, open_time, close_time)
-select '33333333-3333-3333-3333-333333333333', d, '12:00', '23:00' from generate_series(1, 7) d;
+select '33333333-3333-3333-3333-333333333333', d, '11:00',
+       case when d in (5, 6) then time '02:00' else time '00:00' end
+from generate_series(1, 7) d;   -- 1 = lundi (isodow), 5 = vendredi, 6 = samedi
 
 -- Plan PROVISOIRE, de dev uniquement : les vraies offres se définiront plus
 -- tard depuis le back-office. Il donne tous les modules, pour pouvoir tout

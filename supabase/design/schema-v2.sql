@@ -105,6 +105,12 @@ create table businesses (
   email               text,          -- public
   phone               text,          -- public
   website_url         text,
+  -- Réseaux sociaux : { "instagram": "https://…", "tiktok": "https://…" }.
+  -- En jsonb plutôt qu'une colonne par réseau : la liste change tous les deux
+  -- ans, et une colonne `vine_url` oubliée dans le schéma est plus coûteuse
+  -- qu'une clé inconnue dans un objet. Le site ne rend que les clés présentes.
+  social_links        jsonb not null default '{}'
+                      check (jsonb_typeof(social_links) = 'object'),
   -- Les coordonnées personnelles du gérant vivent dans son profil (domaine 2),
   -- rattaché au commerce par son adhésion « owner ».
 
