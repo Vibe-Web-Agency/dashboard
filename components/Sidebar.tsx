@@ -196,17 +196,13 @@ export default function Sidebar() {
                 { title: "Équipe", href: "/team", icon: Users },
                 { title: "Projets", href: "/projects", icon: Clapperboard },
                 { title: "Actualités", href: "/blog", icon: Newspaper },
-                { title: "Contenu", href: "/content", icon: Layers },
             ],
         },
         {
             label: "Communication",
             items: [
                 { title: "SMS", href: "/campaigns", icon: Megaphone },
-                { title: "Messageries IG & WA", href: "/messaging", icon: Phone, locked: "pro" as PlanId },
                 { title: "E-mail marketing", href: "/email", icon: Mail, locked: "pro" as PlanId },
-                { title: "Réseaux sociaux", href: "/social", icon: Share2, locked: "pro" as PlanId },
-                { title: "Chatbot web", href: "/chatbot", icon: Webhook, locked: "business" as PlanId },
             ],
         },
         {
@@ -214,21 +210,12 @@ export default function Sidebar() {
             items: [
                 { title: "Statistiques", href: "/stats", icon: BarChart3 },
                 { title: "Analyse web", href: "/analytics", icon: Globe },
-                { title: "Référencement", href: "/seo", icon: Compass, locked: "pro" as PlanId },
-                { title: "Avis Google", href: "/reputation", icon: BadgeCheck, locked: "pro" as PlanId },
-                { title: "Publicité digitale", href: "/ads", icon: TrendingUp, locked: "business" as PlanId },
             ],
         },
         {
             label: "Modules",
             items: [
-                { title: "Programme fidélité", href: "/loyalty", icon: Heart, locked: "pro" as PlanId },
                 { title: "Mini CRM", href: "/crm", icon: BookUser, locked: "pro" as PlanId },
-                { title: "Site multilingue", href: "/multilingual", icon: Languages, locked: "pro" as PlanId },
-                { title: "Finance", href: "/finance", icon: Receipt, locked: "pro" as PlanId },
-                { title: "Espace équipe", href: "/workspace", icon: ClipboardList, locked: "pro" as PlanId },
-                { title: "Chèques cadeaux", href: "/giftcards", icon: Gift, locked: "business" as PlanId },
-                { title: "Assistant IA", href: "/ai", icon: Bot, locked: "business" as PlanId },
                 { title: "Facturation", href: "/billing", icon: CreditCard },
             ],
         },
