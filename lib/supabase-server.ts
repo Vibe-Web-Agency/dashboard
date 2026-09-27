@@ -1,11 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from './database.types'
+// Les types v1 sont supprimés. Le client reste sans type le temps de la
+// refonte : les routes d'API conservées tournent encore contre l'ancienne
+// base, et les typer en v2 mentirait. `lib/database.v2.types.ts` prendra le
+// relais écran par écran.
 
 export async function createServerSupabase() {
     const cookieStore = await cookies()
 
-    return createServerClient<Database>(
+    return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
