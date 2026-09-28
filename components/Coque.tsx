@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useUserProfile } from "@/lib/useUserProfile";
+import { FournisseurUtilisateur, useProfil } from "@/lib/ContexteUtilisateur";
 import { useModules } from "@/lib/useModules";
 import { menuPour } from "@/lib/navigation";
 import { atLeast, ROLE_LABELS, type Role } from "@/lib/roles";
@@ -20,8 +20,17 @@ import { BoutonDeconnexion } from "./BoutonDeconnexion";
  * autoriser : c'est RLS qui décide, en base.
  */
 export function Coque({ children }: { children: React.ReactNode }) {
-  const { loading, error, profile, businesses, activeBusiness, setActiveBusiness } =
-    useUserProfile();
+  // Le fournisseur est au-dessus : c'est lui qui charge, `CoqueInterne` et
+  // tous les écrans en dessous se contentent de lire.
+  return (
+    <FournisseurUtilisateur>
+      <CoqueInterne>{children}</CoqueInterne>
+    </FournisseurUtilisateur>
+  );
+}
+
+function CoqueInterne({ children }: { children: React.ReactNode }) {
+  const { loading, error, profile, businesses, activeBusiness, setActiveBusiness } = useProfil();
   const { loading: chargeModules, modules } = useModules(activeBusiness?.id);
 
   const role = activeBusiness?.role ?? null;

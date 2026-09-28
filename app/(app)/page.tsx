@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useUserProfile } from "@/lib/useUserProfile";
+import { useProfil } from "@/lib/ContexteUtilisateur";
 import { useModules } from "@/lib/useModules";
 import { menuPour } from "@/lib/navigation";
 import { atLeast } from "@/lib/roles";
@@ -18,7 +18,7 @@ import { firstNameOf } from "@/lib/utils";
  * visible le lien entre les modules activés en base et ce qu'on peut ouvrir.
  */
 export default function Accueil() {
-  const { profile, activeBusiness } = useUserProfile();
+  const { profile, activeBusiness } = useProfil();
   const { loading, modules } = useModules(activeBusiness?.id);
 
   const prenom = profile?.full_name ? firstNameOf(profile.full_name) : null;
