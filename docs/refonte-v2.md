@@ -50,6 +50,8 @@ clients.
 | F5 | Types v2 : `database.v2.types.ts` devient la référence, l'ancien part | Évite de coder contre deux schémas. |
 | F6 | Authentification : `/login`, mot de passe oublié, choix du mot de passe, déconnexion, garde rallumée | La garde était coupée faute de `/login`. **Fait.** |
 | F7 | Environnement local séparé de la production | `.env.local` pointait sur la base des clients. **Fait.** |
+| F8 | Coque : sélecteur de commerce, menu piloté par `enabled_modules` | **Fait.** |
+| F9 | Profil partagé par contexte (`FournisseurUtilisateur`) | Chaque écran rechargeait le sien. **Fait.** |
 
 ### Grappes d'écrans
 
@@ -59,7 +61,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | --- | --- | --- | --- |
 | G1 | Commerce & équipe | `settings` (812), `team` (354) | L |
 | G2 | Clients | `clients` (681), `crm` (652) | L |
-| G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L |
+| G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste faite** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
 | G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L |
 | G6 | Contenu | `blog` (346) | S |
@@ -126,6 +128,16 @@ l'œil.
 Reste à faire quand les vrais écrans existeront : remplacer les jeux de
 `ECRANS_DEMO` par des extraits des mêmes composants d'écran, pour que la démo
 suive automatiquement.
+
+## Le jeu de dev pourrit
+
+Le seed pose des dates relatives (`now() + interval '1 day'`), figées à
+l'instant du chargement. Une semaine plus tard, plus rien n'est « à venir » :
+l'écran des réservations paraît cassé alors qu'il dit la vérité. Le piège
+vaudra pour le calendrier, les statistiques et les campagnes.
+
+`npm run db:dates` recale les dates sans toucher au reste. À lancer en
+reprenant le travail, plutôt qu'un `db:reset` complet.
 
 ## Dette indépendante, à ne pas perdre
 
