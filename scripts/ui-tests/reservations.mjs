@@ -69,9 +69,19 @@ console.log("  actions proposées :", actions.join(" · "));
 ok("depuis « Confirmée » : Terminée, Non venu, Annulée",
   ["Terminée", "Non venu", "Annulée"].every((a) => actions.includes(a)), actions.join(","));
 
-await page.click('main ul > li div button:has-text("Annulée")');
-await page.waitForFunction(() => document.querySelector("main ul > li").innerText.includes("Annulée"));
-ok("passage à « Annulée » enregistré", true);
+/*
+ * On attend la RÉPONSE du serveur, pas l'affichage.
+ *
+ * Le changement de statut est optimiste : la ligne affiche « Annulée » avant
+ * que la requête soit partie. Attendre le texte, puis recharger, faisait
+ * parfois recharger pendant que la requête était encore en vol — et le test
+ * échouait une fois sur trois, sur un code pourtant correct.
+ */
+const [reponse] = await Promise.all([
+  page.waitForResponse((r) => r.url().includes("/rest/v1/reservations") && r.request().method() === "PATCH"),
+  page.click('main ul > li div button:has-text("Annulée")'),
+]);
+ok(`passage à « Annulée » accepté par la base (HTTP ${reponse.status()})`, reponse.ok());
 
 // La contrainte de la base exige cancelled_at : si elle avait sauté, le
 // rechargement afficherait encore « Confirmée ».

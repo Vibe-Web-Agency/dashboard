@@ -12,7 +12,8 @@
  * Ce script recale les dates sans toucher au reste, ce qui évite un
  * `db:reset` complet à chaque fois qu'on reprend le travail.
  *
- * Il remet aussi les STATUTS dans un état connu. C'est ce qui rend les tests
+ * Il supprime aussi les réservations semées par `db:garnir` (source
+ * « import ») et remet les STATUTS dans un état connu. C'est ce qui rend les tests
  * de navigateur reproductibles : `ui:reservations` change des statuts, donc
  * sans remise à plat la deuxième exécution partait d'un état différent et
  * échouait une fois sur deux. Un test instable finit par ne plus être lu.
@@ -47,6 +48,16 @@ const jours = (n, heure) => {
     d.setHours(heure, 0, 0, 0);
     return d.toISOString();
 };
+
+// Les lignes semées par `db:garnir` partent d'abord : sans ça, la suite
+// « réservations » verrait 127 lignes là où elle en attend 3, selon qu'une
+// autre suite soit passée avant. Deux tests qui dépendent de leur ordre
+// d'exécution finissent par échouer au hasard.
+const { error: erreurPurge } = await sb.from("reservations").delete().eq("source", "import");
+if (erreurPurge) {
+    console.error("Purge :", erreurPurge.message);
+    process.exit(1);
+}
 
 const { data: resas, error } = await sb
     .from("reservations")

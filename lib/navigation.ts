@@ -22,6 +22,14 @@ export type EntreeNav = {
   minRole: Role | null;
   /** Nom d'icône, résolu par `components/Icone.tsx`. */
   icone: string;
+  /**
+   * Reprend le libellé du module à la place de celui écrit ici.
+   *
+   * Posé explicitement, et sur une seule entrée par module : deux écrans
+   * peuvent partager un module — le calendrier et la liste sont deux vues des
+   * réservations — et ils ne peuvent pas porter le même nom.
+   */
+  libelleDuModule?: boolean;
 };
 
 /**
@@ -35,31 +43,34 @@ export type EntreeNav = {
 export const NAVIGATION: EntreeNav[] = [
   { href: "/", label: "Vue d'ensemble", module: null, minRole: null, icone: "accueil" },
 
-  { href: "/reservations", label: "Réservations", module: "reservations", minRole: null, icone: "agenda" },
-  { href: "/calendrier", label: "Calendrier", module: "planning", minRole: null, icone: "calendrier" },
-  { href: "/clients", label: "Clients", module: "customers", minRole: "member", icone: "clients" },
+  // Le calendrier dépend de `reservations`, pas de `planning` : c'est la même
+  // donnée vue autrement. `planning` couvre l'équipe, les créneaux et les
+  // congés — un autre écran, pour plus tard.
+  { href: "/reservations", label: "Réservations", module: "reservations", minRole: null, icone: "agenda", libelleDuModule: true },
+  { href: "/calendrier", label: "Calendrier", module: "reservations", minRole: null, icone: "calendrier" },
+  { href: "/equipe", label: "Planning", module: "planning", minRole: "member", icone: "projets" },
+  { href: "/clients", label: "Clients", module: "customers", minRole: "member", icone: "clients", libelleDuModule: true },
   { href: "/commandes", label: "Commandes", module: "shop", minRole: null, icone: "panier" },
-  { href: "/devis", label: "Devis", module: "quotes", minRole: null, icone: "devis" },
-  { href: "/factures", label: "Factures", module: "invoicing", minRole: "member", icone: "facture" },
+  { href: "/devis", label: "Devis", module: "quotes", minRole: null, icone: "devis", libelleDuModule: true },
+  { href: "/factures", label: "Factures", module: "invoicing", minRole: "member", icone: "facture", libelleDuModule: true },
 
-  { href: "/carte", label: "Carte", module: "menu", minRole: null, icone: "carte" },
-  { href: "/prestations", label: "Prestations", module: "services", minRole: null, icone: "prestations" },
-  { href: "/boutique", label: "Boutique", module: "shop", minRole: null, icone: "panier" },
-  { href: "/journal", label: "Journal", module: "blog", minRole: null, icone: "journal" },
-  { href: "/talents", label: "Talents", module: "talents", minRole: null, icone: "talents" },
-  { href: "/projets", label: "Projets", module: "projects", minRole: null, icone: "projets" },
+  { href: "/carte", label: "Carte", module: "menu", minRole: null, icone: "carte", libelleDuModule: true },
+  { href: "/prestations", label: "Prestations", module: "services", minRole: null, icone: "prestations", libelleDuModule: true },
+  { href: "/boutique", label: "Boutique", module: "shop", minRole: null, icone: "panier", libelleDuModule: true },
+  { href: "/journal", label: "Journal", module: "blog", minRole: null, icone: "journal", libelleDuModule: true },
+  { href: "/talents", label: "Talents", module: "talents", minRole: null, icone: "talents", libelleDuModule: true },
+  { href: "/projets", label: "Projets", module: "projects", minRole: null, icone: "projets", libelleDuModule: true },
 
-  { href: "/messages", label: "Messages", module: "inbox", minRole: null, icone: "messages" },
-  { href: "/campagnes", label: "Campagnes", module: "campaigns", minRole: "member", icone: "campagnes" },
-  { href: "/avis", label: "Avis", module: "reviews", minRole: null, icone: "avis" },
-  { href: "/rappels", label: "Rappels", module: "reminders", minRole: "administrator", icone: "rappels" },
+  { href: "/messages", label: "Messages", module: "inbox", minRole: null, icone: "messages", libelleDuModule: true },
+  { href: "/campagnes", label: "Campagnes", module: "campaigns", minRole: "member", icone: "campagnes", libelleDuModule: true },
+  { href: "/avis", label: "Avis", module: "reviews", minRole: null, icone: "avis", libelleDuModule: true },
+  { href: "/rappels", label: "Rappels", module: "reminders", minRole: "administrator", icone: "rappels", libelleDuModule: true },
 
-  { href: "/statistiques", label: "Statistiques", module: "analytics", minRole: null, icone: "statistiques" },
+  { href: "/statistiques", label: "Statistiques", module: "analytics", minRole: null, icone: "statistiques", libelleDuModule: true },
 
   { href: "/reglages", label: "Réglages", module: null, minRole: "administrator", icone: "reglages" },
 ];
 
-/** Une entrée doublonne quand deux d'entre elles pointent le même module. */
 export type ModuleActif = {
   slug: string;
   label: string;
@@ -88,13 +99,7 @@ export function menuPour(
     if (e.minRole && !rangSuffisant(role, e.minRole)) return false;
     return e.module === null || actifs.has(e.module);
   }).map((e) => {
-    const m = e.module ? actifs.get(e.module) : undefined;
-    // « Boutique » et « Commandes » partagent le module `shop` : garder le
-    // libellé du module écraserait l'un des deux. On ne le reprend donc que
-    // s'il n'y a pas d'ambiguïté.
-    const partage = e.module
-      ? NAVIGATION.filter((x) => x.module === e.module).length > 1
-      : false;
-    return m && !partage ? { ...e, label: m.label } : e;
+    const m = e.libelleDuModule && e.module ? actifs.get(e.module) : undefined;
+    return m ? { ...e, label: m.label } : e;
   });
 }

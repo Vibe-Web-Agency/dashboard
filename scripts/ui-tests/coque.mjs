@@ -34,11 +34,13 @@ console.log("\n  menu :", liens.map((l) => l.label).join(" · "));
 // Les libellés viennent de `modules.label` en base, pas de navigation.ts :
 // `customers` s'appelle « Fichier clients ». C'est voulu — c'est ce qui
 // permettra de dire « Actualités » plutôt que « Journal » selon le client.
-const attendus = ["Vue d'ensemble", "Réservations", "Fichier clients", "Carte", "Avis", "Statistiques", "Réglages"];
+// « Calendrier » est là parce qu'il dépend du module `reservations`, pas de
+// `planning` : c'est la même donnée vue autrement.
+const attendus = ["Vue d'ensemble", "Réservations", "Calendrier", "Fichier clients", "Carte", "Avis", "Statistiques", "Réglages"];
 ok(`${liens.length} entrées`, liens.length === attendus.length, `attendu ${attendus.length}`);
 for (const a of attendus) ok(`« ${a} » présente`, liens.some((l) => l.label === a));
 // Les modules NON activés ne doivent pas apparaître.
-for (const a of ["Devis", "Journal", "Talents", "Campagnes", "Boutique", "Rappels", "Calendrier"])
+for (const a of ["Devis", "Journal", "Talents", "Campagnes", "Boutique", "Rappels", "Planning"])
   ok(`« ${a} » absente (module non activé)`, !liens.some((l) => l.label === a));
 
 // État actif annoncé autrement que par la couleur.
@@ -122,5 +124,6 @@ console.log("  menu du lecteur :", liensLect.join(" · "));
 ok("« Réglages » masquée (réservée aux administrateurs)", !liensLect.includes("Réglages"));
 ok("« Fichier clients » masquée (réservée aux membres)", !liensLect.includes("Fichier clients"));
 ok("« Réservations » visible (ouverte aux lecteurs)", liensLect.includes("Réservations"));
+ok("« Calendrier » aussi", liensLect.includes("Calendrier"), liensLect.join(","));
 
 await nav.close();
