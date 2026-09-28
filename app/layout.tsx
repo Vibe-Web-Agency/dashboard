@@ -1,42 +1,23 @@
 import type { Metadata } from "next";
-import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
+/**
+ * Racine volontairement nue.
+ *
+ * Les trois polices Google de l'ancienne version ont été retirées : elles
+ * appartenaient à un système de design qu'on refait. Elles seront
+ * redéclarées ici quand la direction sera arrêtée — en même temps que les
+ * jetons de couleur et d'espacement, pas avant.
+ */
 export const metadata: Metadata = {
   title: "Dashboard | Vibe Web Agency",
-  description: "Design and developed by Vibe Web Agency",
+  description: "Espace de gestion des commerces",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} antialiased`}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
