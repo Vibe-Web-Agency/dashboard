@@ -19,7 +19,8 @@
         "db:account": "node scripts/dev-account.mjs",
         "db:whoami": "node scripts/whoami.mjs",
         "ui:auth": "node scripts/ui-tests/authentification.mjs",
-        "ui:coque": "node scripts/ui-tests/coque.mjs"
+        "ui:coque": "node scripts/ui-tests/coque.mjs",
+        "ui:demo": "node scripts/ui-tests/demo.mjs"
     },
     "dependencies": {
         "@radix-ui/react-avatar": "^1.1.11",
