@@ -175,5 +175,30 @@ const sansRls = (await db.query(`
    where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`)).rows[0].n;
 check("RLS activé sur toutes les tables", sansRls === 0, `${sansRls} table(s) sans RLS`);
 
+// `enabled_modules` est appelée directement par le navigateur, avec la clé
+// anon : c'est la seule fonction `security definer` de ce schéma qui filtre
+// elle-même sur l'accès. Sans ce filtre, n'importe quel compte connecté
+// pourrait énumérer l'offre souscrite par n'importe quel commerce.
+console.log("\n— enabled_modules : contrôle d'accès");
+const mods = async (uid, business) =>
+  (await as(uid, () => db.query(`select slug from enabled_modules('${business}')`))).rows.map((r) => r.slug);
+
+// FiFi a bien le plan de l'agence, mais « reservations » n'y figurait pas :
+// sans droit, l'activation ne sert à rien. On complète les deux côtés.
+await as(A_ADM, () => db.query(`insert into plan_modules (plan_id, module_id)
+  select '${PLAN_A}', id from modules where slug='reservations'
+  on conflict do nothing`));
+await as(A_ADM, () => db.query(`insert into business_module_settings (business_id, module_id, is_enabled)
+  select '${FIFI}', id, true from modules where slug='reservations'
+  on conflict (business_id, module_id) do update set is_enabled = true`));
+
+check("le gérant de FiFi voit ses modules", (await mods(F_ADM, FIFI)).includes("reservations"));
+check("le lecteur de FiFi aussi (lecture seule suffit)", (await mods(F_VIEW, FIFI)).includes("reservations"));
+check("l'agence qui gère FiFi les voit", (await mods(A_MEM, FIFI)).includes("reservations"));
+check("l'agence B ne voit rien de FiFi", (await mods(B_OWN, FIFI)).length === 0);
+check("un compte sans aucune adhésion ne voit rien", (await mods(U(99), FIFI)).length === 0);
+check("has_feature, elle, répond quand même (appelée depuis les politiques)",
+  (await db.query(`select has_feature('${FIFI}','reservations') v`)).rows[0].v === true);
+
 console.log(`\n${ko === 0 ? "✅" : "❌"} RLS domaines 3-9 : ${ok} réussis, ${ko} échec(s)`);
 process.exit(ko ? 1 : 0);
