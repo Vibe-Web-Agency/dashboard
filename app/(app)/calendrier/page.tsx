@@ -76,7 +76,7 @@ export default function Calendrier() {
     return bornesDeJours(jour, jour);
   }, [vue, annee, mois, semaine, jour]);
 
-  const { chargement: chargeResas, erreur, lignes, resumes, pourJour, changerStatut, deplacer, creer } =
+  const { chargement: chargeResas, erreur, lignes, resumes, pourJour, deplacer, creer } =
     useCalendrier(activeBusiness?.id, debut, fin);
 
   const [creation, setCreation] = useState<{ jour: string; heure: string } | null>(null);
@@ -84,7 +84,6 @@ export default function Calendrier() {
 
   const chargement = chargeProfil || chargeResas;
   const peutModifier = atLeast(activeBusiness?.role, "member");
-  const [ouverte, setOuverte] = useState<string | null>(null);
 
   const titre =
     vue === "mois"
@@ -331,10 +330,7 @@ export default function Calendrier() {
             reservations={lignes}
             selection={vue === "semaine" ? jour : undefined}
             deplacable={peutModifier}
-            onOuvrir={(r) => {
-              setJour(parisDayKey(new Date(r.starts_at)));
-              setOuverte(r.id);
-            }}
+            onOuvrir={(r) => setJour(parisDayKey(new Date(r.starts_at)))}
             onDeplacer={(r, nouvelleHeureIso) =>
               setDeplacement({ reservation: r, nouvelleHeureIso })
             }
@@ -382,14 +378,7 @@ export default function Calendrier() {
             <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
               <ul>
                 {duJour.map((r) => (
-                  <LigneReservation
-                    key={r.id}
-                    reservation={r}
-                    ouverte={ouverte === r.id}
-                    onBasculer={() => setOuverte(ouverte === r.id ? null : r.id)}
-                    peutModifier={peutModifier}
-                    onChangerStatut={changerStatut}
-                  />
+                  <LigneReservation key={r.id} reservation={r} />
                 ))}
               </ul>
             </div>

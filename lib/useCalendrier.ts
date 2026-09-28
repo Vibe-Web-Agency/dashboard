@@ -5,6 +5,7 @@ import { supabase } from "./supabase-browser";
 import { resumerParJour } from "./calendrier";
 import { champsPourStatut, type Statut } from "./reservations";
 import { parisDayKey } from "./paris-time";
+import { creerReservation, type SaisieReservation } from "./reservations-ecriture";
 import type { Reservation } from "./useReservations";
 
 const CHAMPS = `
@@ -151,80 +152,12 @@ export function useCalendrier(
     [],
   );
 
-  /**
-   * Crée une réservation depuis le tableau de bord.
-   *
-   * La fiche client est créée ou retrouvée par TÉLÉPHONE : c'est
-   * l'identifiant stable d'un habitué qui réserve au téléphone, là où le nom
-   * change d'orthographe et où l'e-mail manque souvent. Sans ça, chaque
-   * appel créerait un doublon et l'historique du client ne voudrait plus
-   * rien dire.
-   */
   const creer = useCallback(
-    async (valeurs: {
-      nom: string;
-      telephone: string;
-      email: string;
-      debutIso: string;
-      couverts: number;
-      message: string;
-    }) => {
+    async (valeurs: SaisieReservation) => {
       if (!businessId) return "Aucun commerce actif.";
-
-      const telephone = valeurs.telephone.replace(/\s+/g, " ").trim();
-      const email = valeurs.email.trim().toLowerCase() || null;
-
-      const { data: existant, error: erreurLecture } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("business_id", businessId)
-        .eq("phone", telephone)
-        .maybeSingle();
-
-      if (erreurLecture) return erreurLecture.message;
-
-      let customerId = existant?.id ?? null;
-
-      if (!customerId) {
-        const { data: cree, error: erreurClient } = await supabase
-          .from("customers")
-          .insert({
-            business_id: businessId,
-            full_name: valeurs.nom.trim(),
-            phone: telephone,
-            email,
-            source: "reservation",
-          })
-          .select("id")
-          .single();
-        if (erreurClient) return erreurClient.message;
-        customerId = cree.id;
-      } else if (email) {
-        // Un habitué qui laisse enfin son adresse : on la garde, sans
-        // écraser celle qu'il aurait déjà donnée.
-        await supabase
-          .from("customers")
-          .update({ email })
-          .eq("id", customerId)
-          .is("email", null);
-      }
-
-      const { error } = await supabase.from("reservations").insert({
-        business_id: businessId,
-        customer_id: customerId,
-        guest_name: valeurs.nom.trim(),
-        starts_at: valeurs.debutIso,
-        party_size: valeurs.couverts,
-        status: "confirmed",
-        // Prise par l'équipe, pas par le client : la distinction sert aux
-        // statistiques de conversion du site.
-        source: "dashboard",
-        customer_message: valeurs.message.trim() || null,
-      });
-
-      if (error) return error.message;
-      setRechargements((n) => n + 1);
-      return null;
+      const souci = await creerReservation(businessId, valeurs);
+      if (!souci) setRechargements((n) => n + 1);
+      return souci;
     },
     [businessId],
   );

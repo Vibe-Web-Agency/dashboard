@@ -287,12 +287,17 @@ export function GrilleHoraire({
                   j.cle === selection ? "bg-accent-subtle/40" : ""
                 } ${onCreneauVide ? "cursor-copy" : ""}`}
               >
-                {/* Lignes d'heures, décoratives. */}
+                {/*
+                  Lignes d'heures, décoratives — et TRANSPARENTES AU POINTEUR.
+                  Elles remplissent toute la colonne : sans
+                  `pointer-events-none`, c'est sur elles que tombe le clic, et
+                  le clic sur une zone libre ne créait jamais rien.
+                */}
                 {heures.map((h) => (
                   <div
                     key={h}
                     style={{ height: HAUTEUR_HEURE }}
-                    className="border-t border-border first:border-t-0"
+                    className="pointer-events-none border-t border-border first:border-t-0"
                   />
                 ))}
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase-browser";
 import { bornes, champsPourStatut, type Periode, type Statut } from "./reservations";
+import { creerReservation, type SaisieReservation } from "./reservations-ecriture";
 
 export type Reservation = {
   id: string;
@@ -145,6 +146,16 @@ export function useReservations(businessId: string | null | undefined, periode: 
     [],
   );
 
+  const creer = useCallback(
+    async (valeurs: SaisieReservation) => {
+      if (!businessId) return "Aucun commerce actif.";
+      const souci = await creerReservation(businessId, valeurs);
+      if (!souci) setRechargements((n) => n + 1);
+      return souci;
+    },
+    [businessId],
+  );
+
   // Sans commerce actif, il n'y a rien à charger et rien à attendre.
   const aJour = !businessId || (resultat !== null && resultat.cle === cle);
 
@@ -154,5 +165,6 @@ export function useReservations(businessId: string | null | undefined, periode: 
     lignes: aJour && resultat ? resultat.lignes : [],
     recharger,
     changerStatut,
+    creer,
   };
 }

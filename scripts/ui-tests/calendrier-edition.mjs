@@ -82,7 +82,40 @@ ok(`la réservation est bien à ${heureVisee}`,
   (await page.innerText("main")).includes(heureVisee),
   heureVisee);
 
-console.log("\n  — Création");
+console.log("\n  — Création par clic sur une zone libre");
+/*
+ * Ce cas n'était couvert par AUCUN test, et il ne marchait pas : les lignes
+ * d'heures remplissent la colonne, donc le clic tombait sur elles et le
+ * garde-fou « uniquement le fond » l'ignorait. On vérifie maintenant que
+ * le clic passe, et que l'heure pré-remplie correspond à l'endroit cliqué.
+ */
+const colonnes = await page.$$('[class*="cursor-copy"]');
+ok(`les colonnes acceptent le clic (${colonnes.length})`, colonnes.length >= 7);
+const bc = await colonnes[2].boundingBox();
+// 16h environ : franchement entre les deux services.
+const yVide = bc.y + bc.height * 0.45;
+await page.mouse.click(bc.x + bc.width / 2, yVide);
+await page.waitForTimeout(500);
+ok("cliquer une zone libre ouvre le formulaire", (await page.$("dialog[open]")) !== null);
+
+if (await page.$("dialog[open]")) {
+  const heurePre = await page.$eval('dialog[open] input[name="heure"]', (e) => e.value);
+  ok(`l'heure est pré-remplie depuis l'endroit cliqué (${heurePre})`, /^\d{2}:\d{2}$/.test(heurePre), heurePre);
+  ok("et aimantée au quart d'heure",
+    ["00", "15", "30", "45"].includes(heurePre.slice(-2)), heurePre);
+  const jourPre = await page.$eval('dialog[open] input[name="jour"]', (e) => e.value);
+  ok(`le jour est celui de la colonne cliquée (${jourPre})`, /^\d{4}-\d{2}-\d{2}$/.test(jourPre), jourPre);
+  await page.click('dialog[open] button:has-text("Annuler")');
+  await page.waitForTimeout(300);
+}
+
+// Un clic SUR un créneau ne doit pas ouvrir la création par-dessus.
+await page.locator('button[title*="couverts"]').first().click();
+await page.waitForTimeout(400);
+ok("cliquer un créneau existant n'ouvre pas la création",
+  (await page.$("dialog[open]")) === null);
+
+console.log("\n  — Création par le bouton +");
 await page.click('button:has-text("Réservation")');
 await page.waitForSelector("dialog[open]");
 ok("le bouton + ouvre le formulaire", (await page.innerText("dialog[open] h2")).includes("Nouvelle"));

@@ -13,6 +13,8 @@ import {
 } from "@/lib/reservations";
 import { atLeast } from "@/lib/roles";
 import { Alerte } from "@/components/formulaire";
+import { ModaleReservation } from "@/components/ModaleReservation";
+import { parisDayKey, parisToUtc } from "@/lib/paris-time";
 
 /**
  * Les réservations.
@@ -27,13 +29,13 @@ export default function Reservations() {
   const { loading: chargeProfil, activeBusiness } = useProfil();
   const [periode, setPeriode] = useState<Periode>("a_venir");
   const [statut, setStatut] = useState<Statut | "tous">("tous");
-  const [ouverte, setOuverte] = useState<string | null>(null);
 
-  const { chargement: chargeResas, erreur, lignes, changerStatut } = useReservations(
+  const { chargement: chargeResas, erreur, lignes, creer } = useReservations(
     activeBusiness?.id,
     periode,
     statut,
   );
+  const [creation, setCreation] = useState(false);
 
   // Tant que le profil charge, on ne SAIT pas s'il y a des réservations : la
   // requête n'a pas encore de commerce sur quoi porter. Conclure « aucune »
@@ -50,13 +52,36 @@ export default function Reservations() {
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Réservations</h1>
-        {!chargement && (
-          <p className="text-sm text-text-muted">
-            {lignes.length} réservation{lignes.length > 1 ? "s" : ""}
-            {couverts > 0 && ` · ${couverts} couverts`}
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Réservations</h1>
+          {!chargement && (
+            <p className="mt-1 text-sm text-text-muted">
+              {lignes.length} réservation{lignes.length > 1 ? "s" : ""}
+              {couverts > 0 && ` · ${couverts} couverts`}
+            </p>
+          )}
+        </div>
+
+        {peutModifier && (
+          <button
+            type="button"
+            onClick={() => setCreation(true)}
+            className="flex min-h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+              className="size-4"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Réservation
+          </button>
         )}
       </div>
 
@@ -125,19 +150,35 @@ export default function Reservations() {
           <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
             <ul>
               {lignes.map((r) => (
-                <LigneReservation
-                  key={r.id}
-                  reservation={r}
-                  ouverte={ouverte === r.id}
-                  onBasculer={() => setOuverte(ouverte === r.id ? null : r.id)}
-                  peutModifier={peutModifier}
-                  onChangerStatut={changerStatut}
-                />
+                <LigneReservation key={r.id} reservation={r} />
               ))}
             </ul>
           </div>
         )}
       </div>
+
+      {creation && (
+        <ModaleReservation
+          ouverte
+          onFermer={() => setCreation(false)}
+          jourInitial={parisDayKey(new Date())}
+          heureInitiale="19:30"
+          onEnregistrer={async (v) => {
+            const [y, m, d] = v.jour.split("-").map(Number);
+            const [h, min] = v.heure.split(":").map(Number);
+            return creer({
+              nom: v.nom,
+              telephone: v.telephone,
+              email: v.email,
+              // L'heure saisie est celle du commerce, pas celle du poste :
+              // un gérant en déplacement ne doit pas décaler son service.
+              debutIso: parisToUtc(y, m - 1, d, h, min).toISOString(),
+              couverts: v.couverts,
+              message: v.message,
+            });
+          }}
+        />
+      )}
     </>
   );
 }
