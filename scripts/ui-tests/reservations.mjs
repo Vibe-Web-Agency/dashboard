@@ -4,10 +4,19 @@
  *   npm run build && npx next start -p 3100
  *   npm run ui:reservations
  *
- * Le jeu de dev contient 3 réservations pour FiFi : deux à venir (J+1 et
- * J+2) et une passée (J-7, terminée).
+ * Le test COMMENCE par recaler le jeu de dev : il change des statuts, donc
+ * sans remise à plat la deuxième exécution part d'un état différent et
+ * échoue une fois sur deux. On se retrouve alors à débattre du test au lieu
+ * du code.
+ *
+ * Après recalage : 2 réservations à venir (confirmées) et 1 passée
+ * (terminée), pour FiFi.
  */
+import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
+
+execFileSync("node", ["scripts/rafraichir-dates.mjs"], { stdio: "pipe" });
+
 const BASE = "http://localhost:3100";
 const nav = await chromium.launch({ channel: "chrome" });
 const page = await nav.newPage({ viewport: { width: 1280, height: 900 } });

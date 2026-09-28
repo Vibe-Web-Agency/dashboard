@@ -12,6 +12,11 @@
  * Ce script recale les dates sans toucher au reste, ce qui évite un
  * `db:reset` complet à chaque fois qu'on reprend le travail.
  *
+ * Il remet aussi les STATUTS dans un état connu. C'est ce qui rend les tests
+ * de navigateur reproductibles : `ui:reservations` change des statuts, donc
+ * sans remise à plat la deuxième exécution partait d'un état différent et
+ * échouait une fois sur deux. Un test instable finit par ne plus être lu.
+ *
  * Même garde-fou que les autres outils de base : il refuse d'agir si le
  * projet lié n'est pas celui de dev.
  */
@@ -45,23 +50,33 @@ const jours = (n, heure) => {
 
 const { data: resas, error } = await sb
     .from("reservations")
-    .select("id, status")
-    .order("starts_at");
+    .select("id, status, created_at")
+    .order("created_at");
 
 if (error) {
     console.error("Lecture :", error.message);
     process.exit(1);
 }
 
-// Une passée, puis les autres réparties sur la semaine qui vient. On garde
-// le statut : une réservation « terminée » dans le futur n'aurait aucun sens.
+// La plus ancienne devient la réservation passée et terminée ; les autres
+// partent sur la semaine qui vient, confirmées. Le statut est REPOSÉ et non
+// conservé : c'est ce qui rend l'état de départ identique à chaque fois.
 let aVenir = 0;
-for (const r of resas) {
-    const passee = r.status === "completed" || r.status === "no_show" || r.status === "cancelled";
+for (const [i, r] of resas.entries()) {
+    const passee = i === 0;
     const quand = passee ? jours(-7, 20) : jours(++aVenir, 19 + (aVenir % 3));
-    const { error: e } = await sb.from("reservations").update({ starts_at: quand }).eq("id", r.id);
+    const statut = passee ? "completed" : "confirmed";
+
+    // `cancelled_at` doit suivre le statut, sinon la contrainte de la base
+    // refuse la ligne — et une réservation annulée lors d'un test précédent
+    // le porte encore.
+    const { error: e } = await sb
+        .from("reservations")
+        .update({ starts_at: quand, status: statut, cancelled_at: null, cancellation_reason: null })
+        .eq("id", r.id);
+
     if (e) console.error(`  ${r.id} : ${e.message}`);
-    else console.log(`  ${r.status.padEnd(10)} → ${quand.slice(0, 16).replace("T", " ")}`);
+    else console.log(`  ${statut.padEnd(10)} → ${quand.slice(0, 16).replace("T", " ")}`);
 }
 
-console.log(`\n✅ ${resas.length} réservation(s) recalées (${aVenir} à venir).`);
+console.log(`\n✅ ${resas.length} réservation(s) recalées (${aVenir} à venir, 1 passée).`);
