@@ -74,7 +74,21 @@ export function useUserProfile(): UserContext {
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [brutes, setBrutes] = useState<Omit<Business, "role">[]>([]);
   const [agencesBrutes, setAgencesBrutes] = useState<Omit<Agency, "role">[]>([]);
-  const [actifId, setActifId] = useState<string | null>(null);
+  /**
+   * Choix mémorisé, lu UNE fois au premier rendu.
+   *
+   * Pas dans un effet : appeler setState depuis un effet déclenche un second
+   * rendu à chaque fois, et ESLint le refuse à juste titre. Le commerce
+   * actif se DÉDUIT de ce choix et de la liste accessible, plus bas.
+   */
+  const [choisi, setChoisi] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CLE_COMMERCE_ACTIF);
+    } catch {
+      // Rendu serveur, navigation privée, stockage bloqué.
+      return null;
+    }
+  });
 
   useEffect(() => {
     let annule = false;
@@ -143,27 +157,10 @@ export function useUserProfile(): UserContext {
     });
   }, [agencesBrutes, memberships]);
 
-  // Le commerce actif est choisi au premier rendu utile : celui qui était
-  // mémorisé s'il est toujours accessible, sinon le premier de la liste.
-  useEffect(() => {
-    if (loading || businesses.length === 0) return;
-    setActifId((courant) => {
-      if (courant && businesses.some((b) => b.id === courant)) return courant;
-      let memorise: string | null = null;
-      try {
-        memorise = localStorage.getItem(CLE_COMMERCE_ACTIF);
-      } catch {
-        // Navigation privée, stockage bloqué : on retombe sur le premier.
-      }
-      const valide = memorise && businesses.some((b) => b.id === memorise);
-      return valide ? memorise : businesses[0].id;
-    });
-  }, [loading, businesses]);
-
   const setActiveBusiness = useCallback(
     (id: string) => {
       if (!businesses.some((b) => b.id === id)) return;
-      setActifId(id);
+      setChoisi(id);
       try {
         localStorage.setItem(CLE_COMMERCE_ACTIF, id);
       } catch {
@@ -173,10 +170,19 @@ export function useUserProfile(): UserContext {
     [businesses],
   );
 
-  const activeBusiness = useMemo(
-    () => businesses.find((b) => b.id === actifId) ?? null,
-    [businesses, actifId],
-  );
+  /**
+   * Le commerce actif est DÉDUIT, jamais stocké : le choix mémorisé s'il est
+   * toujours accessible, sinon le premier de la liste.
+   *
+   * L'avantage se voit le jour où l'accès à un commerce est retiré : il
+   * disparaît de `businesses`, donc la sélection retombe toute seule sur un
+   * commerce valide. Avec une valeur stockée, elle serait restée pointée sur
+   * un commerce qu'on ne peut plus lire.
+   */
+  const activeBusiness = useMemo(() => {
+    if (businesses.length === 0) return null;
+    return businesses.find((b) => b.id === choisi) ?? businesses[0];
+  }, [businesses, choisi]);
 
   const isAgency = useMemo(
     () => memberships.some((m) => m.business_id === null),
