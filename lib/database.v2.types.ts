@@ -866,6 +866,7 @@ export type Database = {
           primary_color: string | null
           siren: string | null
           slug: string
+          social_links: Json
           status: string
           stripe_customer_id: string | null
           timezone: string
@@ -897,6 +898,7 @@ export type Database = {
           primary_color?: string | null
           siren?: string | null
           slug: string
+          social_links?: Json
           status?: string
           stripe_customer_id?: string | null
           timezone?: string
@@ -928,6 +930,7 @@ export type Database = {
           primary_color?: string | null
           siren?: string | null
           slug?: string
+          social_links?: Json
           status?: string
           stripe_customer_id?: string | null
           timezone?: string
@@ -3998,6 +4001,17 @@ export type Database = {
         Args: { p_agency: string; p_business: string }
         Returns: number
       }
+      enabled_modules: {
+        Args: { p_business: string }
+        Returns: {
+          category: string
+          icon: string
+          label: string
+          slug: string
+          sort_order: number
+        }[]
+      }
+      granted_module_ids: { Args: { p_business: string }; Returns: string[] }
       has_feature: {
         Args: { p_business: string; p_module: string }
         Returns: boolean

@@ -87,5 +87,46 @@ await rejected("même SMS compté deux fois (envoi rejoué)",
 await rejected("supprimer FiFi alors qu'il a un historique de facturation", `delete from businesses where id='${FIFI}'`);
 await rejected("montant négatif", `update plans set price_monthly_cents = -100 where id='${P_A}'`);
 
+// `enabled_modules` et `has_feature` dérivent de la même brique : on vérifie
+// qu'elles ne peuvent pas se contredire. C'est tout l'intérêt du partage —
+// sinon la navigation afficherait un module que la politique refuse, ou
+// l'inverse, et le bogue serait invisible jusqu'à l'écran concerné.
+console.log("\n— Modules accordés");
+const accordes = async () => (await db.query(
+  `select m.slug from modules m where m.id in (select granted_module_ids('${FIFI}')) order by m.slug`
+)).rows.map((r) => r.slug);
+
+// Des réglages existent déjà plus haut dans le fichier : on force l'activation
+// de tous les modules plutôt que d'insérer en double.
+await run(`insert into business_module_settings (business_id, module_id, is_enabled)
+           select '${FIFI}', id, true from modules
+           on conflict (business_id, module_id) do update set is_enabled = true`);
+const listeA = await accordes();
+for (const mod of ["reservations", "reminders", "stats"]) {
+  check(`« ${mod} » : liste et has_feature d'accord`, listeA.includes(mod) === (await hf(mod)));
+}
+check("« stats » accordé car module de base", listeA.includes("stats"));
+
+// Activé mais sans droit : le module doit disparaître des deux côtés.
+// « reminders » n'est dans aucun plan ici, il tenait à une option — on la
+// résilie en gardant l'activation côté commerce.
+check("« reminders » accordé par l'option", (await accordes()).includes("reminders"));
+await run(`update business_addons set status='cancelled', cancelled_at=now()
+            where module_id = (select id from modules where slug='reminders')`);
+check("option résiliée, activation gardée → plus accordé", !(await accordes()).includes("reminders"));
+check("  et has_feature dit la même chose", (await hf("reminders")) === false);
+
+// Commerce suspendu : plus rien, quels que soient plan et activation.
+await run(`update businesses set status='suspended' where id='${FIFI}'`);
+check("commerce suspendu → aucun module", (await accordes()).length === 0);
+check("  y compris les modules de base", (await hf("stats")) === false);
+await run(`update businesses set status='active' where id='${FIFI}'`);
+check("commerce réactivé → les modules reviennent", (await accordes()).length > 0);
+
+// Module retiré du catalogue : gardé en base pour l'historique, mais plus servi.
+await run(`update modules set is_active = false where slug='reservations'`);
+check("module retiré du catalogue → plus accordé", !(await accordes()).includes("reservations"));
+await run(`update modules set is_active = true where slug='reservations'`);
+
 console.log(`\n${ko === 0 ? "✅" : "❌"} domaine 3 : ${ok} réussis, ${ko} échec(s)`);
 process.exit(ko ? 1 : 0);

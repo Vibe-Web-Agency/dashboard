@@ -22,6 +22,7 @@ const GARDE_ACTIVE = true;
  */
 function estPublic(pathname: string): boolean {
   return (
+    pathname.startsWith("/demo") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/mot-de-passe-oublie") ||
     pathname.startsWith("/auth/callback") ||
@@ -30,10 +31,28 @@ function estPublic(pathname: string): boolean {
   );
 }
 
-/** Redirige vers la connexion en mémorisant la page demandée. */
+/**
+ * Où envoyer un visiteur non connecté.
+ *
+ * La racine mène à la DÉMONSTRATION, pas à la connexion : on veut que
+ * n'importe qui puisse voir à quoi ressemble le produit, et que les agences
+ * intéressées par la marque blanche le parcourent sans compte. La démo ne
+ * touche pas à la base, elle affiche des données inventées.
+ *
+ * Toute autre page mène à la connexion, en mémorisant la page demandée : qui
+ * suit un lien profond vers son tableau de bord doit y revenir après s'être
+ * connecté, pas atterrir sur une démo.
+ */
 function versConnexion(request: NextRequest): URL {
   const url = request.nextUrl.clone();
   const demandee = request.nextUrl.pathname + request.nextUrl.search;
+
+  if (request.nextUrl.pathname === "/") {
+    url.pathname = "/demo";
+    url.search = "";
+    return url;
+  }
+
   url.pathname = "/login";
   url.search = "";
   // Un chemin interne seulement : accepter une URL complète ferait de la

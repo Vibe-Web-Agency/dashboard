@@ -27,6 +27,7 @@ export type Profile = {
 };
 
 export type Membership = {
+  profile_id: string;
   agency_id: string;
   business_id: string | null;
   role: string;
@@ -108,7 +109,15 @@ export function useUserProfile(): UserContext {
           .select("id, email, full_name, phone, avatar_url")
           .eq("id", auth.user.id)
           .maybeSingle(),
-        supabase.from("memberships").select("agency_id, business_id, role").eq("is_active", true),
+        // `profile_id` est indispensable, pas décoratif : la politique de
+        // lecture laisse voir les adhésions des AUTRES membres de l'agence
+        // (c'est voulu, la gestion d'équipe en a besoin). Sans ce champ, on
+        // ne peut pas distinguer ses propres rôles de ceux des collègues.
+        supabase
+          .from("memberships")
+          .select("profile_id, agency_id, business_id, role")
+          .eq("is_active", true)
+          .eq("profile_id", auth.user.id),
         supabase.from("businesses").select("id, name, slug, agency_id, business_type_id, status"),
         supabase.from("agencies").select("id, name, slug"),
       ]);
@@ -139,23 +148,37 @@ export function useUserProfile(): UserContext {
    * Rôle effectif sur un commerce : le meilleur entre l'adhésion au commerce
    * lui-même et l'adhésion à son agence. Quelqu'un qui administre l'agence
    * administre ses commerces, même sans adhésion nominative.
+   *
+   * Le filtre sur `profile_id` compte. La requête le pose déjà, mais on le
+   * redit ici : sans lui, le maximum était pris sur les adhésions de TOUS
+   * les membres visibles, et un `viewer` se voyait `owner` dans l'interface.
+   * Les données restaient protégées par RLS, mais on lui proposait des
+   * actions vouées à échouer.
    */
   const businesses = useMemo<Business[]>(() => {
+    const moi = profile?.id;
     return brutes.map((b) => {
       const candidats = memberships
-        .filter((m) => m.agency_id === b.agency_id && (m.business_id === null || m.business_id === b.id))
+        .filter(
+          (m) =>
+            m.profile_id === moi &&
+            m.agency_id === b.agency_id &&
+            (m.business_id === null || m.business_id === b.id),
+        )
         .map((m) => m.role);
       const meilleur = candidats.sort((x, y) => roleRank(y) - roleRank(x))[0];
       return { ...b, role: (meilleur as Role) ?? null };
     });
-  }, [brutes, memberships]);
+  }, [brutes, memberships, profile?.id]);
 
   const agencies = useMemo<Agency[]>(() => {
     return agencesBrutes.map((a) => {
-      const direct = memberships.find((m) => m.agency_id === a.id && m.business_id === null);
+      const direct = memberships.find(
+        (m) => m.profile_id === profile?.id && m.agency_id === a.id && m.business_id === null,
+      );
       return { ...a, role: (direct?.role as Role) ?? null };
     });
-  }, [agencesBrutes, memberships]);
+  }, [agencesBrutes, memberships, profile?.id]);
 
   const setActiveBusiness = useCallback(
     (id: string) => {
@@ -185,8 +208,8 @@ export function useUserProfile(): UserContext {
   }, [businesses, choisi]);
 
   const isAgency = useMemo(
-    () => memberships.some((m) => m.business_id === null),
-    [memberships],
+    () => memberships.some((m) => m.profile_id === profile?.id && m.business_id === null),
+    [memberships, profile?.id],
   );
 
   return {

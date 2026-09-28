@@ -81,11 +81,10 @@ const [profil, adhesions, commerces, agences] = await Promise.all([
 ]);
 
 console.log(`  profil      ${profil.data?.email ?? profil.error?.message ?? "introuvable"}`);
-console.log(
-    `  adhésions   ${(adhesions.data ?? [])
-        .map((m) => `${m.role} sur ${m.business_id ? "un commerce" : "l'agence"}`)
-        .join(", ") || "aucune"}`,
-);
+console.log(`  adhésions   ${(adhesions.data ?? []).length}`);
+for (const m of adhesions.data ?? []) {
+    console.log(`              ${m.role} sur ${m.business_id ? "un commerce" : "l'agence"}`);
+}
 console.log(`  agences     ${(agences.data ?? []).map((a) => a.name).join(", ") || "aucune"}`);
 console.log(`  commerces   ${(commerces.data ?? []).map((b) => b.name).join(", ") || "aucun"}`);
 
@@ -95,4 +94,18 @@ const [{ count: vus }, { count: reservations }] = await Promise.all([
     sb.from("businesses").select("id", { count: "exact", head: true }),
     sb.from("reservations").select("id", { count: "exact", head: true }),
 ]);
-console.log(`\n  sans aucun filtre : ${vus} commerce(s), ${reservations} réservation(s)\n`);
+console.log(`\n  sans aucun filtre : ${vus} commerce(s), ${reservations} réservation(s)`);
+
+// Les modules du commerce actif : c'est ce qui construira la navigation.
+// Les afficher ici évite de deviner pourquoi un écran manque dans le menu.
+const premier = (commerces.data ?? [])[0];
+if (premier) {
+    const { data: mods, error: erreurMods } = await sb.rpc("enabled_modules", {
+        p_business: premier.id,
+    });
+    console.log(`\n  modules de « ${premier.name} »`);
+    if (erreurMods) console.log(`              ${erreurMods.message}`);
+    else if (!mods?.length) console.log("              aucun — la navigation serait vide");
+    else for (const m of mods) console.log(`              ${m.slug.padEnd(14)} ${m.label}`);
+}
+console.log();

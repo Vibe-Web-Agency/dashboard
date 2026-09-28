@@ -109,10 +109,23 @@ ne verrait que des écrans vides, ce qui ne vend rien. Ensuite parce que les
 remplir demanderait de contourner RLS, donc de publier les réservations, les
 fiches clients et le chiffre d'affaires de vrais clients.
 
-Forme retenue : une route `/demo` publique, avec un jeu de données **écrit
-dans le code**, branché sur rien. À faire après les écrans, qu'elle réutilise.
-Penser à l'ajouter à `estPublic()` dans `middleware.ts` le jour où elle
-existe.
+Forme retenue, **faite** : une route `/demo` publique, avec un jeu de données
+écrit dans `lib/demo.ts`, branché sur rien. Un visiteur non connecté qui
+arrive sur `/` y est envoyé ; toute autre page mène à la connexion, en
+mémorisant la page demandée.
+
+Point de construction important : la démo et le vrai tableau de bord
+partagent `CoqueVue` et `Tableau`. Deux composants séparés auraient divergé
+en quelques semaines, et la démo aurait fini par montrer un produit qui
+n'existe plus. Seule la source des données change.
+
+`scripts/ui-tests/demo.mjs` vérifie qu'aucune requête ne part vers Supabase
+depuis la démo — c'est la garantie qui compte, et elle ne se voit pas à
+l'œil.
+
+Reste à faire quand les vrais écrans existeront : remplacer les jeux de
+`ECRANS_DEMO` par des extraits des mêmes composants d'écran, pour que la démo
+suive automatiquement.
 
 ## Dette indépendante, à ne pas perdre
 
@@ -123,6 +136,9 @@ existe.
 - **`feat/produits-factures`** : écrite sur l'ancien schéma, à jeter ou à
   reprendre à la main.
 - **Rien n'écrit dans `audit_log`.**
+- **La recherche ne couvre que les écrans** dans le vrai tableau de bord.
+  Chaque écran construit devra alimenter `ElementRecherche` avec ses données,
+  comme le fait déjà la démo.
 - **Cookie de session non `httpOnly`.** Inhérent à `createBrowserClient` :
   c'est du JavaScript qui l'écrit. Une faille XSS dans le tableau de bord
   permettrait donc de voler une session. Le corriger demande de passer
