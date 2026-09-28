@@ -9,11 +9,28 @@ import {
   plageHoraire,
   type Jour,
 } from "@/lib/calendrier";
-import { parisDayKey } from "@/lib/paris-time";
+import { parisDayKey, parisToUtc } from "@/lib/paris-time";
 import { STATUT_LABELS, STATUT_TONS, nomAffiche, type Statut } from "@/lib/reservations";
 
 /** Hauteur d'une heure, en pixels. */
 const HAUTEUR_HEURE = 56;
+
+/** Pas d'aimantation au glissement, en minutes. */
+const PAS_MIN = 15;
+
+/** Déplacement à partir duquel on considère que c'est un glissement. */
+const SEUIL_GLISSEMENT_PX = 5;
+
+/**
+ * Largeur minimale d'un créneau.
+ *
+ * En dessous, le nom devient « S… » et la pastille ne sert plus à rien.
+ * Au-delà de quatre chevauchements, les créneaux se recouvrent donc
+ * franchement plutôt que de continuer à rétrécir : on garde la lisibilité,
+ * on perd l'exactitude du partage — c'est le bon sens du compromis, puisque
+ * le détail exact se lit dans la liste en dessous.
+ */
+const LARGEUR_MIN_PX = 56;
 
 const COULEURS: Record<ReturnType<() => Statut> extends never ? string : string, string> = {
   succes: "border-success/40 bg-success-subtle text-success",
@@ -36,15 +53,34 @@ export function GrilleHoraire({
   jours,
   reservations,
   onOuvrir,
+  onDeplacer,
+  onCreneauVide,
+  deplacable = false,
   selection,
 }: {
   jours: Jour[];
   reservations: Reservation[];
   onOuvrir: (r: Reservation) => void;
+  /** Appelé au relâchement, avec la nouvelle heure. */
+  onDeplacer?: (r: Reservation, nouvelleHeureIso: string) => void;
+  /** Clic sur une zone libre : propose de créer à cette heure-là. */
+  onCreneauVide?: (cleJour: string, minutes: number) => void;
+  /** Faux en lecture seule : on ne propose pas un geste qui sera refusé. */
+  deplacable?: boolean;
   selection?: string;
 }) {
   const defilant = useRef<HTMLDivElement>(null);
+  const colonnes = useRef<Map<string, HTMLDivElement>>(new Map());
   const [maintenant, setMaintenant] = useState(() => new Date());
+
+  /** Glissement en cours : ce qu'on déplace, et où on en est. */
+  const [glisse, setGlisse] = useState<{
+    id: string;
+    cleJour: string;
+    debutMin: number;
+    dureeMin: number;
+  } | null>(null);
+  const depart = useRef<{ x: number; y: number; decalageMin: number } | null>(null);
 
   // Le trait de l'heure courante avance tout seul. Une minute suffit : à la
   // seconde, on ferait tourner un rendu pour un pixel.
@@ -100,6 +136,90 @@ export function GrilleHoraire({
 
   const haut = (min: number) => ((min / 60 - debutH) / (finH - debutH)) * 100;
 
+  /**
+   * Le jour et la minute sous le pointeur.
+   *
+   * On lit la géométrie réelle des colonnes plutôt que de calculer à partir
+   * d'une largeur supposée : la grille est en `flex-1`, sa largeur dépend de
+   * la fenêtre, et une hypothèse en dur se décale dès qu'on ouvre le tiroir
+   * ou qu'on change de zoom.
+   */
+  function sousLePointeur(x: number, y: number): { cleJour: string; minutes: number } | null {
+    for (const [cle, el] of colonnes.current) {
+      const r = el.getBoundingClientRect();
+      if (x < r.left || x > r.right) continue;
+      const part = Math.min(1, Math.max(0, (y - r.top) / r.height));
+      const minutes = (debutH + part * (finH - debutH)) * 60;
+      return { cleJour: cle, minutes };
+    }
+    return null;
+  }
+
+  const aimanter = (min: number) =>
+    Math.max(0, Math.min(24 * 60 - PAS_MIN, Math.round(min / PAS_MIN) * PAS_MIN));
+
+  function auPointerDown(e: React.PointerEvent, r: Reservation, debutMin: number) {
+    if (!deplacable || !onDeplacer) return;
+    // Bouton principal uniquement : un clic droit ouvre le menu du système.
+    if (e.button !== 0) return;
+    const sous = sousLePointeur(e.clientX, e.clientY);
+    depart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      // On mémorise où on a saisi DANS le créneau : sans ça, la réservation
+      // saute pour se centrer sous le curseur au premier pixel de mouvement.
+      decalageMin: sous ? sous.minutes - debutMin : 0,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function auPointerMove(e: React.PointerEvent, r: Reservation, dureeMin: number) {
+    if (!depart.current) return;
+    const bouge =
+      Math.abs(e.clientX - depart.current.x) > SEUIL_GLISSEMENT_PX ||
+      Math.abs(e.clientY - depart.current.y) > SEUIL_GLISSEMENT_PX;
+    if (!bouge && !glisse) return;
+
+    const sous = sousLePointeur(e.clientX, e.clientY);
+    if (!sous) return;
+    setGlisse({
+      id: r.id,
+      cleJour: sous.cleJour,
+      debutMin: aimanter(sous.minutes - depart.current.decalageMin),
+      dureeMin,
+    });
+  }
+
+  function auPointerUp(e: React.PointerEvent, r: Reservation, debutMin: number) {
+    const enCours = glisse;
+    depart.current = null;
+    setGlisse(null);
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+
+    // Pas de glissement : c'était un clic.
+    if (!enCours || enCours.id !== r.id) {
+      onOuvrir(r);
+      return;
+    }
+
+    const cleOrigine = parisDayKey(new Date(r.starts_at));
+    if (enCours.cleJour === cleOrigine && enCours.debutMin === debutMin) {
+      // Reposé exactement où il était : rien à enregistrer.
+      onOuvrir(r);
+      return;
+    }
+
+    const [y, m, d] = enCours.cleJour.split("-").map(Number);
+    const iso = parisToUtc(
+      y,
+      m - 1,
+      d,
+      Math.floor(enCours.debutMin / 60),
+      enCours.debutMin % 60,
+    ).toISOString();
+    onDeplacer?.(r, iso);
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       {/* En-tête des jours, figé au défilement. */}
@@ -151,9 +271,21 @@ export function GrilleHoraire({
             return (
               <div
                 key={j.cle}
+                ref={(el) => {
+                  if (el) colonnes.current.set(j.cle, el);
+                  else colonnes.current.delete(j.cle);
+                }}
+                onClick={(e) => {
+                  // Seulement le fond : un clic sur un créneau remonte
+                  // jusqu'ici, et créerait une réservation par-dessus celle
+                  // qu'on vient d'ouvrir.
+                  if (e.target !== e.currentTarget) return;
+                  const sous = sousLePointeur(e.clientX, e.clientY);
+                  if (sous) onCreneauVide?.(j.cle, aimanter(sous.minutes));
+                }}
                 className={`relative flex-1 border-l border-border ${
                   j.cle === selection ? "bg-accent-subtle/40" : ""
-                }`}
+                } ${onCreneauVide ? "cursor-copy" : ""}`}
               >
                 {/* Lignes d'heures, décoratives. */}
                 {heures.map((h) => (
@@ -190,16 +322,33 @@ export function GrilleHoraire({
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => onOuvrir(r)}
+                      // Le clic est traité au relâchement du pointeur :
+                      // `onClick` se déclencherait aussi à la fin d'un
+                      // glissement, et rouvrirait le détail à chaque dépose.
+                      onPointerDown={(e) => auPointerDown(e, r, p.debutMin)}
+                      onPointerMove={(e) => auPointerMove(e, r, p.finMin - p.debutMin)}
+                      onPointerUp={(e) => auPointerUp(e, r, p.debutMin)}
+                      onKeyDown={(e) => {
+                        // Le glissement reste inaccessible au clavier : on
+                        // garde donc Entrée pour ouvrir le détail, d'où la
+                        // modification se fait.
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onOuvrir(r);
+                        }
+                      }}
                       style={{
                         top: `${haut(p.debutMin)}%`,
                         height: `${((p.finMin - p.debutMin) / 60 / (finH - debutH)) * 100}%`,
                         left: `calc(${Math.max(0, gauche)}% + 2px)`,
                         width: `calc(${largeur}% - 4px)`,
+                        minWidth: LARGEUR_MIN_PX,
                         zIndex: p.colonne + 1,
                       }}
-                      className={`absolute overflow-hidden rounded border px-1.5 py-0.5 text-left text-xs shadow-sm transition-[filter] hover:z-20 hover:brightness-95 ${
+                      className={`absolute touch-none select-none overflow-hidden rounded border px-1.5 py-0.5 text-left text-xs shadow-sm transition-[filter] hover:z-20 hover:brightness-95 ${
                         COULEURS[STATUT_TONS[r.status]]
+                      } ${deplacable ? "cursor-grab active:cursor-grabbing" : ""} ${
+                        glisse?.id === r.id ? "opacity-30" : ""
                       }`}
                       title={`${nomAffiche(r)} — ${r.party_size} couverts — ${STATUT_LABELS[r.status]}`}
                     >
@@ -211,6 +360,22 @@ export function GrilleHoraire({
                     </button>
                   );
                 })}
+
+                {/* Aperçu de la dépose : montre OÙ ça va tomber, aimanté au
+                    quart d'heure. Sans lui, on relâche à l'aveugle. */}
+                {glisse && glisse.cleJour === j.cle && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      top: `${haut(glisse.debutMin)}%`,
+                      height: `${(glisse.dureeMin / 60 / (finH - debutH)) * 100}%`,
+                    }}
+                    className="pointer-events-none absolute inset-x-0.5 z-30 flex items-start rounded border-2 border-dashed border-accent bg-accent-subtle/80 px-1.5 py-0.5 text-xs font-medium text-accent"
+                  >
+                    {String(Math.floor(glisse.debutMin / 60)).padStart(2, "0")}h
+                    {String(glisse.debutMin % 60).padStart(2, "0")}
+                  </div>
+                )}
 
                 {/* Trait de l'heure courante. */}
                 {traitVisible && j.cle === cleMaintenant && (

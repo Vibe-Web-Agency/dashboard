@@ -25,7 +25,8 @@
         "db:dates": "node scripts/rafraichir-dates.mjs",
         "ui:calendrier": "node scripts/ui-tests/calendrier.mjs",
         "test:calendrier": "node scripts/unit-tests/calendrier.mjs",
-        "db:garnir": "node scripts/garnir-dev.mjs"
+        "db:garnir": "node scripts/garnir-dev.mjs",
+        "ui:calendrier-edition": "node scripts/ui-tests/calendrier-edition.mjs"
     },
     "dependencies": {
         "@radix-ui/react-avatar": "^1.1.11",

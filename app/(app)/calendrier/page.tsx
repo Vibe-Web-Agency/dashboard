@@ -17,10 +17,12 @@ import {
   libelleSemaine,
   semaineDe,
 } from "@/lib/calendrier";
-import { parisDayKey } from "@/lib/paris-time";
+import { parisDayKey, parisToUtc } from "@/lib/paris-time";
 import { atLeast } from "@/lib/roles";
 import { STATUT_TONS, nomAffiche, parisHeure } from "@/lib/reservations";
 import { GrilleHoraire } from "@/components/GrilleHoraire";
+import { ModaleReservation } from "@/components/ModaleReservation";
+import { ModaleDeplacement, type Deplacement } from "@/components/ModaleDeplacement";
 import { LigneReservation } from "@/components/LigneReservation";
 import { Alerte } from "@/components/formulaire";
 
@@ -74,8 +76,11 @@ export default function Calendrier() {
     return bornesDeJours(jour, jour);
   }, [vue, annee, mois, semaine, jour]);
 
-  const { chargement: chargeResas, erreur, lignes, resumes, pourJour, changerStatut } =
+  const { chargement: chargeResas, erreur, lignes, resumes, pourJour, changerStatut, deplacer, creer } =
     useCalendrier(activeBusiness?.id, debut, fin);
+
+  const [creation, setCreation] = useState<{ jour: string; heure: string } | null>(null);
+  const [deplacement, setDeplacement] = useState<Deplacement | null>(null);
 
   const chargement = chargeProfil || chargeResas;
   const peutModifier = atLeast(activeBusiness?.role, "member");
@@ -159,6 +164,27 @@ export default function Calendrier() {
               <Chevron sens="droite" />
             </button>
           </div>
+
+          {peutModifier && (
+            <button
+              type="button"
+              onClick={() => setCreation({ jour, heure: "19:30" })}
+              className="flex min-h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+                className="size-4"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Réservation
+            </button>
+          )}
 
           <div
             role="group"
@@ -304,10 +330,23 @@ export default function Calendrier() {
             jours={vue === "semaine" ? semaine : semaineDe(jour).filter((j) => j.cle === jour)}
             reservations={lignes}
             selection={vue === "semaine" ? jour : undefined}
+            deplacable={peutModifier}
             onOuvrir={(r) => {
               setJour(parisDayKey(new Date(r.starts_at)));
               setOuverte(r.id);
             }}
+            onDeplacer={(r, nouvelleHeureIso) =>
+              setDeplacement({ reservation: r, nouvelleHeureIso })
+            }
+            onCreneauVide={
+              peutModifier
+                ? (cleJour, minutes) =>
+                    setCreation({
+                      jour: cleJour,
+                      heure: `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
+                    })
+                : undefined
+            }
           />
         </div>
       )}
@@ -315,7 +354,9 @@ export default function Calendrier() {
       <p className="mt-2 text-xs text-text-faint">
         {vue === "mois"
           ? "Flèches pour naviguer, Entrée pour ouvrir la journée, Page préc. / suiv. pour changer de mois."
-          : "Cliquer un créneau l'ouvre dans le détail ci-dessous."}
+          : peutModifier
+            ? "Cliquer un créneau l'ouvre. Le glisser le déplace, au quart d'heure près. Cliquer une zone libre crée une réservation."
+            : "Cliquer un créneau l'ouvre dans le détail ci-dessous."}
       </p>
 
       <section className="mt-6">
@@ -355,6 +396,36 @@ export default function Calendrier() {
           )}
         </div>
       </section>
+      {creation && (
+        <ModaleReservation
+          ouverte
+          onFermer={() => setCreation(null)}
+          jourInitial={creation.jour}
+          heureInitiale={creation.heure}
+          onEnregistrer={async (v) => {
+            const [y, m, d] = v.jour.split("-").map(Number);
+            const [h, min] = v.heure.split(":").map(Number);
+            return creer({
+              nom: v.nom,
+              telephone: v.telephone,
+              email: v.email,
+              // L'heure saisie est celle du commerce, pas celle du poste :
+              // un gérant en déplacement ne doit pas décaler son service.
+              debutIso: parisToUtc(y, m - 1, d, h, min).toISOString(),
+              couverts: v.couverts,
+              message: v.message,
+            });
+          }}
+        />
+      )}
+
+      <ModaleDeplacement
+        deplacement={deplacement}
+        onFermer={() => setDeplacement(null)}
+        onConfirmer={(d, prevenir) =>
+          deplacer(d.reservation.id, d.nouvelleHeureIso, d.reservation.starts_at, prevenir)
+        }
+      />
     </>
   );
 }

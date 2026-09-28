@@ -61,7 +61,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | --- | --- | --- | --- |
 | G1 | Commerce & équipe | `settings` (812), `team` (354) | L |
 | G2 | Clients | `clients` (681), `crm` (652) | L |
-| G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste faite** |
+| G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste, calendrier 3 vues, glisser-déposer et création : faits** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
 | G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L |
 | G6 | Contenu | `blog` (346) | S |
@@ -147,7 +147,17 @@ reprenant le travail, plutôt qu'un `db:reset` complet.
   clients. Se règle à la bascule, ou avant sur l'ancien schéma.
 - **`feat/produits-factures`** : écrite sur l'ancien schéma, à jeter ou à
   reprendre à la main.
-- **Rien n'écrit dans `audit_log`.**
+- **Rien n'écrit dans `audit_log`.** Le déplacement d'une réservation en est
+  le premier cas qui le mériterait : la base ne garde aucune trace de
+  l'ancienne heure, et la route de notification doit donc se la faire passer
+  par l'appelant.
+- **Les gabarits d'e-mail de la v1 utilisent `var(--accent)`**, que la
+  plupart des clients de messagerie ne savent pas lire : la couleur y tombe
+  en noir, sans que ça se voie côté tableau de bord. À reprendre quand on
+  touchera aux rappels.
+- **Le glisser-déposer n'a pas d'équivalent au clavier.** La modification
+  passe alors par le détail de la réservation, ce qui reste faisable mais
+  plus long. Un déplacement au clavier serait à ajouter.
 - **La recherche ne couvre que les écrans** dans le vrai tableau de bord.
   Chaque écran construit devra alimenter `ElementRecherche` avec ses données,
   comme le fait déjà la démo.
