@@ -4,27 +4,44 @@ import { NextResponse, type NextRequest } from "next/server";
 /**
  * Garde d'authentification.
  *
- * Remis à plat avec la refonte : l'ancienne version redirigeait vers
- * `/login`, page supprimée avec le reste de l'interface — l'application
- * bouclait sur une redirection vers le néant.
+ * Remise en service avec l'écran de connexion : elle avait été coupée le
+ * temps de la refonte, faute de `/login` vers quoi rediriger.
  *
- * Tant que les écrans d'authentification ne sont pas réécrits, la garde est
- * DÉSACTIVÉE : on développe contre la base de dev, sur une application qui
- * n'est pas publiée. Elle sera rallumée avec l'écran de connexion.
- *
- * ⚠️ Ne jamais publier cette application tant que `GARDE_ACTIVE` vaut false.
- * La production tourne sur `main`, qui a sa propre garde, intacte.
+ * Elle ne protège pas les données — ça, c'est le rôle des politiques RLS en
+ * base. Elle évite seulement d'afficher une coquille d'interface vide à qui
+ * n'est pas connecté, et renvoie au bon endroit.
  */
-const GARDE_ACTIVE = false;
+const GARDE_ACTIVE = true;
 
-/** Chemins accessibles sans être connecté. */
+/**
+ * Chemins accessibles sans être connecté.
+ *
+ * `/mot-de-passe` n'en fait PAS partie, volontairement : on y arrive avec la
+ * session posée par `/auth/callback`, et la page doit être refusée à qui
+ * n'a pas suivi un lien valide.
+ */
 function estPublic(pathname: string): boolean {
   return (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/mot-de-passe-oublie") ||
     pathname.startsWith("/auth/callback") ||
     pathname.startsWith("/invitation") ||
     pathname.startsWith("/unsubscribe")
   );
+}
+
+/** Redirige vers la connexion en mémorisant la page demandée. */
+function versConnexion(request: NextRequest): URL {
+  const url = request.nextUrl.clone();
+  const demandee = request.nextUrl.pathname + request.nextUrl.search;
+  url.pathname = "/login";
+  url.search = "";
+  // Un chemin interne seulement : accepter une URL complète ferait de la
+  // garde un tremplin de redirection vers n'importe quel site.
+  if (demandee !== "/" && !demandee.startsWith("//")) {
+    url.searchParams.set("suite", demandee);
+  }
+  return url;
 }
 
 export async function middleware(request: NextRequest) {
@@ -59,9 +76,7 @@ export async function middleware(request: NextRequest) {
   } catch {
     // Jeton corrompu : on traite comme non connecté et on nettoie.
     if (!publique) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      const sortie = NextResponse.redirect(url);
+      const sortie = NextResponse.redirect(versConnexion(request));
       for (const cookie of request.cookies.getAll()) {
         if (cookie.name.includes("sb-") || cookie.name.includes("supabase")) {
           sortie.cookies.delete(cookie.name);
@@ -73,9 +88,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!connecte && !publique) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(versConnexion(request));
   }
 
   if (connecte && pathname.startsWith("/login")) {
