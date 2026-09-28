@@ -48,6 +48,8 @@ clients.
 | F3 | Sélecteur de commerce, commerce actif mémorisé | Découle de F2. Règle le cas du client à plusieurs sociétés. |
 | F4 | Navigation générée depuis les modules activés | Supprime les 22 ébauches. |
 | F5 | Types v2 : `database.v2.types.ts` devient la référence, l'ancien part | Évite de coder contre deux schémas. |
+| F6 | Authentification : `/login`, mot de passe oublié, choix du mot de passe, déconnexion, garde rallumée | La garde était coupée faute de `/login`. **Fait.** |
+| F7 | Environnement local séparé de la production | `.env.local` pointait sur la base des clients. **Fait.** |
 
 ### Grappes d'écrans
 
@@ -80,6 +82,38 @@ c'est le plus gros, et il ne bloque aucun client.
 | B2 | Adapter les 6 sites clients | Quelques heures chacun. FiFi = un seul fichier. |
 | B3 | Bascule : migration, variables d'environnement, redéploiements | Une soirée. Ferme au passage la fuite de la clé anon. |
 
+## Deux manques du schéma, repérés en cadrant les écrans
+
+- **Le vocabulaire « selon le client » n'existe qu'à moitié.**
+  `business_types.booking_noun` couvre « réservation » / « rendez-vous » /
+  « séance » / « casting ». Mais `modules.label` est **global** : `talents`
+  s'affiche « Talents » pour tout le monde, `blog` s'affiche « Blog », et il
+  n'y a pas de module `vehicles`. Un loueur verrait donc « Talents » dans son
+  menu. À traiter avant la grappe Talents (G9) : soit des colonnes de libellés
+  sur `business_types`, soit une table de liaison
+  `business_type_modules.label_override`.
+- **Le coupe-circuit de l'abonnement n'est pas branché.** `has_feature`
+  accorde l'accès si le plan est `trialing`, `active` **ou `past_due`** —
+  c'est bien le mois de grâce voulu. Mais rien ne fait passer `past_due` à
+  `expired` : un impayé garde l'accès indéfiniment. Il manque un travail
+  planifié, à écrire avec la grappe Facturation (G5).
+
+## Vitrine publique : une démo, pas le vrai tableau de bord
+
+Décidé le 28/09/2026. L'objectif est que des prospects et des agences
+intéressées par la marque blanche puissent manipuler le produit sans compte.
+
+Ce ne sera **pas** le tableau de bord réel ouvert au public. D'abord parce que
+les politiques RLS refusent tout sans `auth.uid()` : un visiteur non connecté
+ne verrait que des écrans vides, ce qui ne vend rien. Ensuite parce que les
+remplir demanderait de contourner RLS, donc de publier les réservations, les
+fiches clients et le chiffre d'affaires de vrais clients.
+
+Forme retenue : une route `/demo` publique, avec un jeu de données **écrit
+dans le code**, branché sur rien. À faire après les écrans, qu'elle réutilise.
+Penser à l'ajouter à `estPublic()` dans `middleware.ts` le jour où elle
+existe.
+
 ## Dette indépendante, à ne pas perdre
 
 - **Purge des données.** La politique de confidentialité de FiFi annonce 12 et
@@ -89,6 +123,16 @@ c'est le plus gros, et il ne bloque aucun client.
 - **`feat/produits-factures`** : écrite sur l'ancien schéma, à jeter ou à
   reprendre à la main.
 - **Rien n'écrit dans `audit_log`.**
+- **Cookie de session non `httpOnly`.** Inhérent à `createBrowserClient` :
+  c'est du JavaScript qui l'écrit. Une faille XSS dans le tableau de bord
+  permettrait donc de voler une session. Le corriger demande de passer
+  l'authentification en *server actions* uniquement.
+- **`.env.production.backup`** : l'ancien fichier unique, qui mélangeait dev
+  et production. À supprimer une fois vérifié que Vercel porte bien toutes
+  ses variables.
+- **Inscription publique à couper** dans les réglages Supabase Auth : la route
+  `/api/auth/signup` a été supprimée, mais l'API d'authentification accepte
+  encore les inscriptions. Les comptes ne doivent venir que des invitations.
 
 ## Ce qui reste à lancer à la main
 

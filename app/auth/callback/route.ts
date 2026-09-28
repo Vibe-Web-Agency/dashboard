@@ -1,57 +1,56 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
-import { getAdminClient } from '@/lib/supabase-admin'
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
+/**
+ * Retour d'un lien envoyé par e-mail : invitation, réinitialisation de mot
+ * de passe, confirmation d'adresse.
+ *
+ * Réécrit pour la v2. L'ancienne version reliait le compte à la table
+ * `users`, qui n'existe plus : le profil est désormais créé par le
+ * déclencheur `handle_new_user`, et l'adhésion par `accept_invitation`.
+ */
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/'
+    const { searchParams, origin } = new URL(request.url);
+    const code = searchParams.get("code");
+    const suite = searchParams.get("next") ?? "/";
 
-    if (code) {
-        const cookieStore = await cookies()
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() {
-                        return cookieStore.getAll()
-                    },
-                    setAll(cookiesToSet) {
-                        try {
-                            cookiesToSet.forEach(({ name, value, options }) =>
-                                cookieStore.set(name, value, options)
-                            )
-                        } catch {
-                            // Peut échouer si appelé depuis un Server Component
-                        }
-                    },
-                },
-            }
-        )
-
-        const isInvite = searchParams.get('type') === 'invite'
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-
-        if (!error && data.user) {
-            // Lier le dashboard_user_id si pas encore fait (cas invitation)
-            const supabaseAdmin = getAdminClient()
-            await supabaseAdmin
-                .from('users')
-                .update({ dashboard_user_id: data.user.id })
-                .eq('email', data.user.email!)
-                .is('dashboard_user_id', null)
-
-            // Invitation → rediriger vers création de mot de passe
-            if (isInvite) {
-                return NextResponse.redirect(`${origin}/set-password`)
-            }
-
-            return NextResponse.redirect(`${origin}${next}`)
-        }
+    if (!code) {
+        return NextResponse.redirect(`${origin}/login?erreur=lien_invalide`);
     }
 
-    // Rediriger vers la page de login en cas d'erreur
-    return NextResponse.redirect(`${origin}/login?error=callback_error`)
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll: () => cookieStore.getAll(),
+                setAll: (aPoser) => {
+                    try {
+                        aPoser.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options),
+                        );
+                    } catch {
+                        // Peut échouer depuis un composant serveur.
+                    }
+                },
+            },
+        },
+    );
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+        console.error("[auth] échange du code :", error.message);
+        return NextResponse.redirect(`${origin}/login?erreur=lien_expire`);
+    }
+
+    // Une invitation mène à la création du mot de passe, pas au tableau de
+    // bord : le compte existe mais n'a pas encore de secret choisi.
+    if (searchParams.get("type") === "invite") {
+        return NextResponse.redirect(`${origin}/mot-de-passe`);
+    }
+
+    return NextResponse.redirect(`${origin}${suite}`);
 }
