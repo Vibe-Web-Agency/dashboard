@@ -1,42 +1,121 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Feuille volontairement vide.
+   Système de design
 
-   L'ancienne faisait 792 lignes et définissait 56 variables dont sept
-   nuances d'accent — --accent, --accent-bright, --accent-deep, --accent-dim,
-   --accent-glow, --accent-muted, --accent-var — sans qu'on sache laquelle
-   employer. À côté, 1 887 styles écrits en ligne dans les composants
-   doublonnaient le tout : changer une couleur demandait de repasser sur
-   chacun d'eux.
+   Tout passe par des variables CSS, jamais par des valeurs écrites dans les
+   composants. Deux raisons.
 
-   Le nouveau système s'écrit ici, une fois la direction arrêtée : une seule
-   échelle de couleurs, une d'espacements, une de typographie. Et il devra
-   prévoir le white label dès le départ, puisqu'une agence doit pouvoir
-   poser ses propres couleurs.
+   La première est le white label : la couleur d'une agence vient de la base,
+   donc à l'exécution. Une classe compilée serait figée ; une variable se
+   remplace en posant un style sur <html> à la connexion.
+
+   La seconde est ce qui a tué l'ancienne version : 56 variables, dont sept
+   nuances d'accent, doublées par 1 887 styles écrits en ligne. Changer une
+   couleur demandait de repasser sur chacun. Ici il y a UNE échelle de gris,
+   UN accent, et rien d'autre.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── Jetons ──────────────────────────────────────────────────────────────
-   Déclarés en variables CSS, JAMAIS en valeurs figées dans les classes.
-   C'est ce que le white label impose : la couleur d'une agence vient de la
-   base, donc à l'exécution. Une classe compilée serait figée ; une variable
-   se remplace en posant un style sur <html> à la connexion.
-
-   Ces trois valeurs sont un point de départ à jeter dès que la direction
-   du design sera arrêtée. Elles existent pour prouver que la chaîne
-   variable → @theme → classe utilitaire fonctionne. */
 :root {
-  --brand: #0e0d0b;
-  --brand-contrast: #ffffff;
+  color-scheme: light;
+
+  /* Gris neutres. Du fond de page au texte le plus appuyé. */
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
   --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+
+  --text: #18181b;
+  --text-muted: #52525b;
+  /* Le gris habituel des placeholders (#a1a1aa) tombe à 2,56:1 : illisible.
+     Un placeholder n'est PAS exempté de contraste, contrairement à un champ
+     désactivé. On descend donc jusqu'à un gris réellement lisible. */
+  --text-faint: #71717a;
+
+  /* Accent unique. C'est LA variable qu'une agence remplace. */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-subtle: #eff6ff;
+  --on-accent: #ffffff;
+
+  /* États. Mêmes règles : une teinte, un fond clair associé. */
+  --success: #15803d;
+  --success-subtle: #f0fdf4;
+  --warning: #b45309;
+  --warning-subtle: #fffbeb;
+  --danger: #b91c1c;
+  --danger-subtle: #fef2f2;
+
+  --radius: 0.5rem;
+  --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+
+  --sidebar-w: 15rem;
+  --topbar-h: 3.5rem;
 }
 
-/* `@theme inline` relie les variables aux classes : `bg-brand` lit
-   `var(--brand)` à l'exécution au lieu d'être compilé en dur. */
+.dark {
+  color-scheme: dark;
+
+  --bg: #09090b;
+  --bg-subtle: #0c0c0f;
+  --surface: #18181b;
+  --surface-hover: #27272a;
+
+  --border: #27272a;
+  --border-strong: #3f3f46;
+
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-faint: #8b8b93;
+
+  /* Le bleu de base descend à 3,7:1 sur fond sombre : on l'éclaircit
+     plutôt que de garder une couleur illisible par cohérence. */
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-subtle: #172554;
+  --on-accent: #0b1220;
+
+  --success: #4ade80;
+  --success-subtle: #052e16;
+  --warning: #fbbf24;
+  --warning-subtle: #2c1a04;
+  --danger: #f87171;
+  --danger-subtle: #300c0c;
+
+  --shadow: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-raised: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+}
+
+/* `@theme inline` relie les variables aux classes utilitaires : `bg-accent`
+   compile en `var(--accent)`, donc suit le thème à l'exécution. */
 @theme inline {
-  --color-brand: var(--brand);
-  --color-brand-contrast: var(--brand-contrast);
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
   --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-danger: var(--danger);
+  --color-danger-subtle: var(--danger-subtle);
+
+  --radius-DEFAULT: var(--radius);
+  --shadow-DEFAULT: var(--shadow);
+  --shadow-raised: var(--shadow-raised);
 }
 
 @layer base {
@@ -45,8 +124,17 @@
   }
 
   body {
-    background-color: var(--surface);
+    background-color: var(--bg);
+    color: var(--text);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Un contour visible au clavier, partout, sans exception. C'est le défaut
+     le plus courant des interfaces d'administration : on le pose une fois. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
