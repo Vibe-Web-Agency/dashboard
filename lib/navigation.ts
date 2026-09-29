@@ -18,7 +18,13 @@ export type EntreeNav = {
   label: string;
   /** Slug du module qui la conditionne, `null` si toujours visible. */
   module: string | null;
-  /** Rôle minimal pour la voir. `null` = tout le monde, lecteur compris. */
+  /**
+   * Rôle minimal pour voir l'entrée. `null` = tout le monde, lecteur compris.
+   *
+   * À régler sur ce que la BASE autorise, pas sur ce qu'on voudrait. Masquer
+   * une entrée dont RLS permet la lecture ne protège rien : l'adresse reste
+   * tapable et la base répond. Ça ne sert qu'à croire le trou fermé.
+   */
   minRole: Role | null;
   /** Nom d'icône, résolu par `components/Icone.tsx`. */
   icone: string;
@@ -49,7 +55,12 @@ export const NAVIGATION: EntreeNav[] = [
   { href: "/reservations", label: "Réservations", module: "reservations", minRole: null, icone: "agenda", libelleDuModule: true },
   { href: "/calendrier", label: "Calendrier", module: "reservations", minRole: null, icone: "calendrier" },
   { href: "/equipe", label: "Planning", module: "planning", minRole: "member", icone: "projets" },
-  { href: "/clients", label: "Clients", module: "customers", minRole: "member", icone: "clients", libelleDuModule: true },
+  // `minRole: null` et non `member` : la politique de lecture de `customers`
+  // autorise les lecteurs. Masquer l'entrée ne protégeait rien — l'URL
+  // restait accessible et la base répondait. Un menu qui prétend une
+  // protection qu'il n'a pas est pire qu'un menu permissif : on croit le
+  // trou fermé.
+  { href: "/clients", label: "Clients", module: "customers", minRole: null, icone: "clients", libelleDuModule: true },
   { href: "/commandes", label: "Commandes", module: "shop", minRole: null, icone: "panier" },
   { href: "/devis", label: "Devis", module: "quotes", minRole: null, icone: "devis", libelleDuModule: true },
   { href: "/factures", label: "Factures", module: "invoicing", minRole: "member", icone: "facture", libelleDuModule: true },
