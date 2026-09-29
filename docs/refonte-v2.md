@@ -139,6 +139,31 @@ vaudra pour le calendrier, les statistiques et les campagnes.
 `npm run db:dates` recale les dates sans toucher au reste. À lancer en
 reprenant le travail, plutôt qu'un `db:reset` complet.
 
+## Devis : ce qui manque encore
+
+La liste et la fiche sont faites. Ce qui suit ne l'est PAS, et un devis ne
+sert pas à grand-chose sans :
+
+- **L'éditeur de lignes.** `quote_items` existe et s'affiche, mais rien ne
+  permet d'ajouter, modifier ou supprimer une ligne. C'est le cœur du
+  métier : sans lui, on ne chiffre pas. Les totaux se recalculent à partir
+  des lignes — la contrainte `total = subtotal - discount + tax` est en
+  base, donc le calcul doit être exact, pas approché.
+- **L'envoi au client.** Le bouton « Envoyer » change le statut et attribue
+  un numéro, mais n'envoie rien. Il faut un PDF et un e-mail — et un lien de
+  consultation pour que `viewed_at` veuille dire quelque chose.
+- **La création depuis le tableau de bord.** On ne peut traiter que ce qui
+  arrive du site. Un devis démarré au téléphone n'a pas d'entrée.
+- **La note interne** s'affiche mais ne se modifie pas.
+- **`valid_until`** n'est ni affiché ni réglable, alors que le statut
+  `expired` existe. Rien ne fait expirer un devis aujourd'hui.
+- **La suppression**, absente. La v1 l'avait.
+
+Remarque de conception à trancher avant l'éditeur : une demande (`request`)
+et un devis chiffré partagent la même table. C'est pratique pour le suivi,
+mais l'écran devra afficher deux choses assez différentes. Si ça devient
+confus, la sortie est de séparer les deux VUES, pas les deux tables.
+
 ## Ce qu'on a appris en portant plutôt qu'en réécrivant
 
 L'écran Devis a été PORTÉ depuis la v1, pas réécrit. La v1 avait quatre
