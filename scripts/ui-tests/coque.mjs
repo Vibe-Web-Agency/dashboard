@@ -43,13 +43,14 @@ console.log("\n  menu :", liens.map((l) => l.label).join(" · "));
 // permettra de dire « Actualités » plutôt que « Journal » selon le client.
 // « Calendrier » est là parce qu'il dépend du module `reservations`, pas de
 // `planning` : c'est la même donnée vue autrement.
-// « Devis » est là parce que `db:garnir` active le module `quotes` — sans
-// lui, l'écran n'apparaît pas et on croit à un bogue.
-const attendus = ["Vue d'ensemble", "Réservations", "Calendrier", "Fichier clients", "Devis", "Carte", "Avis", "Statistiques", "Réglages"];
+// « Devis » et « Blog » sont là parce que `db:garnir` active les modules
+// `quotes` et `blog` — sans eux, l'écran n'apparaît pas et on croit à un
+// bogue de l'écran plutôt qu'à un module éteint.
+const attendus = ["Vue d'ensemble", "Réservations", "Calendrier", "Fichier clients", "Devis", "Carte", "Blog", "Avis", "Statistiques", "Réglages"];
 ok(`${liens.length} entrées`, liens.length === attendus.length, `attendu ${attendus.length}`);
 for (const a of attendus) ok(`« ${a} » présente`, liens.some((l) => l.label === a));
 // Les modules NON activés ne doivent pas apparaître.
-for (const a of ["Journal", "Talents", "Campagnes", "Boutique", "Rappels", "Planning"])
+for (const a of ["Talents", "Campagnes", "Boutique", "Rappels", "Planning"])
   ok(`« ${a} » absente (module non activé)`, !liens.some((l) => l.label === a));
 
 // État actif annoncé autrement que par la couleur.
