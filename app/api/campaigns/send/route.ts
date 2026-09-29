@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserProfile } from "@/lib/supabase-server";
 import { getAdminClient } from "@/lib/supabase-admin";
+import { signerDesinscription } from "@/lib/unsubscribe-token";
 import { resend, FROM_EMAIL } from "@/lib/resend";
 import { campaignEmailHtml } from "@/lib/emails/campaignEmail";
 
@@ -56,7 +57,13 @@ export async function POST(req: NextRequest) {
         const batch = recipients.slice(i, i + batchSize);
         await Promise.all(
             batch.map(async (email) => {
-                const unsubUrl = `${siteUrl}/unsubscribe?business_id=${businessId}&email=${encodeURIComponent(email)}`;
+                // Le lien pointait sur `/unsubscribe`, une page qui n'existe
+                // pas : il rendait une 404. Il vise maintenant la route qui
+                // traite la demande, et porte une signature liant l'adresse
+                // au commerce.
+                const unsubUrl = `${siteUrl}/api/unsubscribe?business_id=${businessId}`
+                    + `&email=${encodeURIComponent(email)}`
+                    + `&t=${signerDesinscription(businessId, email)}`;
                 try {
                     await resend.emails.send({
                         from: fromAddress,
