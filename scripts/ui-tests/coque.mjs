@@ -17,7 +17,14 @@ import { chromium } from "playwright";
 const BASE = "http://localhost:3100";
 const nav = await chromium.launch({ channel: "chrome" });
 const page = await nav.newPage({ viewport: { width: 1280, height: 900 } });
-const ok = (t, c, d = "") => console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+let echecs = 0;
+const ok = (t, c, d = "") => {
+  if (!c) echecs++;
+  console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+};
+// Le code de sortie porte le verdict : sans lui, une suite qui imprime des
+// « ❌ » sort quand même à 0 et passe pour verte.
+process.on("exit", () => { if (echecs > 0) process.exitCode = 1; });
 
 await page.goto(`${BASE}/login`);
 await page.fill('input[name="email"]', "test-auth@vwa.local");
@@ -36,11 +43,13 @@ console.log("\n  menu :", liens.map((l) => l.label).join(" · "));
 // permettra de dire « Actualités » plutôt que « Journal » selon le client.
 // « Calendrier » est là parce qu'il dépend du module `reservations`, pas de
 // `planning` : c'est la même donnée vue autrement.
-const attendus = ["Vue d'ensemble", "Réservations", "Calendrier", "Fichier clients", "Carte", "Avis", "Statistiques", "Réglages"];
+// « Devis » est là parce que `db:garnir` active le module `quotes` — sans
+// lui, l'écran n'apparaît pas et on croit à un bogue.
+const attendus = ["Vue d'ensemble", "Réservations", "Calendrier", "Fichier clients", "Devis", "Carte", "Avis", "Statistiques", "Réglages"];
 ok(`${liens.length} entrées`, liens.length === attendus.length, `attendu ${attendus.length}`);
 for (const a of attendus) ok(`« ${a} » présente`, liens.some((l) => l.label === a));
 // Les modules NON activés ne doivent pas apparaître.
-for (const a of ["Devis", "Journal", "Talents", "Campagnes", "Boutique", "Rappels", "Planning"])
+for (const a of ["Journal", "Talents", "Campagnes", "Boutique", "Rappels", "Planning"])
   ok(`« ${a} » absente (module non activé)`, !liens.some((l) => l.label === a));
 
 // État actif annoncé autrement que par la couleur.

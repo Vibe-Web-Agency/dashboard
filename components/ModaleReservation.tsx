@@ -174,14 +174,10 @@ export function ModaleReservation({
         </p>
 
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onFermer}
-            className="min-h-9 flex-1 rounded-lg border border-border-strong px-3 text-sm transition-colors hover:bg-surface-hover"
-          >
+          <Bouton type="button" variante="secondaire" pleineLargeur={false} className="flex-1" onClick={onFermer}>
             Annuler
-          </button>
-          <Bouton type="submit" enCours={enCours} libelleEnCours="Enregistrement…" className="flex-1">
+          </Bouton>
+          <Bouton type="submit" enCours={enCours} libelleEnCours="Enregistrement…" pleineLargeur={false} className="flex-1">
             Enregistrer
           </Bouton>
         </div>

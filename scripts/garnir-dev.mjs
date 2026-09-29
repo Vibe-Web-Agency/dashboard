@@ -121,3 +121,62 @@ if (error) {
 
 console.log(`\n✅ ${lignes.length} réservations semées sur « ${commerce.name} », du J−7 au J+14.`);
 console.log("   Elles portent source = « import » et sont remplacées à chaque passage.");
+
+/* ─── Devis et demandes ────────────────────────────────────────────────
+ *
+ * Le module `quotes` n'est pas activé par le seed : on l'active ici, sans
+ * quoi l'écran n'apparaît pas au menu et on croit à un bogue.
+ */
+const { data: moduleDevis } = await sb.from("modules").select("id").eq("slug", "quotes").single();
+if (moduleDevis) {
+    await sb.from("business_module_settings").upsert(
+        { business_id: commerce.id, module_id: moduleDevis.id, is_enabled: true },
+        { onConflict: "business_id,module_id" },
+    );
+    // Le droit vient du plan : le jeu de dev en a un qui contient tout.
+    console.log("   module « quotes » activé");
+}
+
+// On repart d'une ardoise propre, comme pour les réservations.
+await sb.from("quotes").delete().eq("business_id", commerce.id);
+
+const DEMANDES = [
+    ["Repas d'entreprise", "Bonjour,\n\nNous cherchons un lieu pour un repas de fin d'année,\n35 personnes, un vendredi soir de décembre.\n\nPouvez-vous nous faire une proposition ?", "request", 0],
+    ["Anniversaire 40 ans", "Bonsoir, je souhaiterais privatiser la salle du fond\npour une vingtaine de personnes le samedi 14.", "request", 0],
+    ["Cocktail dînatoire", "Cocktail pour 60 personnes, format debout.\nBudget autour de 45 € par personne.", "draft", 0],
+    ["Repas de famille", "Nous serons 18, dont 4 enfants. Un dimanche midi.", "sent", 74000],
+    ["Séminaire", "Journée d'étude avec déjeuner, 25 personnes.", "accepted", 125000],
+    ["Buffet de mariage", "Vin d'honneur pour 80 personnes en juin.", "declined", 288000],
+];
+
+const { data: clientsExistants } = await sb.from("customers").select("id").eq("business_id", commerce.id);
+const devis = [];
+for (const [i, [titre, message, statut, total]] of DEMANDES.entries()) {
+    const client = clientsExistants?.[i % (clientsExistants?.length || 1)];
+    if (!client) break;
+    const jours = -(i * 3 + 1);
+    const d = new Date();
+    d.setDate(d.getDate() + jours);
+
+    devis.push({
+        business_id: commerce.id,
+        customer_id: client.id,
+        // La base refuse un statut avancé sans numéro.
+        number: ["request", "draft", "cancelled"].includes(statut)
+            ? null
+            : `DEV-${d.getFullYear()}-${String(9000 + i).padStart(4, "0")}`,
+        status: statut,
+        title: titre,
+        request_message: message,
+        subtotal_cents: total,
+        total_cents: total,
+        created_at: d.toISOString(),
+        sent_at: ["sent", "accepted", "declined"].includes(statut) ? d.toISOString() : null,
+        accepted_at: statut === "accepted" ? d.toISOString() : null,
+        declined_at: statut === "declined" ? d.toISOString() : null,
+    });
+}
+
+const { error: erreurDevis } = await sb.from("quotes").insert(devis);
+if (erreurDevis) console.error("Devis :", erreurDevis.message);
+else console.log(`✅ ${devis.length} devis semés (2 demandes à traiter).`);

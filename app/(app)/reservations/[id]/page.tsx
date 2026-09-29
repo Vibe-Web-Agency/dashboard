@@ -411,7 +411,7 @@ function Deplacement({
           className="mt-1 min-h-9 rounded-lg border border-border-strong bg-bg px-2 text-sm focus:border-accent focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         />
       </div>
-      <Bouton type="submit" enCours={enCours} className="w-auto">
+      <Bouton type="submit" enCours={enCours} pleineLargeur={false}>
         Enregistrer
       </Bouton>
       <button
@@ -461,7 +461,7 @@ function NoteModifiable({
           <Bouton
             type="button"
             enCours={enCours}
-            className="w-auto"
+            pleineLargeur={false}
             onClick={async () => {
               setEnCours(true);
               await onEnregistrer(texte);
@@ -508,7 +508,7 @@ function AjoutNote({ onAjouter }: { onAjouter: (texte: string) => Promise<void> 
         className="w-full rounded-lg border border-border-strong bg-bg px-3 py-2 text-sm placeholder:text-text-faint focus:border-accent focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       />
       {texte.trim() && (
-        <Bouton type="submit" enCours={enCours} className="w-auto">
+        <Bouton type="submit" enCours={enCours} pleineLargeur={false}>
           Ajouter
         </Bouton>
       )}

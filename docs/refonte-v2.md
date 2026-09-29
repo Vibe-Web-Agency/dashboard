@@ -63,7 +63,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | G2 | Clients | `clients` (681), `crm` (652) | L |
 | G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste, calendrier 3 vues, glisser-déposer et création : faits** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
-| G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L |
+| G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L — **devis : liste et fiche faites** |
 | G6 | Contenu | `blog` (346) | S |
 | G7 | Communication | `messages`, `campaigns` (212), `reviews` (307) | M |
 | G8 | Statistiques | `stats` (916), `analytics` (368) | L |
@@ -138,6 +138,42 @@ vaudra pour le calendrier, les statistiques et les campagnes.
 
 `npm run db:dates` recale les dates sans toucher au reste. À lancer en
 reprenant le travail, plutôt qu'un `db:reset` complet.
+
+## Devis : ce qui manque encore
+
+La liste et la fiche sont faites. Ce qui suit ne l'est PAS, et un devis ne
+sert pas à grand-chose sans :
+
+- **L'éditeur de lignes.** `quote_items` existe et s'affiche, mais rien ne
+  permet d'ajouter, modifier ou supprimer une ligne. C'est le cœur du
+  métier : sans lui, on ne chiffre pas. Les totaux se recalculent à partir
+  des lignes — la contrainte `total = subtotal - discount + tax` est en
+  base, donc le calcul doit être exact, pas approché.
+- **L'envoi au client.** Le bouton « Envoyer » change le statut et attribue
+  un numéro, mais n'envoie rien. Il faut un PDF et un e-mail — et un lien de
+  consultation pour que `viewed_at` veuille dire quelque chose.
+- **La création depuis le tableau de bord.** On ne peut traiter que ce qui
+  arrive du site. Un devis démarré au téléphone n'a pas d'entrée.
+- **La note interne** s'affiche mais ne se modifie pas.
+- **`valid_until`** n'est ni affiché ni réglable, alors que le statut
+  `expired` existe. Rien ne fait expirer un devis aujourd'hui.
+- **La suppression**, absente. La v1 l'avait.
+
+Remarque de conception à trancher avant l'éditeur : une demande (`request`)
+et un devis chiffré partagent la même table. C'est pratique pour le suivi,
+mais l'écran devra afficher deux choses assez différentes. Si ça devient
+confus, la sortie est de séparer les deux VUES, pas les deux tables.
+
+## Ce qu'on a appris en portant plutôt qu'en réécrivant
+
+L'écran Devis a été PORTÉ depuis la v1, pas réécrit. La v1 avait quatre
+choses qu'on n'aurait pas pensé à mettre et qui servent tous les jours : la
+mise à jour en temps réel, la recherche dans le message du client, l'export
+CSV avec point-virgule (Excel français) et la pagination.
+
+C'est la méthode à garder pour les écrans restants — clients, blog,
+talents. Les réservations et le calendrier valaient la réécriture, ils sont
+le cœur du produit ; une liste avec un formulaire, non.
 
 ## Dette indépendante, à ne pas perdre
 

@@ -21,7 +21,14 @@ ctx.on("request", (r) => {
 });
 
 const page = await ctx.newPage();
-const ok = (t, c, d = "") => console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+let echecs = 0;
+const ok = (t, c, d = "") => {
+  if (!c) echecs++;
+  console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+};
+// Le code de sortie porte le verdict : sans lui, une suite qui imprime des
+// « ❌ » sort quand même à 0 et passe pour verte.
+process.on("exit", () => { if (echecs > 0) process.exitCode = 1; });
 
 // La racine mène à la démo quand on n'est pas connecté.
 await page.goto(BASE);

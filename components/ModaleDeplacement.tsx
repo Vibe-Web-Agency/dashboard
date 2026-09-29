@@ -101,18 +101,15 @@ export function ModaleDeplacement({
           </label>
 
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onFermer}
-              className="min-h-9 flex-1 rounded-lg border border-border-strong px-3 text-sm transition-colors hover:bg-surface-hover"
-            >
+            <Bouton type="button" variante="secondaire" pleineLargeur={false} className="flex-1" onClick={onFermer}>
               Annuler
-            </button>
+            </Bouton>
             <Bouton
               type="button"
               onClick={confirmer}
               enCours={enCours}
               libelleEnCours="Déplacement…"
+              pleineLargeur={false}
               className="flex-1"
             >
               Déplacer
