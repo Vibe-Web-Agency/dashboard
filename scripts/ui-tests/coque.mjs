@@ -131,7 +131,10 @@ ok("PAS « Propriétaire » (le rôle d'un autre membre de l'agence)",
 const liensLect = await lect.$$eval('nav[data-ou="barre"] a', (a) => a.map((x) => x.textContent.trim()));
 console.log("  menu du lecteur :", liensLect.join(" · "));
 ok("« Réglages » masquée (réservée aux administrateurs)", !liensLect.includes("Réglages"));
-ok("« Fichier clients » masquée (réservée aux membres)", !liensLect.includes("Fichier clients"));
+// « Fichier clients » reste visible : la politique de lecture de `customers`
+// autorise les lecteurs. Le masquer ne protégerait rien, l'adresse restant
+// tapable.
+ok("« Fichier clients » visible (RLS autorise la lecture)", liensLect.includes("Fichier clients"));
 ok("« Réservations » visible (ouverte aux lecteurs)", liensLect.includes("Réservations"));
 ok("« Calendrier » aussi", liensLect.includes("Calendrier"), liensLect.join(","));
 

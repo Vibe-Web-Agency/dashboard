@@ -60,7 +60,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | # | Grappe | Écrans | Taille |
 | --- | --- | --- | --- |
 | G1 | Commerce & équipe | `settings` (812), `team` (354) | L |
-| G2 | Clients | `clients` (681), `crm` (652) | L |
+| G2 | Clients | `clients` (681), `crm` (652) | L — **liste et fiche faites** |
 | G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste, calendrier 3 vues, glisser-déposer et création : faits** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
 | G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L — **devis : liste et fiche faites** |
@@ -138,6 +138,33 @@ vaudra pour le calendrier, les statistiques et les campagnes.
 
 `npm run db:dates` recale les dates sans toucher au reste. À lancer en
 reprenant le travail, plutôt qu'un `db:reset` complet.
+
+## Un principe posé en construisant l'écran Clients
+
+Le menu doit refléter ce que la BASE autorise, pas ce qu'on voudrait.
+
+`/clients` était réservé aux membres dans la navigation, alors que la
+politique de lecture de `customers` autorise les lecteurs. Masquer l'entrée
+ne protégeait rien : l'adresse restait tapable et la base répondait. Ça ne
+servait qu'à croire le trou fermé — et c'est pire qu'un menu permissif,
+parce qu'on cesse de regarder.
+
+Le rôle sert à masquer ce qui serait de toute façon refusé, jamais à
+inventer une règle que la base ignore.
+
+## Clients : ce qui manque encore
+
+- **Créer ou modifier une fiche à la main.** Elles se créent seules à la
+  première réservation, mais on ne peut ni corriger un nom mal orthographié
+  ni fusionner deux fiches — or le rapprochement par téléphone laisse
+  passer des doublons dès qu'un habitué appelle d'un autre numéro.
+- **L'effacement RGPD.** `anonymized_at` existe et la fiche le respecte,
+  mais rien ne déclenche l'effacement. Une demande de suppression n'a donc
+  aucune réponse outillée.
+- **Les campagnes.** La v1 permettait d'écrire à la liste filtrée. C'est le
+  module `campaigns`, pas celui-ci — mais le lien devra exister.
+- **`crm` de la v1** (652 lignes) n'a pas été regardé : à voir s'il contient
+  quelque chose que `clients` n'a pas.
 
 ## Devis : ce qui manque encore
 
