@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-admin'
 
+/**
+ * Activation d'un compte pré-créé.
+ *
+ * ⚠️ Cette route ne vérifie QUE l'existence de l'adresse dans `users`. Elle
+ * ne prouve pas que l'appelant possède cette adresse. Qui connaît l'e-mail
+ * d'un client dont le compte n'est pas encore activé peut donc se
+ * l'attribuer — et une adresse de commerce se devine.
+ *
+ * Elle est désormais COUPÉE par défaut. La bonne voie d'activation existe
+ * déjà : `/api/invite` envoie une invitation Supabase, et le lien reçu
+ * prouve la possession de l'adresse. C'est ce que fait la v2.
+ *
+ * `ACTIVATION_PAR_MOT_DE_PASSE=1` la rouvre, le temps d'activer un compte
+ * en attente si l'invitation ne passe pas. À ne pas laisser en place.
+ *
+ * `supabase/manual/05-comptes-en-attente.sql` liste les comptes concernés.
+ */
 export async function POST(request: NextRequest) {
+    if (process.env.ACTIVATION_PAR_MOT_DE_PASSE !== '1') {
+        return NextResponse.json(
+            {
+                error:
+                    "L'activation par mot de passe est désactivée. " +
+                    'Demandez une invitation à votre agence : le lien reçu par e-mail ' +
+                    'vous permettra de choisir votre mot de passe.',
+            },
+            { status: 410 },
+        )
+    }
+
     try {
         const { email, password } = await request.json()
 
