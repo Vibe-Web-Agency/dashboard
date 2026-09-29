@@ -12,7 +12,8 @@
  * Ce script recale les dates sans toucher au reste, ce qui évite un
  * `db:reset` complet à chaque fois qu'on reprend le travail.
  *
- * Il remet aussi les STATUTS dans un état connu. C'est ce qui rend les tests
+ * Il supprime aussi tout ce que les tests ont pu créer — il ne garde que les
+ * trois réservations du seed — et remet les STATUTS dans un état connu. C'est ce qui rend les tests
  * de navigateur reproductibles : `ui:reservations` change des statuts, donc
  * sans remise à plat la deuxième exécution partait d'un état différent et
  * échouait une fois sur deux. Un test instable finit par ne plus être lu.
@@ -47,6 +48,40 @@ const jours = (n, heure) => {
     d.setHours(heure, 0, 0, 0);
     return d.toISOString();
 };
+
+/*
+ * On ramène le jeu à ses TROIS lignes d'origine — celles du seed, les plus
+ * anciennes — et on supprime tout le reste.
+ *
+ * Filtrer sur la source ne suffisait pas : `db:garnir` marque ses lignes
+ * « import », mais le test de création en pose d'autres en « dashboard ».
+ * La suite « réservations » voyait alors 8 lignes là où elle en attend 3,
+ * selon qu'une autre suite soit passée avant. Deux tests qui dépendent de
+ * leur ordre d'exécution finissent par échouer au hasard, et on se met à
+ * débattre du test au lieu du code.
+ *
+ * Partir de l'ancienneté plutôt que d'une marque est plus robuste : ça
+ * couvre aussi les lignes créées à la main pendant une session de travail.
+ */
+const { data: toutes, error: erreurLecture } = await sb
+    .from("reservations")
+    .select("id, created_at")
+    .order("created_at");
+
+if (erreurLecture) {
+    console.error("Lecture :", erreurLecture.message);
+    process.exit(1);
+}
+
+const aSupprimer = toutes.slice(3).map((r) => r.id);
+if (aSupprimer.length > 0) {
+    const { error: erreurPurge } = await sb.from("reservations").delete().in("id", aSupprimer);
+    if (erreurPurge) {
+        console.error("Purge :", erreurPurge.message);
+        process.exit(1);
+    }
+    console.log(`  ${aSupprimer.length} réservation(s) de test supprimée(s)`);
+}
 
 const { data: resas, error } = await sb
     .from("reservations")

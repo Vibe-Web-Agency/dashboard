@@ -2,28 +2,19 @@
 
 import { useState } from "react";
 import { useProfil } from "@/lib/ContexteUtilisateur";
-import { useReservations, type Reservation } from "@/lib/useReservations";
+import { LigneReservation } from "@/components/LigneReservation";
+import { useReservations } from "@/lib/useReservations";
 import {
   PERIODE_LABELS,
-  SOURCE_LABELS,
   STATUTS,
   STATUT_LABELS,
-  STATUT_TONS,
-  TRANSITIONS,
-  nomAffiche,
-  quand,
   type Periode,
   type Statut,
 } from "@/lib/reservations";
 import { atLeast } from "@/lib/roles";
 import { Alerte } from "@/components/formulaire";
-
-const CLASSES_TON = {
-  neutre: "bg-surface-hover text-text-muted",
-  succes: "bg-success-subtle text-success",
-  attention: "bg-warning-subtle text-warning",
-  danger: "bg-danger-subtle text-danger",
-};
+import { ModaleReservation } from "@/components/ModaleReservation";
+import { parisDayKey, parisToUtc } from "@/lib/paris-time";
 
 /**
  * Les réservations.
@@ -38,13 +29,13 @@ export default function Reservations() {
   const { loading: chargeProfil, activeBusiness } = useProfil();
   const [periode, setPeriode] = useState<Periode>("a_venir");
   const [statut, setStatut] = useState<Statut | "tous">("tous");
-  const [ouverte, setOuverte] = useState<string | null>(null);
 
-  const { chargement: chargeResas, erreur, lignes, changerStatut } = useReservations(
+  const { chargement: chargeResas, erreur, lignes, creer } = useReservations(
     activeBusiness?.id,
     periode,
     statut,
   );
+  const [creation, setCreation] = useState(false);
 
   // Tant que le profil charge, on ne SAIT pas s'il y a des réservations : la
   // requête n'a pas encore de commerce sur quoi porter. Conclure « aucune »
@@ -61,13 +52,36 @@ export default function Reservations() {
 
   return (
     <>
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Réservations</h1>
-        {!chargement && (
-          <p className="text-sm text-text-muted">
-            {lignes.length} réservation{lignes.length > 1 ? "s" : ""}
-            {couverts > 0 && ` · ${couverts} couverts`}
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Réservations</h1>
+          {!chargement && (
+            <p className="mt-1 text-sm text-text-muted">
+              {lignes.length} réservation{lignes.length > 1 ? "s" : ""}
+              {couverts > 0 && ` · ${couverts} couverts`}
+            </p>
+          )}
+        </div>
+
+        {peutModifier && (
+          <button
+            type="button"
+            onClick={() => setCreation(true)}
+            className="flex min-h-9 items-center gap-1.5 rounded-lg bg-accent px-3 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+              className="size-4"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Réservation
+          </button>
         )}
       </div>
 
@@ -136,132 +150,35 @@ export default function Reservations() {
           <div className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
             <ul>
               {lignes.map((r) => (
-                <Ligne
-                  key={r.id}
-                  reservation={r}
-                  ouverte={ouverte === r.id}
-                  onBasculer={() => setOuverte(ouverte === r.id ? null : r.id)}
-                  peutModifier={peutModifier}
-                  onChangerStatut={changerStatut}
-                />
+                <LigneReservation key={r.id} reservation={r} />
               ))}
             </ul>
           </div>
         )}
       </div>
-    </>
-  );
-}
 
-function Ligne({
-  reservation: r,
-  ouverte,
-  onBasculer,
-  peutModifier,
-  onChangerStatut,
-}: {
-  reservation: Reservation;
-  ouverte: boolean;
-  onBasculer: () => void;
-  peutModifier: boolean;
-  onChangerStatut: (id: string, s: Statut, raison?: string) => void;
-}) {
-  const nom = nomAffiche(r);
-  const suites = TRANSITIONS[r.status] ?? [];
-  const aDuDetail = Boolean(
-    r.customer_message || r.internal_note || r.cancellation_reason || r.customer?.phone,
-  );
-
-  return (
-    <li className="border-b border-border last:border-0">
-      <button
-        type="button"
-        onClick={onBasculer}
-        aria-expanded={ouverte}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-hover"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{nom}</span>
-          <span className="block truncate text-xs text-text-muted">
-            {quand(r.starts_at)} · {r.party_size} couvert{r.party_size > 1 ? "s" : ""} ·{" "}
-            {SOURCE_LABELS[r.source] ?? r.source}
-          </span>
-        </span>
-
-        <span
-          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${
-            CLASSES_TON[STATUT_TONS[r.status]]
-          }`}
-        >
-          {STATUT_LABELS[r.status]}
-        </span>
-
-        {aDuDetail && (
-          <span aria-hidden="true" className="shrink-0 text-text-faint">
-            {ouverte ? "−" : "+"}
-          </span>
-        )}
-      </button>
-
-      {ouverte && (
-        <div className="border-t border-border bg-bg-subtle px-4 py-3">
-          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            {r.customer?.phone && (
-              <Champ titre="Téléphone">
-                <a href={`tel:${r.customer.phone}`} className="text-accent underline">
-                  {r.customer.phone}
-                </a>
-              </Champ>
-            )}
-            {r.customer?.email && (
-              <Champ titre="E-mail">
-                <a href={`mailto:${r.customer.email}`} className="text-accent underline">
-                  {r.customer.email}
-                </a>
-              </Champ>
-            )}
-            {r.customer_message && <Champ titre="Message du client">{r.customer_message}</Champ>}
-            {r.internal_note && <Champ titre="Note interne">{r.internal_note}</Champ>}
-            {r.cancellation_reason && (
-              <Champ titre="Motif d'annulation">{r.cancellation_reason}</Champ>
-            )}
-          </dl>
-
-          {peutModifier && suites.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {suites.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => onChangerStatut(r.id, s)}
-                  className={`min-h-9 rounded-lg border px-3 text-sm transition-colors ${
-                    s === "cancelled" || s === "no_show"
-                      ? "border-border-strong text-danger hover:bg-danger-subtle"
-                      : "border-border-strong hover:bg-surface-hover"
-                  }`}
-                >
-                  {STATUT_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!peutModifier && (
-            <p className="mt-3 text-xs text-text-faint">
-              Ton accès est en lecture seule : tu peux consulter, pas modifier.
-            </p>
-          )}
-        </div>
+      {creation && (
+        <ModaleReservation
+          ouverte
+          onFermer={() => setCreation(false)}
+          jourInitial={parisDayKey(new Date())}
+          heureInitiale="19:30"
+          onEnregistrer={async (v) => {
+            const [y, m, d] = v.jour.split("-").map(Number);
+            const [h, min] = v.heure.split(":").map(Number);
+            return creer({
+              nom: v.nom,
+              telephone: v.telephone,
+              email: v.email,
+              // L'heure saisie est celle du commerce, pas celle du poste :
+              // un gérant en déplacement ne doit pas décaler son service.
+              debutIso: parisToUtc(y, m - 1, d, h, min).toISOString(),
+              couverts: v.couverts,
+              message: v.message,
+            });
+          }}
+        />
       )}
-    </li>
-  );
-}
-
-function Champ({ titre, children }: { titre: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="text-xs text-text-faint">{titre}</dt>
-      <dd className="mt-0.5">{children}</dd>
-    </div>
+    </>
   );
 }

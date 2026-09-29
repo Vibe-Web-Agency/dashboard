@@ -31,8 +31,10 @@ ok("visiteur non connecté : / → /demo", true);
 await page.waitForSelector('nav[data-ou="barre"] a');
 const liens = await page.$$eval('nav[data-ou="barre"] a', (a) => a.map((x) => x.textContent.trim()));
 console.log("  menu :", liens.join(" · "));
-ok("le menu montre l'étendue du produit : 8 modules + accueil + réglages",
-  liens.length === 10, `${liens.length}`);
+// 8 modules, dont `reservations` qui porte DEUX écrans (liste et
+// calendrier), plus l'accueil et les réglages.
+ok("le menu montre l'étendue du produit : 9 écrans + accueil + réglages",
+  liens.length === 11, `${liens.length}`);
 
 // Le bouton de connexion, en haut à droite.
 const connexion = await page.$('header a[href="/login"]');

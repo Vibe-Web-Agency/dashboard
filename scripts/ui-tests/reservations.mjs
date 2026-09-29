@@ -57,49 +57,51 @@ await page.selectOption("#filtre-statut", "cancelled");
 await page.waitForFunction(() => !document.body.innerText.includes("Chargement…"));
 ok("aucune annulée : message explicite, pas une liste vide",
   (await page.innerText("main")).includes("Aucune réservation"));
-
-// Changement de statut : confirmée → non venu → terminée, puis retour.
+/*
+ * Les changements de statut ne sont plus ici : chaque ligne mène désormais à
+ * sa fiche, et c'est là qu'on agit. Ils sont couverts par `ui:fiche`, avec
+ * l'aller-retour d'annulation qui éprouve la contrainte `cancelled_at`.
+ *
+ * Cette liste garde deux rôles : mener à la bonne fiche, et proposer la
+ * création.
+ */
 await page.selectOption("#filtre-statut", "tous");
 await page.click('button:has-text("À venir")');
 await page.waitForFunction(() => !document.body.innerText.includes("Chargement…"));
-await page.click("main ul > li button");
-await page.waitForSelector('button:has-text("Annuler"), button:has-text("Non venu")');
-const actions = await page.$$eval("main ul > li div button", (b) => b.map((x) => x.textContent.trim()));
-console.log("  actions proposées :", actions.join(" · "));
-ok("depuis « Confirmée » : Terminée, Non venu, Annulée",
-  ["Terminée", "Non venu", "Annulée"].every((a) => actions.includes(a)), actions.join(","));
 
-await page.click('main ul > li div button:has-text("Annulée")');
-await page.waitForFunction(() => document.querySelector("main ul > li").innerText.includes("Annulée"));
-ok("passage à « Annulée » enregistré", true);
+const premier = await page.$eval("main ul > li a", (a) => ({
+  href: a.getAttribute("href"),
+  nom: a.innerText.split("\n")[0],
+}));
+ok(`chaque ligne est un lien vers sa fiche (${premier.href})`,
+  /^\/reservations\/[0-9a-f-]{36}$/.test(premier.href), premier.href);
 
-// La contrainte de la base exige cancelled_at : si elle avait sauté, le
-// rechargement afficherait encore « Confirmée ».
-await page.reload();
+await page.click("main ul > li a");
+await page.waitForURL(/\/reservations\/[0-9a-f-]{36}$/);
+await page.waitForFunction(() => !document.querySelector("main")?.innerText.startsWith("Chargement"));
+ok(`elle ouvre la bonne fiche (${premier.nom})`,
+  (await page.innerText("h1")) === premier.nom, await page.innerText("h1"));
+
+await page.goBack();
 await page.waitForFunction(() => !document.body.innerText.includes("Chargement…"));
-ok("toujours « Annulée » après rechargement (cancelled_at bien posé)",
-  (await page.innerText("main ul > li")).includes("Annulée"));
 
-// Retour en arrière : annulée → à confirmer, et cancelled_at doit repasser à null.
-await page.click("main ul > li button");
-await page.waitForSelector('main ul > li div button:has-text("À confirmer")');
-await page.click('main ul > li div button:has-text("À confirmer")');
-await page.waitForFunction(() => document.querySelector("main ul > li").innerText.includes("À confirmer"));
-await page.click('main ul > li div button:has-text("Confirmée")').catch(() => {});
-await page.waitForTimeout(800);
-ok("retour possible, et la contrainte ne bloque pas", true);
+// Création depuis la liste, pas seulement depuis le calendrier.
+ok("un bouton de création est proposé", (await page.$('button:has-text("Réservation")')) !== null);
+await page.click('button:has-text("Réservation")');
+await page.waitForSelector("dialog[open]");
+ok("il ouvre le formulaire", (await page.innerText("dialog[open] h2")).includes("Nouvelle"));
+await page.click('dialog[open] button:has-text("Annuler")');
+await page.waitForTimeout(300);
+ok("annuler referme sans rien créer", (await page.$("dialog[open]")) === null);
 
-// Lecture seule : aucun bouton d'action.
+// Un lecteur consulte la liste mais ne peut rien y créer.
 const ctx = await nav.newContext({ viewport: { width: 1280, height: 900 } });
 const lect = await ctx.newPage();
 await connecter(lect, "lecteur-test@vwa.local");
 await lect.goto(`${BASE}/reservations`);
 await lect.waitForFunction(() => !document.body.innerText.includes("Chargement…"));
-await lect.click("main ul > li button");
-await lect.waitForTimeout(400);
-const texteLect = await lect.innerText("main");
-ok("lecteur : aucun bouton d'action", !texteLect.includes("Annulée\n") || texteLect.includes("lecture seule"));
-ok("lecteur : on lui dit pourquoi", texteLect.includes("lecture seule"), texteLect.slice(0, 300));
+ok("le lecteur voit bien les réservations", (await lect.$$("main ul > li a")).length > 0);
+ok("mais aucun bouton de création", (await lect.$('button:has-text("Réservation")')) === null);
 
 await page.goto(`${BASE}/reservations`);
 await page.waitForFunction(() => !document.body.innerText.includes("Chargement…"));

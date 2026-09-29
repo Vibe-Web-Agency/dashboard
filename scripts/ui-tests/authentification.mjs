@@ -79,9 +79,25 @@ ok(`déconnexion en GET → ${get.status()}`, get.status() === 405);
 await page.goto(`${BASE}/`);
 const sortie = await page.request.post(`${BASE}/auth/deconnexion`);
 ok(`déconnexion en POST → ${sortie.status()}`, sortie.ok());
+/*
+ * Déconnecté, la RACINE mène à la démonstration, pas à la connexion : on
+ * veut qu'un visiteur voie le produit sans compte.
+ *
+ * Mais un lien profond doit toujours mener à la connexion, en mémorisant la
+ * page demandée — quelqu'un qui a un compte et suit un lien vers son
+ * tableau de bord ne doit pas atterrir sur une démo.
+ */
 await page.goto(`${BASE}/`);
-await page.waitForURL(/\/login/, { timeout: 10000 });
-ok("après déconnexion, / → /login", true);
+await page.waitForURL(/\/demo/, { timeout: 10000 });
+ok("après déconnexion, / → /demo", true);
 
-await page.screenshot({ path: "/private/tmp/claude-501/-Users-enzoabdelmalek-Desktop-VWA/252fc690-9cee-4a08-b2cf-453bf713f66d/scratchpad/login.png" });
+await page.goto(`${BASE}/reservations`);
+await page.waitForURL(/\/login/, { timeout: 10000 });
+ok("mais un lien profond → /login", true);
+ok("en mémorisant la page demandée",
+  new URL(page.url()).searchParams.get("suite") === "/reservations",
+  page.url());
+
+await page.goto(`${BASE}/login`);
+await page.screenshot({ path: `${process.env.SC}/login.png` });
 await navigateur.close();

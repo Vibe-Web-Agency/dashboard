@@ -136,3 +136,8 @@ export function quand(iso: string, maintenant = new Date()): string {
   }).format(d);
   return `${date}, ${heure}`;
 }
+
+/** « 20h00 », l'heure seule, en heure de Paris. */
+export function parisHeure(iso: string): string {
+  return parisTimeLabel(new Date(iso));
+}
