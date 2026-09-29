@@ -87,11 +87,17 @@ export function ModaleReservation({
       <form onSubmit={soumettre} className="space-y-4">
         {erreur && <Alerte ton="erreur">{erreur}</Alerte>}
 
+        {/*
+          Pas d'`autoFocus` : React l'applique pendant le commit, AVANT
+          l'effet qui gèle le défilement — et ce focus fait défiler la page
+          jusqu'à la boîte, donc jusqu'en haut. `showModal()` donne de toute
+          façon le focus au premier champ, mais lui le fait après le gel,
+          quand plus rien ne peut bouger.
+        */}
         <Champ
           label="Nom"
           name="nom"
           required
-          autoFocus
           placeholder="Marie Dupont"
           value={valeurs.nom}
           onChange={(e) => modifier("nom", e.target.value)}

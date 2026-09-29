@@ -82,6 +82,18 @@ export function GrilleHoraire({
   } | null>(null);
   const depart = useRef<{ x: number; y: number; decalageMin: number } | null>(null);
 
+  /**
+   * Ignorer le clic qui suit une interaction sur un créneau.
+   *
+   * `releasePointerCapture` rend la cible du clic à l'élément réellement
+   * sous le pointeur — la colonne, puisque les lignes d'heures sont
+   * transparentes. Le clic remontait donc au fond de la colonne, et ouvrir
+   * ou déplacer une réservation ouvrait EN PLUS la boîte « Nouvelle
+   * réservation ». Le garde-fou `e.target !== e.currentTarget` ne suffit
+   * pas : après relâchement de la capture, la cible EST la colonne.
+   */
+  const ignorerProchainClic = useRef(false);
+
   // Le trait de l'heure courante avance tout seul. Une minute suffit : à la
   // seconde, on ferait tourner un rendu pour un pixel.
   useEffect(() => {
@@ -194,6 +206,7 @@ export function GrilleHoraire({
     const enCours = glisse;
     depart.current = null;
     setGlisse(null);
+    ignorerProchainClic.current = true;
     (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
 
     // Pas de glissement : c'était un clic.
@@ -276,6 +289,12 @@ export function GrilleHoraire({
                   else colonnes.current.delete(j.cle);
                 }}
                 onClick={(e) => {
+                  // Le clic qui suit une interaction sur un créneau n'est pas
+                  // un clic « sur le fond », même si sa cible l'est devenue.
+                  if (ignorerProchainClic.current) {
+                    ignorerProchainClic.current = false;
+                    return;
+                  }
                   // Seulement le fond : un clic sur un créneau remonte
                   // jusqu'ici, et créerait une réservation par-dessus celle
                   // qu'on vient d'ouvrir.
