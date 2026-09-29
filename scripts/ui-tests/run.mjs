@@ -101,9 +101,22 @@ for (const suite of suites) {
     const echecs = (sortie.match(/^ {2}❌/gm) ?? []).length;
     const planté = r.status !== 0 && echecs === 0;
 
-    resultats.push({ nom, reussis, echecs, planté, code: r.status, sortie });
+    /*
+     * Une suite échoue si elle sort en erreur OU si elle a imprimé un seul
+     * « ❌ ».
+     *
+     * Ne regarder que le code de sortie ne suffisait pas : les suites
+     * terminent par `nav.close()` sans appeler `process.exit`, donc elles
+     * sortent à 0 même après des assertions fausses. Le lanceur affichait
+     * « ✅ coque » tout en listant deux échecs juste en dessous. C'est la
+     * troisième fois aujourd'hui qu'un de mes contrôles annonce vert à
+     * tort ; le motif est toujours le même — je vérifiais l'absence d'un
+     * signal au lieu de vérifier le résultat.
+     */
+    const echoue = r.status !== 0 || echecs > 0;
+    resultats.push({ nom, reussis, echecs, planté, code: echoue ? 1 : 0, sortie });
 
-    const etat = r.status === 0 ? "✅" : "❌";
+    const etat = echoue ? "❌" : "✅";
     console.log(
         `${etat} ${nom.padEnd(22)} ${String(reussis).padStart(2)} réussis` +
             (echecs ? `, ${echecs} échec(s)` : "") +

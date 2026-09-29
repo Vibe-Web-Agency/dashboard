@@ -41,15 +41,38 @@ export function Champ({ label, aide, id, className, ...props }: ChampProps) {
   );
 }
 
+export type VarianteBouton = "principal" | "secondaire" | "danger";
+
+const VARIANTES: Record<VarianteBouton, string> = {
+  principal: "bg-accent text-on-accent hover:bg-accent-hover",
+  secondaire: "border border-border-strong bg-transparent text-text hover:bg-surface-hover",
+  danger: "border border-border-strong bg-transparent text-danger hover:bg-danger-subtle",
+};
+
 type BoutonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Remplace le libellé pendant l'attente, et désactive le bouton. */
   enCours?: boolean;
   libelleEnCours?: string;
+  variante?: VarianteBouton;
+  /** Vrai dans un formulaire pleine largeur, faux dans une barre d'actions. */
+  pleineLargeur?: boolean;
 };
 
+/**
+ * L'apparence passe par `variante`, pas par `className`.
+ *
+ * Écrire `className="bg-transparent text-danger"` par-dessus ne marchait
+ * pas : deux classes utilitaires de même spécificité, c'est l'ordre dans la
+ * FEUILLE DE STYLE qui tranche, pas l'ordre dans l'attribut. Les boutons
+ * d'annulation ressortaient donc en bleu plein, illisibles, et tous en
+ * pleine largeur. Le piège est classique et silencieux — d'où l'énumération
+ * fermée.
+ */
 export function Bouton({
   enCours,
   libelleEnCours = "Un instant…",
+  variante = "principal",
+  pleineLargeur = true,
   children,
   disabled,
   className,
@@ -57,10 +80,10 @@ export function Bouton({
 }: BoutonProps) {
   return (
     <button
-      // Un bouton désactivé pendant l'envoi, sinon un double clic crée deux
-      // fois la même chose — et sur une connexion, deux tentatives comptées.
+      // Désactivé pendant l'envoi, sinon un double clic crée deux fois la
+      // même chose — et sur une connexion, deux tentatives comptées.
       disabled={disabled || enCours}
-      className={`w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60 ${className ?? ""}`}
+      className={`${pleineLargeur ? "w-full" : "w-auto"} min-h-9 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTES[variante]} ${className ?? ""}`}
       {...props}
     >
       {enCours ? libelleEnCours : children}

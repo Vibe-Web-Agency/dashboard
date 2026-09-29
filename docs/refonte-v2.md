@@ -63,7 +63,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | G2 | Clients | `clients` (681), `crm` (652) | L |
 | G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste, calendrier 3 vues, glisser-déposer et création : faits** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
-| G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L |
+| G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L — **devis : liste et fiche faites** |
 | G6 | Contenu | `blog` (346) | S |
 | G7 | Communication | `messages`, `campaigns` (212), `reviews` (307) | M |
 | G8 | Statistiques | `stats` (916), `analytics` (368) | L |
@@ -138,6 +138,17 @@ vaudra pour le calendrier, les statistiques et les campagnes.
 
 `npm run db:dates` recale les dates sans toucher au reste. À lancer en
 reprenant le travail, plutôt qu'un `db:reset` complet.
+
+## Ce qu'on a appris en portant plutôt qu'en réécrivant
+
+L'écran Devis a été PORTÉ depuis la v1, pas réécrit. La v1 avait quatre
+choses qu'on n'aurait pas pensé à mettre et qui servent tous les jours : la
+mise à jour en temps réel, la recherche dans le message du client, l'export
+CSV avec point-virgule (Excel français) et la pagination.
+
+C'est la méthode à garder pour les écrans restants — clients, blog,
+talents. Les réservations et le calendrier valaient la réécriture, ils sont
+le cœur du produit ; une liste avec un formulaire, non.
 
 ## Dette indépendante, à ne pas perdre
 

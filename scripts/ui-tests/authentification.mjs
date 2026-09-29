@@ -17,7 +17,14 @@ const MDP = "MotDePasseTest2026";
 
 const navigateur = await chromium.launch({ channel: "chrome" });
 const page = await navigateur.newPage();
-const ok = (t, c) => console.log(`  ${c ? "✅" : "❌"} ${t}`);
+let echecs = 0;
+const ok = (t, c) => {
+  if (!c) echecs++;
+  console.log(`  ${c ? "✅" : "❌"} ${t}`);
+};
+// Le code de sortie porte le verdict : sans lui, une suite qui imprime des
+// « ❌ » sort quand même à 0 et passe pour verte.
+process.on("exit", () => { if (echecs > 0) process.exitCode = 1; });
 
 // 1. Mauvais mot de passe : message générique, pas de session.
 await page.goto(`${BASE}/login`);

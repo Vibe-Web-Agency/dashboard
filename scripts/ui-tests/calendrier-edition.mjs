@@ -15,7 +15,14 @@ execFileSync("node", ["scripts/garnir-dev.mjs"], { stdio: "pipe" });
 const BASE = "http://localhost:3100";
 const nav = await chromium.launch({ channel: "chrome" });
 const page = await nav.newPage({ viewport: { width: 1400, height: 1000 } });
-const ok = (t, c, d = "") => console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+let echecs = 0;
+const ok = (t, c, d = "") => {
+  if (!c) echecs++;
+  console.log(`  ${c ? "✅" : "❌"} ${t}${c ? "" : "  → " + d}`);
+};
+// Le code de sortie porte le verdict : sans lui, une suite qui imprime des
+// « ❌ » sort quand même à 0 et passe pour verte.
+process.on("exit", () => { if (echecs > 0) process.exitCode = 1; });
 
 async function connecter(p, email) {
   await p.goto(`${BASE}/login`);

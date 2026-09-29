@@ -6,6 +6,9 @@ await db.exec(`create role anon nologin; create role authenticated nologin; crea
   create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
   create function auth.uid() returns uuid language sql stable as $$ select null::uuid $$;`);
 await db.exec(readFileSync(process.argv[2] ?? new URL("../../supabase/design/schema-v2.sql", import.meta.url), "utf8"));
+// La numérotation exige désormais un appelant identifié. Ces essais la
+// sollicitent comme le ferait le serveur, avec la clé de service.
+await db.query("select set_config('request.jwt.claim.role', 'service_role', false)");
 let ok = 0, ko = 0;
 const check = (l, c, d = "") => { c ? ok++ : ko++; console.log(`  ${c ? "✓" : "✗"} ${l}${c ? "" : "  → " + d}`); };
 const rejected = async (l, sql) => { try { await db.exec(sql); check(`${l} → refusé`, false, "accepté !"); }
@@ -79,6 +82,20 @@ await rejected("remise mal comptée (1000 − 100 + 180 ≠ 1100)",
   `insert into quotes (business_id, customer_id, subtotal_cents, discount_cents, tax_cents, total_cents) values ('${FIFI}','${C_FIFI}',1000,100,180,1100)`);
 
 console.log("\n— Factures (loi française)");
+/*
+ * La numérotation est refusée à qui n'est ni la clé de service ni un membre.
+ * Sans ce contrôle, n'importe quel visiteur pouvait brûler des numéros et
+ * trouer la séquence — ce qui ne passe pas un contrôle comptable.
+ */
+await db.query("select set_config('request.jwt.claim.role', '', false)");
+try {
+  await db.query(`select next_document_number('${FIFI}','invoice')`);
+  check("numérotation refusée sans identité", false, "acceptée !");
+} catch (e) {
+  check("numérotation refusée sans identité", /Authentification requise/.test(e.message), e.message);
+}
+await db.query("select set_config('request.jwt.claim.role', 'service_role', false)");
+
 const f1 = await one(`select next_document_number('${FIFI}','invoice')`);
 const f2 = await one(`select next_document_number('${FIFI}','invoice')`);
 check(`numérotation continue : ${f1} puis ${f2}`, f1.endsWith("-0001") && f2.endsWith("-0002"));
