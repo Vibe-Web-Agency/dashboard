@@ -122,19 +122,21 @@ if (error) {
 console.log(`\n✅ ${lignes.length} réservations semées sur « ${commerce.name} », du J−7 au J+14.`);
 console.log("   Elles portent source = « import » et sont remplacées à chaque passage.");
 
-/* ─── Devis et demandes ────────────────────────────────────────────────
+/* ─── Modules ──────────────────────────────────────────────────────────
  *
- * Le module `quotes` n'est pas activé par le seed : on l'active ici, sans
- * quoi l'écran n'apparaît pas au menu et on croit à un bogue.
+ * Le seed n'active que cinq modules. Ceux des écrans qu'on construit ne le
+ * sont pas, et sans activation l'entrée n'apparaît pas au menu : on croit
+ * alors à un bogue de l'écran. Le DROIT, lui, vient du plan — le jeu de dev
+ * en a un qui contient tout.
  */
-const { data: moduleDevis } = await sb.from("modules").select("id").eq("slug", "quotes").single();
-if (moduleDevis) {
+for (const slug of ["quotes", "blog"]) {
+    const { data: mod } = await sb.from("modules").select("id").eq("slug", slug).single();
+    if (!mod) continue;
     await sb.from("business_module_settings").upsert(
-        { business_id: commerce.id, module_id: moduleDevis.id, is_enabled: true },
+        { business_id: commerce.id, module_id: mod.id, is_enabled: true },
         { onConflict: "business_id,module_id" },
     );
-    // Le droit vient du plan : le jeu de dev en a un qui contient tout.
-    console.log("   module « quotes » activé");
+    console.log(`   module « ${slug} » activé`);
 }
 
 // On repart d'une ardoise propre, comme pour les réservations.
@@ -180,3 +182,35 @@ for (const [i, [titre, message, statut, total]] of DEMANDES.entries()) {
 const { error: erreurDevis } = await sb.from("quotes").insert(devis);
 if (erreurDevis) console.error("Devis :", erreurDevis.message);
 else console.log(`✅ ${devis.length} devis semés (2 demandes à traiter).`);
+
+/* ─── Articles du journal ──────────────────────────────────────────────── */
+await sb.from("blog_posts").delete().eq("business_id", commerce.id);
+
+const ARTICLES = [
+    ["Notre carte d'automne", "notre-carte-d-automne", "published",
+     "Champignons, courges et gibier : la carte change avec la saison.",
+     "Le marché a parlé. Depuis octobre, la carte fait la part belle aux champignons\nde nos producteurs de l'Yonne.\n\nLe bœuf bourguignon reste, évidemment. On ne touche pas à ça."],
+    ["Comment on choisit nos producteurs", "comment-on-choisit-nos-producteurs", "published",
+     "Trois critères, et un seul qui compte vraiment.",
+     "On nous demande souvent comment on sélectionne nos fournisseurs.\n\nLa réponse tient en une phrase : on y va, et on goûte."],
+    ["Les soirées du jeudi reviennent", "les-soirees-du-jeudi-reviennent", "draft",
+     "À partir du 15 octobre, tous les jeudis.",
+     "Un brouillon en attente de la date exacte."],
+    ["Recette : la sauce du chef", "recette-la-sauce-du-chef", "archived",
+     "Publiée l'an dernier, retirée depuis.",
+     "Le chef a changé la recette. L'article reste consultable par son adresse."],
+];
+
+const jourPasse = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString(); };
+
+const { error: erreurBlog } = await sb.from("blog_posts").insert(
+    ARTICLES.map(([title, slug, status, excerpt, content], i) => ({
+        business_id: commerce.id,
+        title, slug, status, excerpt, content,
+        tags: i === 0 ? ["saison", "carte"] : [],
+        published_at: status === "draft" ? null : jourPasse((i + 1) * 12),
+        created_at: jourPasse((i + 1) * 12),
+    })),
+);
+if (erreurBlog) console.error("Articles :", erreurBlog.message);
+else console.log(`✅ ${ARTICLES.length} articles semés (1 brouillon, 1 archivé).`);

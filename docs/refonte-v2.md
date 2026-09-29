@@ -64,7 +64,7 @@ Chaque grappe correspond à un domaine du schéma : elle se teste seule.
 | G3 | Activité | `reservations` (757), `reservations/[id]` (437), `calendar` (493) | L — **liste, calendrier 3 vues, glisser-déposer et création : faits** |
 | G4 | Catalogue | `products` (291), `services` (287), `orders` (470) | M |
 | G5 | Facturation | `quotes` (386), `quotes/[id]` (472), `billing` (372) | L — **devis : liste et fiche faites** |
-| G6 | Contenu | `blog` (346) | S |
+| G6 | Contenu | `blog` (346) | S — **fait** |
 | G7 | Communication | `messages`, `campaigns` (212), `reviews` (307) | M |
 | G8 | Statistiques | `stats` (916), `analytics` (368) | L |
 | G9 | Talents & projets | `people` (588), `projects` (570) | M |
@@ -138,6 +138,32 @@ vaudra pour le calendrier, les statistiques et les campagnes.
 
 `npm run db:dates` recale les dates sans toucher au reste. À lancer en
 reprenant le travail, plutôt qu'un `db:reset` complet.
+
+## Le schéma v2 n'a AUCUNE politique pour le rôle anonyme
+
+Constaté en construisant le journal : pas une seule politique `to anon` dans
+tout le schéma. Aucun site client ne peut donc rien lire avec la clé anon —
+ni blog, ni carte, ni prestations, ni talents.
+
+Ce n'est pas un oubli à réparer, c'est le bon choix, et il correspond
+exactement à ce qu'on a fait des sites le 29/09 : ils lisent tous depuis
+leur serveur, avec la clé de service. La clé anon ne quitte plus le
+navigateur de personne.
+
+À écrire noir sur blanc au moment de la bascule (B2), sinon quelqu'un
+cherchera pourquoi le blog ne s'affiche plus et rouvrira une politique
+publique.
+
+## Journal : ce qui manque encore
+
+- **Le seau de stockage `blog`** doit exister côté Supabase pour que le
+  téléversement des couvertures fonctionne. L'écran le dit clairement s'il
+  manque, il ne se contente pas d'un « Bucket not found ».
+- **L'aperçu du rendu.** Le contenu est du texte libre (markdown ou html
+  selon le schéma) et s'édite à l'aveugle.
+- **Les étiquettes** existent en base, l'éditeur ne les propose pas.
+- **La programmation.** `published_at` se pose à la publication ; rien ne
+  permet de dater un article dans le futur.
 
 ## Un principe posé en construisant l'écran Clients
 
