@@ -150,7 +150,11 @@ lib/v2/
 ├── ingestion.ts               <-- Logique partagée des routes /api/v1/public
 ├── tenant.ts                  <-- getTenantContext() : résolution serveur du commerce courant
 ├── tenant-actions.ts          <-- Server Action setCurrentBusiness()
-└── roles.ts                   <-- Classement des rôles + effectiveRole()
+├── roles.ts                   <-- Classement des rôles + effectiveRole()
+├── statuses.ts                <-- Statuts réservations / devis
+├── supabase-browser.ts        <-- Client navigateur typé, session utilisateur (RLS)
+├── data/                      <-- Accès aux données par domaine (voir 4.0)
+└── hooks/                     <-- Hooks React par domaine (voir 4.0)
 ```
 
 ### 3.2 Spécification TenantProvider (providers/TenantProvider.tsx) ✅
@@ -173,6 +177,20 @@ Fonctionnement :
 ---
 
 ## SECTION 4 : SPÉCIFICATIONS UI & DASHBOARD (VAGUE 1)
+
+### 4.0 Couche données & hooks V2 — 🟡 réservations et devis faits, pages à migrer
+Les pages ne doivent plus utiliser `useUserProfile` / `lib/supabase.ts` (table V1 `users`). Elles passent par :
+- **`lib/v2/data/*`** : fonctions qui prennent un client Supabase typé et le `business_id`, et filtrent toujours sur `business_id` en plus de la RLS. Testables avec n'importe quel client. Types des lignes dérivés des requêtes (`ReservationWithCustomer`, `QuoteWithCustomer`), avec le client joint.
+  - `reservations.ts` : `listReservations` (`scope` : `upcoming | history | all`, filtre de statut), `getReservation`, `updateReservationStatus` (pose ou efface `cancelled_at`), `createManualReservation` (rattache ou crée le client, `source: 'dashboard'`, `created_by`), `deleteReservation`.
+  - `quotes.ts` : `listQuotes`, `getQuote`, `updateQuoteStatus` (pose `sent_at`, `accepted_at` ou `declined_at` selon le statut), `deleteQuote`.
+  - `customers.ts` : `normalizeEmail`, `resolveCustomer`, partagés avec l'ingestion publique.
+- **`lib/v2/hooks/*`** : `useReservations`, `useReservation(id)`, `useQuotes`, `useQuote(id)`, construits sur `useBusinessQuery`. Ce hook lit le commerce via `useTenant()`, recharge en temps réel (Supabase Realtime filtré sur `business_id`) et n'expose jamais les données d'un autre commerce pendant un changement de commerce.
+- **`lib/v2/statuses.ts`** : `RESERVATION_STATUSES` et `QUOTE_STATUSES` (CHECK en base, sans enum généré).
+
+Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
+- **Réservations :** tous les cas passent (création manuelle, `cancelled_at` posé puis effacé, filtres `starts_at` et statut, suppression). Une mise à jour ou une suppression avec un autre `business_id` reste sans effet.
+- **Ingestion (section 2) :** pas de régression après l'extraction de `customers.ts`.
+- **Devis :** ⚠️ passer à `sent` est refusé par la contrainte de table `quotes_check` (erreur 23514) quand `number` est NULL. Sa définition exacte n'apparaît pas dans `text.txt`, qui ne montre pas les CHECK multi-colonnes. Probablement : un devis envoyé doit avoir un numéro, à attribuer via `next_document_number(p_business, 'quote')`. À confirmer avec `select pg_get_constraintdef(oid) from pg_constraint where conname = 'quotes_check';`, puis corriger `updateQuoteStatus` et relancer les tests devis.
 
 ### 4.1 Vue Réservations (/reservations)
 Composants UI : Table HTML / Shadcn UI avec filtres par statut (`pending | confirmed | completed | no_show | cancelled`).
@@ -244,7 +262,7 @@ L'application s'appuie strictement sur les variables d'environnement suivantes :
 - Projet Supabase V2 (dev) : ref `oeejvntknmpmgbbppolh`, variables dans `.env.local`.
 - Réseau d'entreprise avec proxy TLS : Node doit tourner avec `--use-system-ca` (ou `NODE_OPTIONS=--use-system-ca`), sinon `SELF_SIGNED_CERT_IN_CHAIN`. Ne pas désactiver la vérification TLS.
 - La CLI Supabase 2.x n'utilise pas le magasin de certificats Windows : exporter les racines Windows en PEM, puis préfixer la commande de génération par `NODE_EXTRA_CA_CERTS=<roots.pem> SSL_CERT_FILE=<roots.pem>`.
-- `text.txt` = dump du schéma de dev (64 tables). Il n'inclut ni les vues (`campaign_stats`, `customer_stats`, `google_connexions_etat`) ni les index uniques.
+- `text.txt` = dump du schéma de dev (64 tables). Il n'inclut ni les vues (`campaign_stats`, `customer_stats`, `google_connexions_etat`), ni les index uniques, ni les CHECK multi-colonnes (ex. `quotes_check`), ni les triggers. Pour ces éléments, interroger `pg_indexes` / `pg_constraint` / `pg_trigger`.
 - `lib/database.v2.types.ts` est un ancien export obsolète, remplacé par `types/supabase.ts` (à supprimer à la migration).
 - `lib/database.types.ts` (V1) est encore utilisé par `lib/supabase.ts` et `lib/supabase-server.ts`, jusqu'à la migration.
 - Le middleware exclut `/api/*` : les routes publiques ne sont pas redirigées vers `/login`.

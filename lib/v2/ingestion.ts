@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import type { TablesInsert } from '@/types/supabase'
 import type { AdminClient } from './supabase-admin'
+import { type CustomerInput, normalizeEmail } from './data/customers'
+
+export { resolveCustomer } from './data/customers'
 
 // Logique partagée des endpoints d'ingestion publique /api/v1/public/* (CLAUDE.md, section 2).
 
@@ -114,12 +116,6 @@ export function readDate(v: unknown, path: string, errors: FieldErrors) {
 
 // ─── Client (customers) ──────────────────────────────────────────────────────
 
-export type CustomerInput = {
-    full_name: string
-    email: string
-    phone: string | null
-}
-
 export function readCustomer(v: unknown, errors: FieldErrors): CustomerInput | null {
     if (!isRecord(v)) {
         errors.customer = 'objet requis'
@@ -129,7 +125,7 @@ export function readCustomer(v: unknown, errors: FieldErrors): CustomerInput | n
     const rawEmail = readText(v.email, 'customer.email', errors, { max: 254 })
     const phone = readText(v.phone, 'customer.phone', errors, { optional: true, max: 40 })
 
-    const email = rawEmail?.toLowerCase().trim() ?? null
+    const email = rawEmail ? normalizeEmail(rawEmail) : null
     if (email && !EMAIL_RE.test(email)) errors['customer.email'] = 'email invalide'
 
     if (!full_name || !email || errors['customer.email'] || errors['customer.phone']) return null
@@ -157,72 +153,4 @@ export async function isBookableService(admin: AdminClient, businessId: string, 
         .maybeSingle()
     if (error) throw error
     return data !== null
-}
-
-type CustomerSource =TablesInsert<'customers'>['source']
-
-/**
- * Retrouve ou crée le client (business_id, email) et renvoie son id.
- *
- * Pas d'upsert `onConflict` : l'index unique `customers_business_id_email_idx` est partiel
- * (WHERE email IS NOT NULL) et PostgREST ne peut pas transmettre ce prédicat dans ON CONFLICT.
- * Un client existant n'est pas écrasé par un formulaire public : on complète seulement les champs vides.
- */
-export async function resolveCustomer(
-    admin: AdminClient,
-    businessId: string,
-    input: CustomerInput,
-    source: CustomerSource,
-): Promise<string> {
-    const existing = await findCustomer(admin, businessId, input.email)
-    if (existing) {
-        await fillMissingFields(admin, existing, input)
-        return existing.id
-    }
-
-    const { data, error } = await admin
-        .from('customers')
-        .insert({
-            business_id: businessId,
-            email: input.email,
-            full_name: input.full_name,
-            phone: input.phone,
-            source,
-        })
-        .select('id')
-        .single()
-
-    if (!error) return data.id
-
-    // Création concurrente du même client entre le SELECT et l'INSERT.
-    if (error.code === '23505') {
-        const created = await findCustomer(admin, businessId, input.email)
-        if (created) return created.id
-    }
-    throw error
-}
-
-async function findCustomer(admin: AdminClient, businessId: string, email: string) {
-    const { data, error } = await admin
-        .from('customers')
-        .select('id, full_name, phone')
-        .eq('business_id', businessId)
-        .eq('email', email)
-        .maybeSingle()
-    if (error) throw error
-    return data
-}
-
-async function fillMissingFields(
-    admin: AdminClient,
-    existing: { id: string; full_name: string | null; phone: string | null },
-    input: CustomerInput,
-) {
-    const patch: { full_name?: string; phone?: string } = {}
-    if (!existing.full_name) patch.full_name = input.full_name
-    if (!existing.phone && input.phone) patch.phone = input.phone
-    if (Object.keys(patch).length === 0) return
-
-    const { error } = await admin.from('customers').update(patch).eq('id', existing.id)
-    if (error) throw error
 }
