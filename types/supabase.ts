@@ -792,31 +792,45 @@ export type Database = {
         Row: {
           booking_noun: string
           created_at: string
+          customer_noun: string
           icon: string | null
           id: string
           label: string
           party_noun: string | null
           slug: string
+          vertical_id: string | null
         }
         Insert: {
           booking_noun?: string
           created_at?: string
+          customer_noun?: string
           icon?: string | null
           id?: string
           label: string
           party_noun?: string | null
           slug: string
+          vertical_id?: string | null
         }
         Update: {
           booking_noun?: string
           created_at?: string
+          customer_noun?: string
           icon?: string | null
           id?: string
           label?: string
           party_noun?: string | null
           slug?: string
+          vertical_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "business_types_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "verticals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       businesses: {
         Row: {
@@ -3988,6 +4002,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      verticals: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          label: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          label: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          label?: string
+          slug?: string
+        }
+        Relationships: []
       }
     }
     Views: {
