@@ -50,6 +50,31 @@ FOR ALL USING (
   business_id IN (SELECT accessible_business_ids())
 );
 ```
+#### Audit RLS du 2026-10-06 (base de dev, `pg_policies` via `supabase db query --linked`)
+- **Activation :** RLS active sur les 65 tables de `public`. La table `google_connexions` existe en base mais pas dans `text.txt`.
+- **Fonction d'accès :** `accessible_business_ids(min_role)` (SECURITY DEFINER) renvoie les commerces où l'utilisateur a une membership active de rang ≥ `min_role`, directe ou de niveau agence (via `accessible_agency_ids`). Rangs (`role_rank`) : viewer 1, member 2, administrator 3, owner 4.
+- **Politiques des tables du dashboard :**
+
+  | Table | Lecture | Écriture |
+  |---|---|---|
+  | `businesses` | viewer | UPDATE administrator ; INSERT administrator d'agence ; pas de DELETE |
+  | `business_hours`, `business_module_settings` | viewer | administrator (ALL) |
+  | `customers`, `reservations`, `quotes` | viewer | member (ALL) |
+  | `profiles` | soi-même et membres visibles | UPDATE soi-même uniquement |
+  | `memberships` | agences visibles | aucune politique d'écriture : uniquement via les RPC (`invite_member`, `change_member_role`…) |
+  | `document_sequences` | aucune | aucune : uniquement via `next_document_number` |
+
+  L'isolation par `business_id` et la restriction owner/administrator sur l'établissement sont donc garanties en base. Les Server Actions de la section 5.2 font le même contrôle côté interface.
+- **Vues :** `customer_stats` et `campaign_stats` sont `security_invoker=true` et suivent la RLS. `google_connexions_etat` est `security_invoker=false` mais filtre elle-même sur `accessible_business_ids('viewer')` (0 ligne en anonyme, vérifié) et masque `refresh_token`.
+- **Écritures refusées en silence :** un UPDATE ou DELETE refusé par la RLS ne lève pas d'erreur (0 ligne). Toutes les écritures de `lib/v2/data/*` vérifient le nombre de lignes touchées et lèvent `NotAllowedError` (`lib/v2/data/errors.ts`). L'interface masque les actions d'écriture aux rôles sous member (`canWrite` dans `lib/v2/roles.ts`).
+- **⚠️ Défaut dans `next_document_number` (à corriger en base) :** le passe-droit prévu pour la clé de service teste `current_setting('request.jwt.claim.role', true)`. PostgREST ne renseigne plus ce paramètre (il expose `request.jwt.claims` en JSON) : la condition ne reconnaît jamais `service_role`, et la fonction lève « Authentification requise ». C'est ce que donne un appel avec la clé de service (constaté le 2026-10-06). Conséquence : les crons et routes d'API ne peuvent pas numéroter. Le dashboard n'est pas touché (session utilisateur, rang member exigé). Correctif proposé, à appliquer par l'équipe base de données :
+  ```sql
+  -- dans public.next_document_number, remplacer la condition :
+  --   if coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' then
+  -- par (auth.role() lit les deux formats de claims) :
+  if coalesce(auth.role(), '') <> 'service_role' then
+  ```
+
 Autres fonctions disponibles : `has_feature`, `effective_rank`, `role_rank`, `is_platform_admin`, `enabled_modules`, `invite_member`, `accept_invitation`, `change_member_role`, `remove_member`, `next_document_number`.
 
 ---
@@ -193,11 +218,11 @@ Les pages ne doivent plus utiliser `useUserProfile` / `lib/supabase.ts` (table V
 - **`lib/v2/statuses.ts`** : `RESERVATION_STATUSES` et `QUOTE_STATUSES` (CHECK en base, sans enum généré).
 
 Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
-- **Réservations :** tous les cas passent (création manuelle, `cancelled_at` posé puis effacé, filtres `starts_at` et statut, suppression). Une mise à jour ou une suppression avec un autre `business_id` reste sans effet.
+- **Réservations :** tous les cas passent (création manuelle, `cancelled_at` posé puis effacé, filtres `starts_at` et statut, suppression). Une mise à jour ou une suppression avec un autre `business_id` ne modifie rien et lève `NotAllowedError` (depuis l'audit RLS).
 - **Ingestion (section 2) :** pas de régression après l'extraction de `customers.ts`.
 - **Devis — numérotation :** contrainte `quotes_check` = `CHECK (status IN ('request','draft','cancelled') OR number IS NOT NULL)`. Hors de ces trois statuts, `updateQuoteStatus` attribue un numéro via la RPC `next_document_number(p_business, 'quote')` si le devis n'en a pas.
   - Le numéro n'est posé que si `number` est encore NULL (`.is('number', null)`). En cas d'envoi simultané, un seul numéro est gardé ; l'autre crée un trou dans la séquence.
-  - ⚠️ `next_document_number` exige une session utilisateur : sous `service_role`, elle lève « Authentification requise » (P0001). Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
+  - ⚠️ Sous `service_role`, `next_document_number` lève « Authentification requise » (P0001), à cause d'un défaut de la fonction : voir « Audit RLS » en 1.3. Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
   - Testé sous `service_role` : `request`, `draft` et `cancelled` sans numéro, garde contre un autre commerce, suppression.
 
 ### 4.1 Vue Réservations (/reservations) ✅
@@ -272,7 +297,7 @@ Remplace l'ancienne page `/clients`, qui reconstituait les clients à partir des
   Pour les rôles `member` et `viewer`, les formulaires de l'établissement sont désactivés et un bandeau l'explique.
 - **Non repris de la V1 :** le portail de facturation (routes V1 sur la table `users`) et la réinitialisation de l'onboarding.
 - **Préférences de réservation / devis — décision du 2026-10-06 :** elles iront dans `business_module_settings.settings` (jsonb), par module (`reservations`, `quotes`). Leur schéma sera défini avec le chantier API publique, en même temps que le code qui les applique (ingestion, crons). Pas d'écran d'ici là : aucun réglage sans effet réel.
-- **⚠️ RLS à confirmer :** la vérification de rôle des Server Actions est une protection d'interface. Un utilisateur peut appeler Supabase directement avec sa session : seules les politiques RLS de `businesses`, `business_hours` et `profiles` garantissent que seuls `owner` et `administrator` modifient le commerce. À vérifier avec `select tablename, policyname, cmd, qual, with_check from pg_policies where tablename in ('businesses', 'business_hours', 'profiles', 'customers');`.
+- **RLS :** vérifiée le 2026-10-06, voir « Audit RLS » en section 1.3.
 
 Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des champs et des horaires ; création, doublon par email et par téléphone, modification et email en conflit ; recherche (y compris caractères spéciaux), filtre et pagination ; isolation entre commerces ; mise à jour de l'établissement ; remplacement des horaires. La ligne `businesses` de la démo a été restaurée, sauf `updated_at`, qu'un trigger remet à l'heure courante.
 

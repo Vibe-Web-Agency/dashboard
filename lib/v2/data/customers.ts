@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Tables, TablesInsert } from '@/types/supabase'
+import { assertTouched } from './errors'
 
 // Clients (customers) : résolution partagée par l'ingestion publique et le dashboard, puis base clients (5.1).
 
@@ -255,8 +256,8 @@ export async function createCustomer(
 /** Modification d'une fiche. Un email déjà porté par un autre client du commerce lève DuplicateCustomerError. */
 export async function updateCustomer(supabase: Client, businessId: string, id: string, input: CustomerInput) {
     const clean = cleanInput(input)
-    const { error } = await supabase.from('customers').update(clean).eq('business_id', businessId).eq('id', id)
-    if (!error) return
+    const { data, error } = await supabase.from('customers').update(clean).eq('business_id', businessId).eq('id', id).select('id')
+    if (!error) return assertTouched(data)
     if (error.code === '23505' && clean.email) {
         const other = await findByEmail(supabase, businessId, clean.email)
         throw new DuplicateCustomerError(other?.id ?? null, 'email')

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenant } from "@/providers/TenantProvider";
+import { canWrite } from "@/lib/v2/roles";
 import { useCustomers } from "@/lib/v2/hooks/useCustomers";
 import { CUSTOMER_PAGE_SIZE, listCustomers } from "@/lib/v2/data/customers";
 import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
@@ -23,7 +24,8 @@ export default function CustomersPage() { return <Suspense><CustomersPageInner /
 function CustomersPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
+    const writable = canWrite(currentRole);
     const tz = currentBusiness.timezone;
 
     const [searchInput, setSearchInput] = useState("");
@@ -44,7 +46,7 @@ function CustomersPageInner() {
     const pathname = usePathname();
     const wantsNew = searchParams.get("new") === "1";
     const [modalOpen, setModalOpen] = useState(false);
-    const showModal = modalOpen || wantsNew;
+    const showModal = writable && (modalOpen || wantsNew);
     const setShowModal = (open: boolean) => {
         setModalOpen(open);
         if (!open && wantsNew) router.replace(pathname);
@@ -113,10 +115,12 @@ function CustomersPageInner() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => setShowModal(true)}>
-                        <Plus className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Nouveau client</span>
-                    </Button>
+                    {writable && (
+                        <Button onClick={() => setShowModal(true)}>
+                            <Plus className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Nouveau client</span>
+                        </Button>
+                    )}
                     <Button onClick={exportCSV} variant="outline" disabled={exporting || total === 0}>
                         <Download className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">{exporting ? "Export…" : "CSV"}</span>

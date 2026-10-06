@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, Tables, TablesInsert } from '@/types/supabase'
 import { normalizeEmail } from './customers'
+import { NotAllowedError, assertTouched } from './errors'
+
+export { NotAllowedError } from './errors'
 
 // Paramètres du commerce (CLAUDE.md 5.2) : informations générales, horaires, profil de l'utilisateur.
 // Les écritures passent par des Server Actions qui vérifient le rôle ; la RLS reste la protection de référence.
@@ -68,18 +71,11 @@ export function validateBusinessInfo(input: Record<string, unknown>): { patch: B
     }
 }
 
-/** Erreur levée quand la base n'a modifié aucune ligne : droits insuffisants (RLS) ou ligne absente. */
-export class NotAllowedError extends Error {
-    constructor() {
-        super("Modification refusée : vous n'avez pas les droits nécessaires sur ce commerce.")
-    }
-}
-
 export async function updateBusinessInfo(supabase: Client, businessId: string, patch: BusinessInfo) {
     // Sous RLS, un UPDATE refusé ne lève pas d'erreur : il ne modifie simplement aucune ligne.
     const { data, error } = await supabase.from('businesses').update(patch).eq('id', businessId).select('id')
     if (error) throw error
-    if (data.length === 0) throw new NotAllowedError()
+    assertTouched(data)
 }
 
 // ─── Horaires (business_hours) ──────────────────────────────────────────────

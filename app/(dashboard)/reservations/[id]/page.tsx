@@ -10,6 +10,7 @@ import { useTenant } from "@/providers/TenantProvider";
 import { useReservation } from "@/lib/v2/hooks/useReservations";
 import { RESERVATION_QUICK_ACTIONS, RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { canWrite } from "@/lib/v2/roles";
 import { formatDateTimeInZone } from "@/lib/v2/datetime";
 
 function DetailRow({ icon: Icon, label, children, muted }: {
@@ -35,7 +36,8 @@ function DetailRow({ icon: Icon, label, children, muted }: {
 export default function ReservationDetailPage() {
     const router = useRouter();
     const { id } = useParams<{ id: string }>();
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
+    const writable = canWrite(currentRole);
     const tz = currentBusiness.timezone;
     const labels = bookingLabels(currentBusiness);
     const { reservation, loading, error, setStatus, remove } = useReservation(id);
@@ -177,7 +179,7 @@ export default function ReservationDetailPage() {
                 </div>
 
                 {/* Statut */}
-                <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                {writable && <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                     <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-2)' }}>Statut</p>
                     {statusError && (
                         <p className="text-sm mb-3" style={{ color: 'var(--danger)' }}>{statusError}</p>
@@ -190,17 +192,17 @@ export default function ReservationDetailPage() {
                             </button>
                         ))}
                     </div>
-                </div>
+                </div>}
 
                 {/* Zone de danger */}
-                <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-bg)' }}>
+                {writable && <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-bg)' }}>
                     <p className="text-sm font-medium mb-3" style={{ color: 'var(--danger)' }}>Zone de danger</p>
                     <Button onClick={() => setShowDeleteModal(true)} className="w-full flex items-center justify-center gap-2"
                         style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
                         <Trash2 className="w-4 h-4" />
                         Supprimer ce {labels.singular}
                     </Button>
-                </div>
+                </div>}
             </div>
 
             {showDeleteModal && (

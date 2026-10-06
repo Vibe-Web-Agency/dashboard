@@ -36,9 +36,10 @@ function InfoRow({ icon: Icon, label, children }: {
 }
 
 /** Détail d'une demande / d'un devis (CLAUDE.md 4.2), utilisé par la vue en deux colonnes et par /quotes/[id]. */
-export function QuoteDetail({ quote, business, onStatusChange, onDelete }: {
+export function QuoteDetail({ quote, business, onStatusChange, onDelete, readOnly }: {
     quote: QuoteWithCustomer;
     business: Business;
+    readOnly: boolean;
     onStatusChange: (status: QuoteStatus) => Promise<void>;
     onDelete: () => Promise<void>;
 }) {
@@ -155,7 +156,7 @@ export function QuoteDetail({ quote, business, onStatusChange, onDelete }: {
                 <select
                     id={`status-${quote.id}`}
                     value={status}
-                    disabled={updating}
+                    disabled={updating || readOnly}
                     onChange={(e) => changeStatus(e.target.value as QuoteStatus)}
                     className="w-full rounded-md px-3 py-2 text-sm"
                     style={{ background: 'var(--bg-elev)', border: '1px solid var(--border-2)', color: 'var(--text)' }}
@@ -169,7 +170,7 @@ export function QuoteDetail({ quote, business, onStatusChange, onDelete }: {
             </div>
 
             {/* Suppression */}
-            {!confirmDelete ? (
+            {readOnly ? null : !confirmDelete ? (
                 <button onClick={() => setConfirmDelete(true)} className="flex items-center gap-2 w-fit text-sm" style={{ color: 'var(--danger)' }}>
                     <Trash2 className="w-4 h-4" /> Supprimer cette demande
                 </button>

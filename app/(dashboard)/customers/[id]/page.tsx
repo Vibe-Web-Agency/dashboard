@@ -19,6 +19,7 @@ import {
     type ReservationStatus,
 } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { canWrite } from "@/lib/v2/roles";
 import { readRequestDetails, whatsappLink } from "@/lib/v2/contact";
 import { formatDateTimeInZone, formatInZone } from "@/lib/v2/datetime";
 
@@ -35,7 +36,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default function CustomerDetailPage() {
     const { id } = useParams<{ id: string }>();
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
     const tz = currentBusiness.timezone;
     const labels = bookingLabels(currentBusiness);
     const { detail, loading, error, update } = useCustomer(id);
@@ -112,7 +113,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <p style={{ fontSize: "12px", color: "var(--muted)" }}>Client depuis le {formatInZone(customer.created_at, tz, { day: "numeric", month: "long", year: "numeric" })}</p>
                     </div>
-                    {!editing && (
+                    {!editing && canWrite(currentRole) && (
                         <Button variant="outline" size="sm" onClick={startEdit} style={actionStyle}><Pencil className="w-3.5 h-3.5" /> Modifier</Button>
                     )}
                 </div>

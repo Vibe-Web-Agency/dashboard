@@ -6,6 +6,7 @@ import { Search, X, Download, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenant } from "@/providers/TenantProvider";
+import { canWrite } from "@/lib/v2/roles";
 import { useQuotes } from "@/lib/v2/hooks/useQuotes";
 import type { QuoteWithCustomer } from "@/lib/v2/data/quotes";
 import { QUOTE_STATUSES, QUOTE_STATUS_UI, type QuoteStatus } from "@/lib/v2/statuses";
@@ -24,7 +25,7 @@ const SPLIT_MEDIA = "(min-width: 1024px)";
 
 export default function QuotesPage() {
     const router = useRouter();
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
     const tz = currentBusiness.timezone;
     const { quotes, loading, error, refresh, setStatus, remove } = useQuotes();
 
@@ -194,6 +195,7 @@ export default function QuotesPage() {
                                 key={selected.id}
                                 quote={selected}
                                 business={currentBusiness}
+                        readOnly={!canWrite(currentRole)}
                                 onStatusChange={(status) => setStatus(selected.id, status)}
                                 onDelete={async () => { await remove(selected.id); setSelectedId(null); }}
                             />

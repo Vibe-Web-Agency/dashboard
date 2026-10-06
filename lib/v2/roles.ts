@@ -24,3 +24,11 @@ export function effectiveRole(memberships: MembershipScope[], business: Business
     }
     return best
 }
+
+/**
+ * Peut créer ou modifier réservations, devis et clients. Même seuil que la RLS de ces tables
+ * (`accessible_business_ids('member')`) : un viewer ne fait que lire.
+ */
+export function canWrite(role: Role | null) {
+    return role !== null && ROLES.indexOf(role) >= ROLES.indexOf('member')
+}

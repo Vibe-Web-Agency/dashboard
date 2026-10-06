@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenant } from "@/providers/TenantProvider";
+import { canWrite } from "@/lib/v2/roles";
 import { useQuote } from "@/lib/v2/hooks/useQuotes";
 import { QuoteDetail } from "../_components/QuoteDetail";
 
@@ -13,7 +14,7 @@ import { QuoteDetail } from "../_components/QuoteDetail";
 export default function QuoteDetailPage() {
     const router = useRouter();
     const { id } = useParams<{ id: string }>();
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
     const { quote, loading, error, setStatus, remove } = useQuote(id);
 
     return (
@@ -47,6 +48,7 @@ export default function QuoteDetailPage() {
                     <QuoteDetail
                         quote={quote}
                         business={currentBusiness}
+                        readOnly={!canWrite(currentRole)}
                         onStatusChange={setStatus}
                         onDelete={async () => { await remove(); router.push("/quotes"); }}
                     />

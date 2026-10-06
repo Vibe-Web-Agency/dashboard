@@ -17,6 +17,7 @@ import {
     type ReservationStatus,
 } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { canWrite } from "@/lib/v2/roles";
 import {
     calendarDayKey,
     formatDateTimeInZone,
@@ -36,16 +37,17 @@ function displayName(r: ReservationWithCustomer) {
     return r.customer?.full_name || r.guest_name || "Client inconnu";
 }
 
-function StatusControls({ reservation, onChange }: {
+function StatusControls({ reservation, onChange, readOnly }: {
     reservation: ReservationWithCustomer;
     onChange: (id: string, status: ReservationStatus) => void;
+    readOnly: boolean;
 }) {
     const status = reservation.status as ReservationStatus;
     const ui = RESERVATION_STATUS_UI[status];
     return (
         <div className="flex items-center gap-1.5 flex-wrap">
             <span className={ui?.pill ?? "pill pill-muted"}>{ui?.label ?? reservation.status}</span>
-            {(RESERVATION_QUICK_ACTIONS[status] ?? []).map((action) => (
+            {!readOnly && (RESERVATION_QUICK_ACTIONS[status] ?? []).map((action) => (
                 <button
                     key={action.to}
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(reservation.id, action.to); }}
@@ -62,7 +64,8 @@ function StatusControls({ reservation, onChange }: {
 export default function ReservationsPage() { return <Suspense><ReservationsPageInner /></Suspense>; }
 
 function ReservationsPageInner() {
-    const { currentBusiness } = useTenant();
+    const { currentBusiness, currentRole } = useTenant();
+    const writable = canWrite(currentRole);
     const tz = currentBusiness.timezone;
     const labels = bookingLabels(currentBusiness);
     const { reservations, loading, error, refresh, setStatus, create } = useReservations();
@@ -73,7 +76,7 @@ function ReservationsPageInner() {
     const pathname = usePathname();
     const wantsNew = searchParams.get("new") === "1";
     const [modalOpen, setModalOpen] = useState(false);
-    const showModal = modalOpen || wantsNew;
+    const showModal = writable && (modalOpen || wantsNew);
     const setShowModal = (open: boolean) => {
         setModalOpen(open);
         if (!open && wantsNew) router.replace(pathname);
@@ -260,7 +263,7 @@ function ReservationsPageInner() {
                     {labels.showParty && (
                         <span className="pill pill-muted">{labels.partyCount(r.party_size)}</span>
                     )}
-                    <StatusControls reservation={r} onChange={changeStatus} />
+                    <StatusControls reservation={r} onChange={changeStatus} readOnly={!writable} />
                 </div>
             </div>
         </Link>
@@ -277,7 +280,7 @@ function ReservationsPageInner() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    {tab === "upcoming" && (
+                    {tab === "upcoming" && writable && (
                         <Button onClick={() => setShowModal(true)}>
                             <Plus className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Nouveau</span>

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TablesUpdate } from '@/types/supabase'
 import type { ReservationStatus } from '../statuses'
 import { type CustomerInput, resolveCustomer } from './customers'
+import { assertTouched } from './errors'
 
 // Accès aux réservations d'un commerce. Chaque requête filtre sur business_id, en plus de la RLS.
 
@@ -65,8 +66,9 @@ export async function updateReservationStatus(
         status,
         cancelled_at: status === 'cancelled' ? new Date().toISOString() : null,
     }
-    const { error } = await supabase.from('reservations').update(patch).eq('business_id', businessId).eq('id', id)
+    const { data, error } = await supabase.from('reservations').update(patch).eq('business_id', businessId).eq('id', id).select('id')
     if (error) throw error
+    assertTouched(data)
 }
 
 export type ManualReservationInput = {
@@ -111,6 +113,7 @@ export async function createManualReservation(
 }
 
 export async function deleteReservation(supabase: Client, businessId: string, id: string) {
-    const { error } = await supabase.from('reservations').delete().eq('business_id', businessId).eq('id', id)
+    const { data, error } = await supabase.from('reservations').delete().eq('business_id', businessId).eq('id', id).select('id')
     if (error) throw error
+    assertTouched(data)
 }

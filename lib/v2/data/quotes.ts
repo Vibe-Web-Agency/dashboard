@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TablesUpdate } from '@/types/supabase'
 import type { QuoteStatus } from '../statuses'
+import { NotAllowedError, assertTouched } from './errors'
 
 // Accès aux devis et demandes de devis d'un commerce. Chaque requête filtre sur business_id, en plus de la RLS.
 
@@ -58,7 +59,7 @@ export async function updateQuoteStatus(supabase: Client, businessId: string, id
             .eq('id', id)
             .maybeSingle()
         if (error) throw error
-        if (!current) return // devis inexistant ou d'un autre commerce : rien à faire, comme un update sans ligne
+        if (!current) throw new NotAllowedError()
 
         if (current.number === null) {
             const number = await nextQuoteNumber(supabase, businessId)
@@ -76,8 +77,9 @@ export async function updateQuoteStatus(supabase: Client, businessId: string, id
         }
     }
 
-    const { error } = await supabase.from('quotes').update(patch).eq('business_id', businessId).eq('id', id)
+    const { data, error } = await supabase.from('quotes').update(patch).eq('business_id', businessId).eq('id', id).select('id')
     if (error) throw error
+    assertTouched(data)
 }
 
 async function nextQuoteNumber(supabase: Client, businessId: string) {
@@ -87,6 +89,7 @@ async function nextQuoteNumber(supabase: Client, businessId: string) {
 }
 
 export async function deleteQuote(supabase: Client, businessId: string, id: string) {
-    const { error } = await supabase.from('quotes').delete().eq('business_id', businessId).eq('id', id)
+    const { data, error } = await supabase.from('quotes').delete().eq('business_id', businessId).eq('id', id).select('id')
     if (error) throw error
+    assertTouched(data)
 }
