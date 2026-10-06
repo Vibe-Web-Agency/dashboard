@@ -106,7 +106,7 @@ export default function ReservationDetailPage() {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
                 <p style={{ color: 'var(--text-2)' }}>
-                    {error ? `Impossible de charger ce ${labels.singular}.` : `Ce ${labels.singular} est introuvable.`}
+                    {error ? `Impossible de charger ${labels.booking.this}.` : "Introuvable : supprimé ou d’un autre commerce."}
                 </p>
                 <Link href="/reservations">
                     <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux {labels.plural}</Button>
@@ -128,7 +128,7 @@ export default function ReservationDetailPage() {
 
             <div>
                 <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: 'var(--accent)' }}>
-                    Détails du {labels.singular}
+                    Détails {labels.booking.of}
                 </h1>
                 <p style={{ color: 'var(--text-2)' }}>Informations complètes et gestion</p>
             </div>
@@ -200,7 +200,7 @@ export default function ReservationDetailPage() {
                     <Button onClick={() => setShowDeleteModal(true)} className="w-full flex items-center justify-center gap-2"
                         style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
                         <Trash2 className="w-4 h-4" />
-                        Supprimer ce {labels.singular}
+                        Supprimer {labels.booking.this}
                     </Button>
                 </div>}
             </div>
@@ -222,7 +222,7 @@ export default function ReservationDetailPage() {
                             </div>
                         </div>
                         <p className="mb-4" style={{ color: 'var(--text-2)' }}>
-                            Supprimer le {labels.singular} de <strong style={{ color: 'var(--text)' }}>{name}</strong> ? Pour garder une trace, préférez le statut « Annulée ».
+                            Supprimer {labels.booking.the} de <strong style={{ color: 'var(--text)' }}>{name}</strong> ? Pour garder une trace, préférez le statut « Annulée ».
                         </p>
                         {deleteError && (
                             <div className="p-3 mb-4 rounded-lg text-sm" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>

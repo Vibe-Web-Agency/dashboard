@@ -169,7 +169,7 @@ export default function CustomerDetailPage() {
                         <CalendarDays className="w-4 h-4" style={{ color: 'var(--accent)' }} /> {labels.title}
                     </h2>
                     {reservations.length === 0 ? (
-                        <p className="text-sm" style={{ color: "var(--muted)" }}>Aucun {labels.singular}.</p>
+                        <p className="text-sm" style={{ color: "var(--muted)" }}>{labels.booking.none}.</p>
                     ) : (
                         <ul className="flex flex-col">
                             {reservations.map((r) => {

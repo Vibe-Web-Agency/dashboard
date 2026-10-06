@@ -348,7 +348,7 @@ function ReservationsPageInner() {
                 <div className="vos-modal-backdrop">
                     <div className="vos-modal">
                         <div className="vos-modal-header">
-                            <h2 className="vos-modal-title">Nouveau {labels.singular}</h2>
+                            <h2 className="vos-modal-title">{labels.booking.newTitle}</h2>
                             <button onClick={closeModal} className="flex h-7 w-7 items-center justify-center rounded-md transition-colors" style={{ color: 'var(--muted)' }} onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                                 <X className="w-4 h-4" />
                             </button>
@@ -394,14 +394,14 @@ function ReservationsPageInner() {
                                 <Input value={form.note} onChange={(e) => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Visible uniquement par l'équipe" />
                             </div>
                             <p style={{ fontSize: "11px", color: "var(--muted)" }}>
-                                Sans email ni téléphone, le {labels.singular} n&apos;est rattaché à aucune fiche client.
+                                Sans email ni téléphone, aucune fiche client n&apos;est créée ni rattachée.
                             </p>
                             <div className="flex gap-3 pt-2">
                                 <Button type="button" onClick={closeModal} className="flex-1" variant="outline" style={{ background: 'transparent', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}>
                                     Annuler
                                 </Button>
                                 <Button type="submit" disabled={creating} className="flex-1 font-semibold" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
-                                    {creating ? "Création..." : `Créer le ${labels.singular}`}
+                                    {creating ? "Création..." : `Créer ${labels.booking.the}`}
                                 </Button>
                             </div>
                         </form>
@@ -422,7 +422,7 @@ function ReservationsPageInner() {
                 filtered.length === 0 ? (
                     <div className="vos-empty" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 10 }}>
                         {tab === "upcoming" && <Calendar className="w-6 h-6" style={{ color: 'var(--muted-2)' }} />}
-                        <p>{tab === "upcoming" ? `Aucun ${labels.singular} à venir` : `Aucun ${labels.singular} dans l'historique`}</p>
+                        <p>{tab === "upcoming" ? `${labels.booking.none} à venir` : `${labels.booking.none} dans l'historique`}</p>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-5">
@@ -575,7 +575,7 @@ function ReservationsPageInner() {
                         {selectedDayReservations.length === 0 ? (
                             <div className="text-center py-12 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                                 <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted-2)' }} />
-                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>Aucun {labels.singular} ce jour</p>
+                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>{labels.booking.none} ce jour</p>
                             </div>
                         ) : (
                             <div className="space-y-3">

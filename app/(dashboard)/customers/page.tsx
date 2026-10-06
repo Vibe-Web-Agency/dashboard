@@ -120,7 +120,7 @@ function CustomersPageInner() {
                     {writable && (
                         <Button onClick={() => setShowModal(true)}>
                             <Plus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Nouveau {labels.customerSingular}</span>
+                            <span className="hidden sm:inline">{labels.customer.newTitle}</span>
                         </Button>
                     )}
                     <Button onClick={exportCSV} variant="outline" disabled={exporting || total === 0}>
@@ -166,7 +166,7 @@ function CustomersPageInner() {
             ) : customers.length === 0 ? (
                 <div className="vos-empty" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 10 }}>
                     <Users className="w-6 h-6" style={{ color: 'var(--muted-2)' }} />
-                    <p>{search || source ? `Aucun ${labels.customerSingular} ne correspond` : `Aucun ${labels.customerSingular} pour le moment`}</p>
+                    <p>{search || source ? `${labels.customer.none} ne correspond` : `${labels.customer.none} pour le moment`}</p>
                 </div>
             ) : (
                 <div className="rounded-xl overflow-x-auto" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', opacity: loading ? 0.6 : 1 }}>
@@ -221,7 +221,7 @@ function CustomersPageInner() {
                 <div className="vos-modal-backdrop">
                     <div className="vos-modal">
                         <div className="vos-modal-header">
-                            <h2 className="vos-modal-title">Nouveau {labels.customerSingular}</h2>
+                            <h2 className="vos-modal-title">{labels.customer.newTitle}</h2>
                             <button onClick={closeModal} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: 'var(--muted)' }}>
                                 <X className="w-4 h-4" />
                             </button>
