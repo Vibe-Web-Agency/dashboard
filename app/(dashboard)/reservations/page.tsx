@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,11 +68,16 @@ function ReservationsPageInner() {
     const { reservations, loading, error, refresh, setStatus, create } = useReservations();
 
     const searchParams = useSearchParams();
-    const [showModal, setShowModal] = useState(() => searchParams.get("new") === "1");
-    useEffect(() => {
-        // Lien « nouvelle réservation » depuis l'accueil : on retire ?new=1 de l'URL une fois la modale ouverte.
-        if (searchParams.get("new") === "1") window.history.replaceState(null, "", window.location.pathname);
-    }, [searchParams]);
+    // La modale est ouverte par le bouton de la page, ou par ?new=1 (accueil, bouton « + » de la Topbar, même depuis cette page).
+    const router = useRouter();
+    const pathname = usePathname();
+    const wantsNew = searchParams.get("new") === "1";
+    const [modalOpen, setModalOpen] = useState(false);
+    const showModal = modalOpen || wantsNew;
+    const setShowModal = (open: boolean) => {
+        setModalOpen(open);
+        if (!open && wantsNew) router.replace(pathname);
+    };
 
     const [tab, setTab] = useState<Tab>("upcoming");
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | null>(null);
