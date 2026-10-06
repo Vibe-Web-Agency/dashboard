@@ -797,6 +797,7 @@ export type Database = {
           id: string
           label: string
           party_noun: string | null
+          service_noun: string
           slug: string
           vertical_id: string | null
         }
@@ -808,6 +809,7 @@ export type Database = {
           id?: string
           label: string
           party_noun?: string | null
+          service_noun?: string
           slug: string
           vertical_id?: string | null
         }
@@ -819,6 +821,7 @@ export type Database = {
           id?: string
           label?: string
           party_noun?: string | null
+          service_noun?: string
           slug?: string
           vertical_id?: string | null
         }
