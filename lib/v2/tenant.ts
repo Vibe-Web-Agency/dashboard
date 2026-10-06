@@ -7,7 +7,12 @@ import { effectiveRole, type Role } from './roles'
 
 export const CURRENT_BUSINESS_COOKIE = 'vwa_business_id'
 
-export type Business = Tables<'businesses'>
+// Le type de commerce porte les libellés métier (booking_noun, party_noun).
+const BUSINESS_SELECT = '*, business_type:business_types ( slug, label, booking_noun, party_noun )' as const
+
+export type Business = Tables<'businesses'> & {
+    business_type: Pick<Tables<'business_types'>, 'slug' | 'label' | 'booking_noun' | 'party_noun'>
+}
 
 export type TenantContext = {
     currentBusiness: Business | null
@@ -52,7 +57,7 @@ export async function getAccessibleBusinesses(supabase: ServerSupabase): Promise
     if (idsError) throw idsError
     if (!ids?.length) return []
 
-    const { data, error } = await supabase.from('businesses').select('*').in('id', ids).order('name')
+    const { data, error } = await supabase.from('businesses').select(BUSINESS_SELECT).in('id', ids).order('name')
     if (error) throw error
-    return data
+    return data satisfies Business[]
 }

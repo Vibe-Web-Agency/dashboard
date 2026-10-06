@@ -1,101 +1,76 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useUserProfile } from "@/lib/useUserProfile";
-import { getBusinessTypeUI } from "@/lib/businessConfig";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, Trash2, AlertTriangle, UserCheck, UserX, Users } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft, Calendar, Mail, Phone, MessageSquare, StickyNote, Trash2, AlertTriangle, Users, Scissors } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTenant } from "@/providers/TenantProvider";
+import { useReservation } from "@/lib/v2/hooks/useReservations";
+import { RESERVATION_QUICK_ACTIONS, RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
+import { bookingLabels } from "@/lib/v2/labels";
+import { formatDateTimeInZone } from "@/lib/v2/datetime";
 
-interface Reservation {
-    id: string;
-    customer_name: string;
-    customer_phone: string | null;
-    customer_mail: string | null;
-    date: string | null;
-    guests: number | null;
-    message: string | null;
-    status: string;
-    created_at: string;
+function DetailRow({ icon: Icon, label, children, muted }: {
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+    label: string;
+    children: React.ReactNode;
+    muted?: boolean;
+}) {
+    return (
+        <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: muted ? 'var(--surface-2)' : 'var(--accent-dim)' }}>
+                <Icon className="w-5 h-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <div className="flex-1">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>{label}</p>
+                <div className="font-semibold" style={{ color: 'var(--text)' }}>{children}</div>
+            </div>
+        </div>
+    );
 }
 
 export default function ReservationDetailPage() {
     const router = useRouter();
-    const { id: reservationId } = useParams<{ id: string }>();
-    const { profile } = useUserProfile();
-    const businessTypeUI = getBusinessTypeUI(profile?.business_type?.slug);
-    const [reservation, setReservation] = useState<Reservation | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { id } = useParams<{ id: string }>();
+    const { currentBusiness } = useTenant();
+    const tz = currentBusiness.timezone;
+    const labels = bookingLabels(currentBusiness);
+    const { reservation, loading, error, setStatus, remove } = useReservation(id);
+
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [statusError, setStatusError] = useState<string | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [updatingStatus, setUpdatingStatus] = useState(false);
 
-    useEffect(() => {
-        if (reservationId) fetchReservation();
-    }, [reservationId]);
-
-    const fetchReservation = async () => {
-        setLoading(true);
-        const { data, error } = await supabase
-            .from("reservations")
-            .select("*")
-            .eq("id", reservationId)
-            .single();
-
-        if (error) {
-            console.error("Erreur:", error);
-        } else {
-            setReservation(data as unknown as Reservation);
-        }
-        setLoading(false);
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
-
-    const updateStatus = async (status: string) => {
+    const changeStatus = async (status: ReservationStatus) => {
         setUpdatingStatus(true);
-        const { error } = await supabase
-            .from("reservations")
-            .update({ status })
-            .eq("id", reservationId);
-
-        if (!error) {
-            setReservation(prev => prev ? { ...prev, status } : null);
+        setStatusError(null);
+        try {
+            await setStatus(status);
+        } catch (e) {
+            setStatusError(e instanceof Error ? e.message : "Impossible de modifier le statut.");
+        } finally {
+            setUpdatingStatus(false);
         }
-        setUpdatingStatus(false);
     };
 
-    const deleteReservation = async () => {
+    const handleDelete = async () => {
         setDeleting(true);
-        const { error } = await supabase
-            .from("reservations")
-            .delete()
-            .eq("id", reservationId);
-
-        if (error) {
-            console.error("Erreur lors de la suppression:", error);
-            setDeleteError(error.message);
-            setDeleting(false);
-        } else {
+        setDeleteError(null);
+        try {
+            await remove();
             router.push("/reservations");
+        } catch (e) {
+            setDeleteError(e instanceof Error ? e.message : "Suppression impossible.");
+            setDeleting(false);
         }
     };
 
-    if (loading) {
+    if (loading && !reservation) {
         return (
             <div className="flex flex-col gap-6 max-w-3xl mx-auto">
                 <Skeleton className="h-5 w-48" />
@@ -127,306 +102,140 @@ export default function ReservationDetailPage() {
 
     if (!reservation) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-                <p style={{ color: 'var(--text-2)' }}>Réservation non trouvée</p>
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+                <p style={{ color: 'var(--text-2)' }}>
+                    {error ? `Impossible de charger ce ${labels.singular}.` : `Ce ${labels.singular} est introuvable.`}
+                </p>
                 <Link href="/reservations">
-                    <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux réservations</Button>
+                    <Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux {labels.plural}</Button>
                 </Link>
             </div>
         );
     }
 
+    const name = reservation.customer?.full_name || reservation.guest_name || "Client inconnu";
+    const status = reservation.status as ReservationStatus;
+    const statusUI = RESERVATION_STATUS_UI[status];
+
     return (
         <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-            {/* Back Button */}
-            <Link
-                href="/reservations"
-                className="flex items-center gap-2 w-fit transition-colors"
-                style={{ color: 'var(--accent)' }}
-            >
+            <Link href="/reservations" className="flex items-center gap-2 w-fit transition-colors" style={{ color: 'var(--accent)' }}>
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm font-medium">Retour aux {businessTypeUI.reservationLabel.toLowerCase()}</span>
+                <span className="text-sm font-medium">Retour aux {labels.plural}</span>
             </Link>
 
-            {/* Header */}
             <div>
-                <h1
-                    className="text-2xl sm:text-3xl font-bold mb-2"
-                    style={{ color: 'var(--accent)' }}
-                >
-                    Détails du {businessTypeUI.reservationLabel.toLowerCase().replace(/s$/, "")}
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: 'var(--accent)' }}>
+                    Détails du {labels.singular}
                 </h1>
-                <p style={{ color: 'var(--text-2)' }}>
-                    Informations complètes et gestion
-                </p>
+                <p style={{ color: 'var(--text-2)' }}>Informations complètes et gestion</p>
             </div>
 
-            {/* Main Card */}
-            <div
-                className="rounded-xl p-6"
-                style={{
-                    background: 'var(--bg-elev)', border: '1px solid var(--border)'
-                }}
-            >
-                {/* Customer Info */}
+            <div className="rounded-xl p-6" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+                {/* Client */}
                 <div className="flex items-center gap-4 mb-6 pb-6" style={{ borderBottom: '1px solid var(--border)' }}>
-                    <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold"
-                        style={{ background: 'var(--accent)', color: '#0E0D0B' }}
-                    >
-                        {reservation.customer_name?.charAt(0).toUpperCase() || "?"}
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-semibold" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
+                        {name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                        <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
-                            {reservation.customer_name}
-                        </h2>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>{name}</h2>
+                            <span className={statusUI?.pill ?? "pill pill-muted"}>{statusUI?.label ?? reservation.status}</span>
+                        </div>
                         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                            Réservation créée le {formatDate(reservation.created_at)}
+                            Créé le {formatDateTimeInZone(reservation.created_at, tz)}
+                            {reservation.source === "dashboard" ? " depuis le dashboard" : reservation.source === "website" ? " depuis le site" : ""}
                         </p>
                     </div>
                 </div>
 
-                {/* Details Grid */}
+                {/* Détails */}
                 <div className="grid gap-4 mb-6">
-                    {reservation.date && (
-                        <div className="flex items-start gap-3">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--accent-dim)' }}
-                            >
-                                <Calendar className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Date de réservation</p>
-                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
-                                    {formatDate(reservation.date)}
-                                </p>
-                            </div>
-                        </div>
+                    <DetailRow icon={Calendar} label="Date">{formatDateTimeInZone(reservation.starts_at, tz)}</DetailRow>
+                    {reservation.service && <DetailRow icon={Scissors} label="Prestation">{reservation.service.name}</DetailRow>}
+                    {labels.showParty && <DetailRow icon={Users} label={labels.partyTitle}>{labels.partyCount(reservation.party_size)}</DetailRow>}
+                    {reservation.customer?.email && (
+                        <DetailRow icon={Mail} label="Email" muted>
+                            <a href={`mailto:${reservation.customer.email}`} style={{ color: 'inherit' }}>{reservation.customer.email}</a>
+                        </DetailRow>
                     )}
-
-                    {businessTypeUI.showGuests && reservation.guests != null && (
-                        <div className="flex items-start gap-3">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--accent-dim)' }}
-                            >
-                                <Users className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>{businessTypeUI.guestsLabel}</p>
-                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
-                                    {reservation.guests} personne{reservation.guests > 1 ? "s" : ""}
-                                </p>
-                            </div>
-                        </div>
+                    {reservation.customer?.phone && (
+                        <DetailRow icon={Phone} label="Téléphone" muted>
+                            <a href={`tel:${reservation.customer.phone}`} style={{ color: 'inherit' }}>{reservation.customer.phone}</a>
+                        </DetailRow>
                     )}
-
-                    {reservation.customer_mail && (
-                        <div className="flex items-start gap-3">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--surface-2)' }}
-                            >
-                                <Mail className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Email</p>
-                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
-                                    {reservation.customer_mail}
-                                </p>
-                            </div>
-                        </div>
+                    {reservation.customer_message && (
+                        <DetailRow icon={MessageSquare} label="Message du client">
+                            <span className="italic font-normal">&quot;{reservation.customer_message}&quot;</span>
+                        </DetailRow>
                     )}
-
-                    {reservation.customer_phone && (
-                        <div className="flex items-start gap-3">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--surface-2)' }}
-                            >
-                                <Phone className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Téléphone</p>
-                                <p className="font-semibold" style={{ color: 'var(--text)' }}>
-                                    {reservation.customer_phone}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {reservation.message && (
-                        <div className="flex items-start gap-3">
-                            <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--accent-dim)' }}
-                            >
-                                <MessageSquare className="w-5 h-5" style={{ color: 'var(--accent)' }} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium" style={{ color: 'var(--text-2)' }}>Message</p>
-                                <p className="italic" style={{ color: 'var(--text)' }}>
-                                    &quot;{reservation.message}&quot;
-                                </p>
-                            </div>
-                        </div>
+                    {reservation.internal_note && (
+                        <DetailRow icon={StickyNote} label="Note interne" muted>
+                            <span className="font-normal">{reservation.internal_note}</span>
+                        </DetailRow>
                     )}
                 </div>
 
-                {/* Statut de présence */}
-                <div className="p-4 rounded-lg mt-4"
-                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-2)' }}>Statut de présence</p>
-                    <div className="flex gap-3">
-                        <Button
-                            onClick={() => updateStatus("attended")}
-                            disabled={updatingStatus}
-                            className="flex-1 flex items-center justify-center gap-2"
-                            style={reservation.status === "attended"
-                                ? { background: 'linear-gradient(135deg, var(--accent), #00cc73)', color: '#0E0D0B', fontWeight: 600 }
-                                : { background: 'var(--border)', color: 'var(--accent)', border: '1px solid var(--border-hi)' }}
-                        >
-                            <UserCheck className="w-4 h-4" />
-                            Venu
-                        </Button>
-                        <Button
-                            onClick={() => updateStatus("no_show")}
-                            disabled={updatingStatus}
-                            className="flex-1 flex items-center justify-center gap-2"
-                            style={reservation.status === "no_show"
-                                ? { background: 'linear-gradient(135deg, var(--danger), var(--danger))', color: 'var(--text)', fontWeight: 600 }
-                                : { background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger-bg)' }}
-                        >
-                            <UserX className="w-4 h-4" />
-                            No Show
-                        </Button>
-                        {reservation.status !== "scheduled" && (
-                            <Button
-                                onClick={() => updateStatus("scheduled")}
-                                disabled={updatingStatus}
-                                className="flex-1 flex items-center justify-center gap-2"
-                                style={{ background: 'rgba(255,199,69,0.08)', color: 'var(--accent)', border: '1px solid rgba(255,199,69,0.2)' }}
-                            >
-                                Planifié
-                            </Button>
-                        )}
+                {/* Statut */}
+                <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-2)' }}>Statut</p>
+                    {statusError && (
+                        <p className="text-sm mb-3" style={{ color: 'var(--danger)' }}>{statusError}</p>
+                    )}
+                    <div className="flex gap-2 flex-wrap">
+                        {(RESERVATION_QUICK_ACTIONS[status] ?? []).map((action) => (
+                            <button key={action.to} onClick={() => changeStatus(action.to)} disabled={updatingStatus}
+                                className={action.pill} style={{ cursor: updatingStatus ? "wait" : "pointer", border: "none", padding: "6px 12px" }}>
+                                {action.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* Danger Zone */}
-                <div
-                    className="p-4 rounded-lg mt-4"
-                    style={{
-                        background: 'var(--danger-bg)',
-                        border: '1px solid var(--danger-bg)'
-                    }}
-                >
-                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--danger)' }}>
-                        Zone de danger
-                    </p>
-                    <Button
-                        onClick={() => setShowDeleteModal(true)}
-                        className="w-full flex items-center justify-center gap-2"
-                        style={{
-                            background: 'var(--danger-bg)',
-                            color: 'var(--danger)',
-                            border: '1px solid var(--danger)'
-                        }}
-                    >
+                {/* Zone de danger */}
+                <div className="p-4 rounded-lg mt-4" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-bg)' }}>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--danger)' }}>Zone de danger</p>
+                    <Button onClick={() => setShowDeleteModal(true)} className="w-full flex items-center justify-center gap-2"
+                        style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
                         <Trash2 className="w-4 h-4" />
-                        Supprimer cette réservation
+                        Supprimer ce {labels.singular}
                     </Button>
                 </div>
             </div>
 
-            {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
-                    onClick={() => setShowDeleteModal(false)}
-                >
-                    <div
-                        className="w-full max-w-md rounded-2xl p-6"
-                        style={{
-                            background: 'var(--surface)',
-                            border: '1px solid var(--danger)',
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--danger-bg)'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                    onClick={() => setShowDeleteModal(false)}>
+                    <div className="w-full max-w-md rounded-2xl p-6"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--danger)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px var(--danger-bg)' }}
+                        onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3 mb-4">
-                            <div
-                                className="w-12 h-12 rounded-full flex items-center justify-center"
-                                style={{ background: 'var(--danger-bg)' }}
-                            >
+                            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--danger-bg)' }}>
                                 <AlertTriangle className="w-6 h-6" style={{ color: 'var(--danger)' }} />
                             </div>
                             <div>
-                                <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>
-                                    Confirmer la suppression
-                                </h3>
-                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>
-                                    Cette action est irréversible
-                                </p>
+                                <h3 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Confirmer la suppression</h3>
+                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>Cette action est irréversible</p>
                             </div>
                         </div>
-
                         <p className="mb-4" style={{ color: 'var(--text-2)' }}>
-                            Êtes-vous sûr de vouloir supprimer la réservation de <strong style={{ color: 'var(--text)' }}>{reservation.customer_name}</strong> ?
-                            Cette action ne peut pas être annulée.
+                            Supprimer le {labels.singular} de <strong style={{ color: 'var(--text)' }}>{name}</strong> ? Pour garder une trace, préférez le statut « Annulée ».
                         </p>
-
                         {deleteError && (
-                            <div
-                                className="p-3 mb-4 rounded-lg text-sm"
-                                style={{
-                                    background: 'var(--danger-bg)',
-                                    border: '1px solid var(--danger)',
-                                    color: 'var(--danger)'
-                                }}
-                            >
+                            <div className="p-3 mb-4 rounded-lg text-sm" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
                                 {deleteError}
                             </div>
                         )}
-
                         <div className="flex gap-3">
-                            <Button
-                                onClick={() => setShowDeleteModal(false)}
-                                className="flex-1"
-                                style={{
-                                    background: 'var(--surface-2)',
-                                    color: 'var(--text-2)',
-                                    border: '1px solid var(--border)'
-                                }}
-                            >
+                            <Button onClick={() => setShowDeleteModal(false)} className="flex-1"
+                                style={{ background: 'var(--surface-2)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
                                 Annuler
                             </Button>
-                            <Button
-                                onClick={deleteReservation}
-                                disabled={deleting}
-                                className="flex-1 flex items-center justify-center gap-2"
-                                style={{
-                                    background: 'linear-gradient(135deg, var(--danger), var(--danger))',
-                                    color: 'var(--text)',
-                                    fontWeight: 600
-                                }}
-                            >
-                                {deleting ? (
-                                    <>
-                                        <div
-                                            className="animate-spin w-4 h-4 border-2 rounded-full"
-                                            style={{ borderColor: '#ffffff', borderTopColor: 'transparent' }}
-                                        />
-                                        Suppression...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 className="w-4 h-4" />
-                                        Supprimer
-                                    </>
-                                )}
+                            <Button onClick={handleDelete} disabled={deleting} className="flex-1 flex items-center justify-center gap-2"
+                                style={{ background: 'linear-gradient(135deg, var(--danger), var(--danger))', color: 'var(--text)', fontWeight: 600 }}>
+                                <Trash2 className="w-4 h-4" />
+                                {deleting ? "Suppression..." : "Supprimer"}
                             </Button>
                         </div>
                     </div>

@@ -16,17 +16,25 @@ const RESERVATION_SELECT = `
 
 export type ReservationScope = 'upcoming' | 'history' | 'all'
 
+// Une réservation reste « à venir » 15 min après son heure de début (client en retard, service en cours).
+const UPCOMING_GRACE_MS = 15 * 60 * 1000
+
+/** Limite entre « à venir » (starts_at >= limite) et « historique » (starts_at < limite). */
+export function upcomingThreshold(now: Date = new Date()) {
+    return new Date(now.getTime() - UPCOMING_GRACE_MS).toISOString()
+}
+
 export async function listReservations(
     supabase: Client,
     businessId: string,
     opts: { scope?: ReservationScope; status?: ReservationStatus } = {},
 ) {
     const scope = opts.scope ?? 'all'
-    const now = new Date().toISOString()
+    const threshold = upcomingThreshold()
 
     let query = supabase.from('reservations').select(RESERVATION_SELECT).eq('business_id', businessId)
-    if (scope === 'upcoming') query = query.gte('starts_at', now)
-    if (scope === 'history') query = query.lt('starts_at', now)
+    if (scope === 'upcoming') query = query.gte('starts_at', threshold)
+    if (scope === 'history') query = query.lt('starts_at', threshold)
     if (opts.status) query = query.eq('status', opts.status)
 
     const { data, error } = await query.order('starts_at', { ascending: scope !== 'history' })
@@ -70,7 +78,10 @@ export type ManualReservationInput = {
     status?: ReservationStatus
 }
 
-/** Création manuelle depuis le dashboard (CLAUDE.md 4.1) : rattache ou crée le client, source 'dashboard'. */
+/**
+ * Création manuelle depuis le dashboard (CLAUDE.md 4.1) : rattache ou crée le client (par email, sinon téléphone),
+ * source 'dashboard'. Sans email ni téléphone, la réservation n'a pas de client, seulement guest_name.
+ */
 export async function createManualReservation(
     supabase: Client,
     businessId: string,

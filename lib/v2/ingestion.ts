@@ -116,7 +116,8 @@ export function readDate(v: unknown, path: string, errors: FieldErrors) {
 
 // ─── Client (customers) ──────────────────────────────────────────────────────
 
-export function readCustomer(v: unknown, errors: FieldErrors): CustomerInput | null {
+// L'ingestion publique exige un email : c'est la clé de dédoublonnage des clients.
+export function readCustomer(v: unknown, errors: FieldErrors): (CustomerInput & { email: string }) | null {
     if (!isRecord(v)) {
         errors.customer = 'objet requis'
         return null

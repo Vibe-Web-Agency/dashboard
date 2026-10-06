@@ -183,7 +183,10 @@ Les pages ne doivent plus utiliser `useUserProfile` / `lib/supabase.ts` (table V
 - **`lib/v2/data/*`** : fonctions qui prennent un client Supabase typé et le `business_id`, et filtrent toujours sur `business_id` en plus de la RLS. Testables avec n'importe quel client. Types des lignes dérivés des requêtes (`ReservationWithCustomer`, `QuoteWithCustomer`), avec le client joint.
   - `reservations.ts` : `listReservations` (`scope` : `upcoming | history | all`, filtre de statut), `getReservation`, `updateReservationStatus` (pose ou efface `cancelled_at`), `createManualReservation` (rattache ou crée le client, `source: 'dashboard'`, `created_by`), `deleteReservation`.
   - `quotes.ts` : `listQuotes`, `getQuote`, `updateQuoteStatus` (pose `sent_at`, `accepted_at` ou `declined_at` selon le statut), `deleteQuote`.
-  - `customers.ts` : `normalizeEmail`, `resolveCustomer`, partagés avec l'ingestion publique.
+  - `customers.ts` : `normalizeEmail`, `resolveCustomer`, partagés avec l'ingestion publique. Recherche par email, sinon par téléphone (fiche la plus ancienne, le téléphone n'étant pas unique). Sans email ni téléphone, renvoie `null` : la réservation n'a pas de client, seulement `guest_name`. L'ingestion publique exige toujours un email.
+  - Une réservation reste « à venir » 15 min après `starts_at` (`upcomingThreshold()`, comportement repris de la V1).
+- **`lib/v2/labels.ts`** : `bookingLabels(business)`, libellés tirés de `business_types.booking_noun` / `party_noun` (remplace `lib/businessConfig.ts` côté V2). `party_noun` NULL = pas de champ couverts/participants.
+- **`lib/v2/datetime.ts`** : dates saisies et affichées dans le fuseau du commerce (`businesses.timezone`), pas celui du navigateur. Correct les jours de changement d'heure.
 - **`lib/v2/hooks/*`** : `useReservations`, `useReservation(id)`, `useQuotes`, `useQuote(id)`, construits sur `useBusinessQuery`. Ce hook lit le commerce via `useTenant()`, recharge en temps réel (Supabase Realtime filtré sur `business_id`) et n'expose jamais les données d'un autre commerce pendant un changement de commerce.
 - **`lib/v2/statuses.ts`** : `RESERVATION_STATUSES` et `QUOTE_STATUSES` (CHECK en base, sans enum généré).
 
@@ -192,14 +195,21 @@ Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
 - **Ingestion (section 2) :** pas de régression après l'extraction de `customers.ts`.
 - **Devis :** ⚠️ passer à `sent` est refusé par la contrainte de table `quotes_check` (erreur 23514) quand `number` est NULL. Sa définition exacte n'apparaît pas dans `text.txt`, qui ne montre pas les CHECK multi-colonnes. Probablement : un devis envoyé doit avoir un numéro, à attribuer via `next_document_number(p_business, 'quote')`. À confirmer avec `select pg_get_constraintdef(oid) from pg_constraint where conname = 'quotes_check';`, puis corriger `updateQuoteStatus` et relancer les tests devis.
 
-### 4.1 Vue Réservations (/reservations)
-Composants UI : Table HTML / Shadcn UI avec filtres par statut (`pending | confirmed | completed | no_show | cancelled`).
+### 4.1 Vue Réservations (/reservations) — 🟡 migrée en V2, à valider connecté
+Pages `app/(dashboard)/reservations/page.tsx` et `[id]/page.tsx`, sur `useReservations` / `useReservation`. Plus aucune dépendance à `useUserProfile` ni aux statuts V1 (`scheduled`, `attended`).
 
-Colonnes : Date/Heure (`starts_at`), Nom du client (`customers.full_name`, à défaut `guest_name`), Téléphone (`customers.phone`), Couverts (`party_size`), Statut (Badge), Actions.
-
-Actions requises :
-- Changement de statut rapide en 1 clic (Server Action / mutation Supabase).
-- Modal de création manuelle de RDV (nom, email, tel, date, nb personnes), avec `source: 'dashboard'`.
+- **Structure V1 conservée :** onglets « À venir » (groupés par jour), « Historique » et « Calendrier », recherche, export CSV, pagination, ouverture de la modale via `?new=1`.
+- **Partition sur `starts_at`**, avec le délai de grâce de 15 min.
+- **Filtres par statut**, avec compteurs : `pending | confirmed | completed | no_show | cancelled`.
+- **Contenu de chaque ligne :** date/heure, client (`customers.full_name`, à défaut `guest_name`), téléphone ou email, couverts (si le type de commerce en a), statut, actions.
+- **Actions rapides en 1 clic** (`RESERVATION_QUICK_ACTIONS`) :
+  - en attente → confirmer ou refuser ;
+  - confirmée → venu, no show ou annuler ;
+  - venu ↔ no show ;
+  - annulée → rétablir.
+- **Modale de création manuelle :** nom, email, téléphone, date et heure dans le fuseau du commerce, couverts, note interne. Créée avec `source: 'dashboard'` et le statut `confirmed`.
+- **Détail :** message du client et note interne séparés, prestation, liens `mailto:` / `tel:`, suppression avec confirmation.
+- **Validé :** `tsc`, `eslint`, `next build`, logique de données testée en écriture sur le commerce de démo, fonctions de date testées (y compris les changements d'heure). **Non validé :** le rendu dans le navigateur avec une session réelle.
 
 ### 4.2 Vue Devis & Demandes (/quotes)
 Layout : vue split-screen 2 colonnes (à gauche la liste des cartes de demandes, à droite le détail du message sélectionné).
@@ -223,7 +233,7 @@ Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 1. ✅ Importer `types/supabase.ts` et vérifier la connexion au nouveau projet Supabase V2 dans `.env.local`.
 2. ✅ Implémenter les deux Route Handlers d'ingestion publique (`/api/v1/public/reservations` et `/api/v1/public/quotes`).
 3. ✅ Créer le TenantProvider et le wrapper dans `app/(dashboard)/layout.tsx`.
-4. Implémenter la vue `/reservations` (affichage, changement de statut, ajout manuel).
+4. 🟡 (code fait, à valider connecté) Implémenter la vue `/reservations` (affichage, changement de statut, ajout manuel).
 5. Implémenter la vue `/quotes` (split-screen, gestion des leads).
 6. Implémenter la vue `/customers` (liste et historique).
 
