@@ -193,7 +193,10 @@ Les pages ne doivent plus utiliser `useUserProfile` / `lib/supabase.ts` (table V
 Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
 - **Réservations :** tous les cas passent (création manuelle, `cancelled_at` posé puis effacé, filtres `starts_at` et statut, suppression). Une mise à jour ou une suppression avec un autre `business_id` reste sans effet.
 - **Ingestion (section 2) :** pas de régression après l'extraction de `customers.ts`.
-- **Devis :** ⚠️ passer à `sent` est refusé par la contrainte de table `quotes_check` (erreur 23514) quand `number` est NULL. Sa définition exacte n'apparaît pas dans `text.txt`, qui ne montre pas les CHECK multi-colonnes. Probablement : un devis envoyé doit avoir un numéro, à attribuer via `next_document_number(p_business, 'quote')`. À confirmer avec `select pg_get_constraintdef(oid) from pg_constraint where conname = 'quotes_check';`, puis corriger `updateQuoteStatus` et relancer les tests devis.
+- **Devis — numérotation :** contrainte `quotes_check` = `CHECK (status IN ('request','draft','cancelled') OR number IS NOT NULL)`. Hors de ces trois statuts, `updateQuoteStatus` attribue un numéro via la RPC `next_document_number(p_business, 'quote')` si le devis n'en a pas.
+  - Le numéro n'est posé que si `number` est encore NULL (`.is('number', null)`). En cas d'envoi simultané, un seul numéro est gardé ; l'autre crée un trou dans la séquence.
+  - ⚠️ `next_document_number` exige une session utilisateur : sous `service_role`, elle lève « Authentification requise » (P0001). Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
+  - Testé sous `service_role` : `request`, `draft` et `cancelled` sans numéro, garde contre un autre commerce, suppression.
 
 ### 4.1 Vue Réservations (/reservations) — 🟡 migrée en V2, à valider connecté
 Pages `app/(dashboard)/reservations/page.tsx` et `[id]/page.tsx`, sur `useReservations` / `useReservation`. Plus aucune dépendance à `useUserProfile` ni aux statuts V1 (`scheduled`, `attended`).
@@ -211,14 +214,26 @@ Pages `app/(dashboard)/reservations/page.tsx` et `[id]/page.tsx`, sur `useReserv
 - **Détail :** message du client et note interne séparés, prestation, liens `mailto:` / `tel:`, suppression avec confirmation.
 - **Validé :** `tsc`, `eslint`, `next build`, logique de données testée en écriture sur le commerce de démo, fonctions de date testées (y compris les changements d'heure). **Non validé :** le rendu dans le navigateur avec une session réelle.
 
-### 4.2 Vue Devis & Demandes (/quotes)
-Layout : vue split-screen 2 colonnes (à gauche la liste des cartes de demandes, à droite le détail du message sélectionné).
+### 4.2 Vue Devis & Demandes (/quotes) — 🟡 migrée en V2, numérotation à valider connecté
+La section « Devis » couvre **toutes les demandes entrantes** : privatisations, demandes d'informations, événements particuliers, propositions. L'interface dit donc « Demandes & devis » et des libellés neutres (« Nouvelle demande », « En cours », « Proposition envoyée », « Classée sans suite »…), dans `QUOTE_STATUS_UI`.
 
-Contenu du détail : nom du prospect, email, téléphone, date souhaitée, type d'événement, nombre d'invités (depuis `request_details`), message brut (`request_message`).
-
-Actions requises :
-- Boutons d'action rapide : `mailto:`, `tel:`, lien WhatsApp direct.
-- Sélecteur de statut : `request | draft | sent | accepted | declined`. Le statut « contacté » du cahier initial n'existe pas en base : on utilise `draft` (devis en préparation) ou `sent` (devis envoyé).
+- **`/quotes` :** vue en deux colonnes à partir de `lg`.
+  - À gauche, les cartes : contact, type, invités, extrait du message, date de réception, statut.
+  - À droite, le détail de la demande sélectionnée.
+  - Recherche, filtres par statut avec compteurs, export CSV.
+  - Sous `lg`, un clic ouvre `/quotes/[id]`.
+- **`/quotes/[id]` :** même détail, en lien direct ou sur mobile.
+- **Composant commun :** `app/(dashboard)/quotes/_components/QuoteDetail.tsx`.
+- **Contenu du détail :**
+  - contact (nom, email, téléphone) ;
+  - type de demande, date souhaitée, invités estimés, lus dans `request_details` ; les autres clés éventuelles sont affichées telles quelles ;
+  - numéro et montant s'ils existent ;
+  - message brut (`request_message`).
+- **Actions :**
+  - `mailto:`, `tel:`, WhatsApp (`wa.me`, numéro national converti en international selon `businesses.country` ; bouton masqué si la conversion est impossible) ;
+  - sélecteur de statut : `request | draft | sent | accepted | declined | cancelled` (`expired` n'est pas un choix manuel). Le statut « contacté » du cahier initial devient `draft` ou `sent` ;
+  - suppression avec confirmation.
+- **Reste à valider connecté :** passage à `sent` et attribution du numéro par `next_document_number`.
 
 ### 4.3 Vue Base Clients CRM (/customers)
 Composants UI : Data Table avec barre de recherche dynamique (`full_name`, `email`, `phone`).
@@ -234,7 +249,7 @@ Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 2. ✅ Implémenter les deux Route Handlers d'ingestion publique (`/api/v1/public/reservations` et `/api/v1/public/quotes`).
 3. ✅ Créer le TenantProvider et le wrapper dans `app/(dashboard)/layout.tsx`.
 4. 🟡 (code fait, à valider connecté) Implémenter la vue `/reservations` (affichage, changement de statut, ajout manuel).
-5. Implémenter la vue `/quotes` (split-screen, gestion des leads).
+5. 🟡 (code fait, numérotation à valider connecté) Implémenter la vue `/quotes` (split-screen, gestion des leads).
 6. Implémenter la vue `/customers` (liste et historique).
 
 ---

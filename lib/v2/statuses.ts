@@ -30,3 +30,18 @@ export const RESERVATION_QUICK_ACTIONS: Record<ReservationStatus, { to: Reservat
 
 export const QUOTE_STATUSES = ['request', 'draft', 'sent', 'accepted', 'declined', 'expired', 'cancelled'] as const
 export type QuoteStatus = (typeof QUOTE_STATUSES)[number]
+
+// La section Devis couvre toutes les demandes entrantes (privatisations, demandes d'informations, événements…),
+// d'où des libellés qui ne présupposent pas qu'un devis chiffré existe.
+export const QUOTE_STATUS_UI: Record<QuoteStatus, { label: string; pill: string }> = {
+    request: { label: 'Nouvelle demande', pill: 'pill pill-amber' },
+    draft: { label: 'En cours', pill: 'pill pill-purple' },
+    sent: { label: 'Proposition envoyée', pill: 'pill pill-blue' },
+    accepted: { label: 'Acceptée', pill: 'pill pill-green' },
+    declined: { label: 'Refusée', pill: 'pill pill-red' },
+    expired: { label: 'Expirée', pill: 'pill pill-muted' },
+    cancelled: { label: 'Classée sans suite', pill: 'pill pill-muted' },
+}
+
+// Statuts proposés dans le sélecteur (CLAUDE.md 4.2) ; « expirée » n'est pas un choix manuel.
+export const QUOTE_SELECTABLE_STATUSES: readonly QuoteStatus[] = ['request', 'draft', 'sent', 'accepted', 'declined', 'cancelled']

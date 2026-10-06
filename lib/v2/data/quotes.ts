@@ -42,13 +42,48 @@ const STATUS_TIMESTAMP: Partial<Record<QuoteStatus, 'sent_at' | 'accepted_at' | 
     declined: 'declined_at',
 }
 
+// Contrainte quotes_check : hors de ces statuts, un devis doit avoir un numéro (number NOT NULL).
+const UNNUMBERED_STATUSES: readonly QuoteStatus[] = ['request', 'draft', 'cancelled']
+
 export async function updateQuoteStatus(supabase: Client, businessId: string, id: string, status: QuoteStatus) {
     const patch: TablesUpdate<'quotes'> = { status }
     const timestampField = STATUS_TIMESTAMP[status]
     if (timestampField) patch[timestampField] = new Date().toISOString()
 
+    if (!UNNUMBERED_STATUSES.includes(status)) {
+        const { data: current, error } = await supabase
+            .from('quotes')
+            .select('number')
+            .eq('business_id', businessId)
+            .eq('id', id)
+            .maybeSingle()
+        if (error) throw error
+        if (!current) return // devis inexistant ou d'un autre commerce : rien à faire, comme un update sans ligne
+
+        if (current.number === null) {
+            const number = await nextQuoteNumber(supabase, businessId)
+            // Ne pose le numéro que si personne ne l'a fait entre-temps, pour ne pas écraser un numéro déjà attribué.
+            const { data: numbered, error: numberError } = await supabase
+                .from('quotes')
+                .update({ ...patch, number })
+                .eq('business_id', businessId)
+                .eq('id', id)
+                .is('number', null)
+                .select('id')
+            if (numberError) throw numberError
+            if (numbered.length > 0) return
+            // Numéroté en parallèle : le numéro tiré ici reste inutilisé (trou dans la séquence) ; on applique le statut seul.
+        }
+    }
+
     const { error } = await supabase.from('quotes').update(patch).eq('business_id', businessId).eq('id', id)
     if (error) throw error
+}
+
+async function nextQuoteNumber(supabase: Client, businessId: string) {
+    const { data, error } = await supabase.rpc('next_document_number', { p_business: businessId, p_kind: 'quote' })
+    if (error) throw error
+    return data
 }
 
 export async function deleteQuote(supabase: Client, businessId: string, id: string) {
