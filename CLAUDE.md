@@ -304,7 +304,7 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
 
 ---
 
-## SECTION 6 : CONTEXTE DYNAMIQUE & UI (VAGUE 3) — 🟡 code fait, à valider connecté
+## SECTION 6 : CONTEXTE DYNAMIQUE & UI (VAGUE 3) ✅
 
 ### 6.1 Contexte commerce
 - `getTenantContext()` charge le commerce avec `business_type` (`booking_noun`, `customer_noun`, `party_noun`) et sa `vertical` (slug, label, icon), ainsi que `modules`, la liste renvoyée par `enabled_modules(p_business)`.
@@ -329,7 +329,8 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
   - `/messaging` → inbox ;
   - `/stats` et `/analytics` → analytics ;
   - `/reputation` → google_reviews.
-- **Entrées sans module V2** (`module: null`), gardées visibles par décision du 2026-10-06 : accueil, contenu, réseaux sociaux, chatbot, référencement, publicité, fidélité, mini CRM, multilingue, finance, espace équipe, chèques cadeaux, assistant IA, facturation, support, paramètres.
+- **Entrées sans module** (`module: null`, toujours visibles) : accueil, Mini CRM, facturation de l'abonnement, support, paramètres.
+- **Retirées de la navigation le 2026-10-06** (aucun module V2) : Réseaux sociaux, Chatbot web, Référencement, Publicité digitale, Programme fidélité, Site multilingue, Finance, Espace équipe, Chèques cadeaux, Assistant IA. Leurs pages V1 restent joignables par URL (titre conservé dans la Topbar). Elles reviendront dans `NAV_ITEMS`, avec leur slug, quand leur module existera. La page Contenu (`/content`, simple redirection vers l'accueil) est supprimée.
 - **Libellés dynamiques :** « Réservations » devient `booking_noun` (Rendez-vous, Leçons, Consultations…) et « Clients » devient `customer_noun` (Patients, Élèves…), dans la Sidebar, la Topbar, la recherche et les pages `/customers`. Les boutons « + » suivent (« + Leçon », « + Élève »). Il n'y en a pas sur une page dont le module est inactif.
 - **Badges de la Sidebar en V2**, chacun calculé seulement si le module est actif :
   - réservations du jour, selon `starts_at` dans le fuseau du commerce ;
@@ -341,6 +342,25 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
 - **Prévu, chantier « gating applicatif » :** bloquer dans le middleware l'accès direct par URL aux pages d'un module inactif (décision du 2026-10-06). Aujourd'hui, seuls les menus sont masqués.
 - **Démo :** pour qu'un module non core (ex. `reservations`) apparaisse, 'is_enabled' ne suffit pas : il faut aussi un plan actif qui l'inclut (`business_plans` → `plan_modules`) ou une option (`business_addons`), sinon `enabled_modules` l'écarte.
 
+### 6.3 Test en session réelle — 2026-10-06
+Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp`, aucun email envoyé) pour `test-auth@vwa.local` (owner de l'agence Vibe Web Agency) et `lecteur-test@vwa.local` (viewer FiFi). Les pages sont rendues par `next start` avec les cookies `@supabase/ssr`. Les données de test ont été nettoyées, le compteur de numérotation restauré, et seules les sessions du test ont été fermées (`signOut({ scope: 'local' })`).
+
+- ✅ **Sans session :** redirection vers `/login`.
+- ✅ **Navigation et vocabulaire :** Sidebar de FiFi filtrée par modules (Commandes, Produits, Profils et Projets masqués), libellés « Réservations », « Clients », « Demandes & devis ».
+- ✅ **Navigation épurée** (re-testée en session owner et viewer) : 13 entrées sur FiFi (accueil ; Réservations, Calendrier, Demandes & devis, Avis, Clients ; Services, Équipe, Actualités ; Statistiques, Analyse web ; Mini CRM, Facturation). Aucune des 11 entrées retirées, `/content` en 404, `/seo` joignable par URL.
+- ✅ **Rôles :**
+  - owner : formulaires de paramètres actifs, bouton « Nouveau » présent ;
+  - viewer : bandeau lecture seule, pas de bouton « Nouveau ». Changement de statut et modification de l'établissement refusés par la RLS (`NotAllowedError`), rien n'est modifié.
+- ✅ **Isolation :** un cookie pointant vers un commerce d'une autre agence est ignoré. `accessible_business_ids`, `enabled_modules` et `memberships` fonctionnent sous session.
+- ✅ **Numérotation :** un devis passé à `sent` en session owner reçoit son numéro (`next_document_number`, chemin membre).
+- ✅ **Realtime** (corrigé le 2026-10-06) : la publication `supabase_realtime` ne contenait aucune table de `public`. `reservations`, `quotes`, `customers`, `reviews` et `orders` y sont maintenant publiées (`supabase/manual/realtime-publication.sql`, à rejouer en production). Vérifié :
+  - un owner reçoit les nouvelles réservations et demandes de son commerce ;
+  - un viewer FiFi reçoit celles de FiFi et **rien** de la démo, car Realtime applique la RLS ;
+  - le badge « demandes » compte bien sous session.
+
+  Note pour les tests : laisser environ 2 s entre `SUBSCRIBED` et la première insertion, le temps que Realtime enregistre le filtre.
+- ✅ **Démo :** l'agence de `client-demo` n'avait aucun membre. `test-auth@vwa.local` y est rattaché comme owner (base de dev uniquement : `supabase/manual/dev-demo-agency-member.sql`). Modules synchronisés depuis son type (`supabase/manual/sync-business-modules-from-type.sql`) : 11 modules. Vérifié en session : Sidebar « Rendez-vous », « Clients », sans Commandes, Produits, Profils ni Projets ; `/reservations` titré « Rendez-vous », sans champ « Couverts ». FiFi garde « Réservations ».
+
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 
@@ -351,7 +371,7 @@ Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 5. ✅ Implémenter la vue `/quotes` (split-screen, gestion des leads).
 6. 🟡 (code fait, à valider connecté) Implémenter la vue `/customers` (liste et historique) — section 5.1.
 7. 🟡 (code fait, préférences réservation/devis en attente de décision) Implémenter les paramètres du commerce `/settings` — section 5.2.
-8. 🟡 (code fait, à valider connecté) Contexte dynamique (verticale, vocabulaire, modules) et navigation — section 6.
+8. ✅ Contexte dynamique (verticale, vocabulaire, modules) et navigation — section 6.
 
 ---
 
