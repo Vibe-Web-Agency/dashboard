@@ -15,7 +15,7 @@ const PAGES = [
     { label: "Messages", href: "/quotes", icon: FileText, group: "Activité" },
     { label: "Commandes", href: "/orders", icon: ShoppingCart, group: "Activité" },
     { label: "Avis", href: "/reviews", icon: Star, group: "Activité" },
-    { label: "Clients", href: "/clients", icon: Contact, group: "Activité" },
+    { label: "Clients", href: "/customers", icon: Contact, group: "Activité" },
     { label: "Services", href: "/services", icon: Scissors, group: "Contenu" },
     { label: "Profils", href: "/people", icon: UserSquare2, group: "Contenu" },
     { label: "Équipe", href: "/team", icon: Users, group: "Contenu" },

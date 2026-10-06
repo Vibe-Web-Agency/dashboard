@@ -180,7 +180,7 @@ export default function Navbar() {
 { key: "reservations", title: "Réservations", href: "/reservations", icon: CalendarDays },
         { key: "quotes", title: "Messages", href: "/quotes", icon: FileText },
         { key: "reviews", title: "Avis", href: "/reviews", icon: Star },
-        { key: "clients", title: "Clients", href: "/clients", icon: Contact },
+        { key: "clients", title: "Clients", href: "/customers", icon: Contact },
         { key: "analytics", title: "Analytics", href: "/analytics", icon: BarChart3 },
         { key: "catalog", title: catalogLabel, href: CATALOG_HREFS[catalog], icon: CATALOG_ICONS[catalog] },
         { key: "projects", title: "Projets", href: "/projects", icon: Clapperboard },

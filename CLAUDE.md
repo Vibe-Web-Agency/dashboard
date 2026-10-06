@@ -176,9 +176,11 @@ Fonctionnement :
 
 ---
 
-## SECTION 4 : SPÉCIFICATIONS UI & DASHBOARD (VAGUE 1)
+## SECTION 4 : SPÉCIFICATIONS UI & DASHBOARD (VAGUE 1) ✅
 
-### 4.0 Couche données & hooks V2 — 🟡 réservations et devis faits, pages à migrer
+Validée le 2026-10-06. Reste à observer au premier usage connecté : rendu des pages, temps réel, et numérotation des devis par `next_document_number` (la RPC exige une session utilisateur).
+
+### 4.0 Couche données & hooks V2 ✅
 Les pages ne doivent plus utiliser `useUserProfile` / `lib/supabase.ts` (table V1 `users`). Elles passent par :
 - **`lib/v2/data/*`** : fonctions qui prennent un client Supabase typé et le `business_id`, et filtrent toujours sur `business_id` en plus de la RLS. Testables avec n'importe quel client. Types des lignes dérivés des requêtes (`ReservationWithCustomer`, `QuoteWithCustomer`), avec le client joint.
   - `reservations.ts` : `listReservations` (`scope` : `upcoming | history | all`, filtre de statut), `getReservation`, `updateReservationStatus` (pose ou efface `cancelled_at`), `createManualReservation` (rattache ou crée le client, `source: 'dashboard'`, `created_by`), `deleteReservation`.
@@ -198,7 +200,7 @@ Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
   - ⚠️ `next_document_number` exige une session utilisateur : sous `service_role`, elle lève « Authentification requise » (P0001). Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
   - Testé sous `service_role` : `request`, `draft` et `cancelled` sans numéro, garde contre un autre commerce, suppression.
 
-### 4.1 Vue Réservations (/reservations) — 🟡 migrée en V2, à valider connecté
+### 4.1 Vue Réservations (/reservations) ✅
 Pages `app/(dashboard)/reservations/page.tsx` et `[id]/page.tsx`, sur `useReservations` / `useReservation`. Plus aucune dépendance à `useUserProfile` ni aux statuts V1 (`scheduled`, `attended`).
 
 - **Structure V1 conservée :** onglets « À venir » (groupés par jour), « Historique » et « Calendrier », recherche, export CSV, pagination, ouverture de la modale via `?new=1`.
@@ -214,7 +216,7 @@ Pages `app/(dashboard)/reservations/page.tsx` et `[id]/page.tsx`, sur `useReserv
 - **Détail :** message du client et note interne séparés, prestation, liens `mailto:` / `tel:`, suppression avec confirmation.
 - **Validé :** `tsc`, `eslint`, `next build`, logique de données testée en écriture sur le commerce de démo, fonctions de date testées (y compris les changements d'heure). **Non validé :** le rendu dans le navigateur avec une session réelle.
 
-### 4.2 Vue Devis & Demandes (/quotes) — 🟡 migrée en V2, numérotation à valider connecté
+### 4.2 Vue Devis & Demandes (/quotes) ✅
 La section « Devis » couvre **toutes les demandes entrantes** : privatisations, demandes d'informations, événements particuliers, propositions. L'interface dit donc « Demandes & devis » et des libellés neutres (« Nouvelle demande », « En cours », « Proposition envoyée », « Classée sans suite »…), dans `QUOTE_STATUS_UI`.
 
 - **`/quotes` :** vue en deux colonnes à partir de `lg`.
@@ -233,24 +235,59 @@ La section « Devis » couvre **toutes les demandes entrantes** : privatisations
   - `mailto:`, `tel:`, WhatsApp (`wa.me`, numéro national converti en international selon `businesses.country` ; bouton masqué si la conversion est impossible) ;
   - sélecteur de statut : `request | draft | sent | accepted | declined | cancelled` (`expired` n'est pas un choix manuel). Le statut « contacté » du cahier initial devient `draft` ou `sent` ;
   - suppression avec confirmation.
-- **Reste à valider connecté :** passage à `sent` et attribution du numéro par `next_document_number`.
-
-### 4.3 Vue Base Clients CRM (/customers)
-Composants UI : Data Table avec barre de recherche dynamique (`full_name`, `email`, `phone`).
-
-Page / modal détail client : fiche synthétique affichant l'historique complet du client (ses réservations passées et ses demandes de devis).
+- **À observer au premier envoi connecté :** attribution du numéro par `next_document_number`.
 
 ---
 
-## SECTION 5 : FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
+## SECTION 5 : CLIENTS & PARAMÈTRES DU COMMERCE (VAGUE 2) — 🟡 code fait, à valider connecté
+
+### 5.1 Vue Clients (/customers)
+Remplace l'ancienne page `/clients`, qui reconstituait les clients à partir des devis, réservations, avis et commandes. `/clients` redirige désormais vers `/customers`, et les liens de navigation pointent vers `/customers`.
+
+- **Données** (`lib/v2/data/customers.ts`, hooks `useCustomers` / `useCustomer`) :
+  - `listCustomers` : pagination côté serveur (25 par page), recherche sur nom, email et téléphone, filtre par `source`. Exclut les clients anonymisés (`anonymized_at`). Les statistiques viennent de la vue `customer_stats`. Les caractères qui structurent un filtre PostgREST sont retirés du terme recherché.
+  - `getCustomerDetail` : fiche, statistiques, réservations et demandes du client, ou `null` si le client est absent ou appartient à un autre commerce.
+  - `createCustomer` : création manuelle (`source: 'manual'`). Si un doublon existe (même email, ou même téléphone quand il n'y a pas d'email), rien n'est créé et la fonction renvoie `{ created: false, id, matchedBy }`.
+  - `updateCustomer` : modification de la fiche. Un email déjà porté par un autre client lève `DuplicateCustomerError` avec l'id de l'autre fiche.
+  - Emails toujours normalisés avec `normalizeEmail`.
+- **`/customers`** : tableau, recherche instantanée (300 ms après la dernière frappe), filtre par source, pagination, export CSV de tous les résultats filtrés, modale de création ouverte par le bouton ou par `?new=1`.
+- **`/customers/[id]`** : fiche (source, statut bloqué, ancienneté), coordonnées modifiables, contact rapide (`mailto:`, `tel:`, WhatsApp), statistiques, historique des réservations et des demandes avec liens vers leur détail.
+- **Non repris de la V1 :** la « campagne email » de l'ancienne page Clients, qui relève du module `campaigns`.
+
+### 5.2 Paramètres du commerce (/settings)
+`page.tsx` est un Server Component : il charge le commerce courant, ses horaires et le profil de l'utilisateur. Les formulaires sont dans `_components/SettingsSections.tsx`.
+
+- **Données** (`lib/v2/data/businesses.ts`) :
+  - `validateBusinessInfo` / `updateBusinessInfo` : champs modifiables `EDITABLE_BUSINESS_FIELDS` (nom, description, email, téléphone, site, adresse, code postal, ville, pays, lien Maps, fuseau). Le type de commerce, le slug, l'agence et le statut ne sont pas modifiables ici.
+  - `replaceBusinessHours` : insère les nouveaux créneaux puis supprime les anciens. Si la suppression échoue, les nouveaux sont retirés, pour ne laisser ni trou ni doublon. `day_of_week` va de 1 (lundi) à 7 (dimanche), et une fermeture après minuit est autorisée.
+  - `updateProfile` : nom et téléphone de l'utilisateur.
+  - Une écriture qui ne modifie aucune ligne (refus RLS) lève `NotAllowedError`.
+- **Server Actions** (`app/(dashboard)/settings/actions.ts`) : le commerce visé est toujours le commerce courant résolu côté serveur, jamais un id envoyé par le client. `saveBusinessInfo` et `saveBusinessHours` exigent le rôle `owner` ou `administrator`. `saveProfile` est ouvert à tout utilisateur, pour son propre profil.
+- **Interface :**
+  - « Mon compte » (l'email de connexion reste en lecture seule) ;
+  - « Mon établissement » ;
+  - « Horaires d'ouverture », avec plusieurs créneaux par jour ;
+  - « Sécurité & session » (mot de passe via `auth.updateUser`, déconnexion).
+  
+  Pour les rôles `member` et `viewer`, les formulaires de l'établissement sont désactivés et un bandeau l'explique.
+- **Non repris de la V1 :** le portail de facturation (routes V1 sur la table `users`) et la réinitialisation de l'onboarding.
+- **Préférences de réservation / devis — décision du 2026-10-06 :** elles iront dans `business_module_settings.settings` (jsonb), par module (`reservations`, `quotes`). Leur schéma sera défini avec le chantier API publique, en même temps que le code qui les applique (ingestion, crons). Pas d'écran d'ici là : aucun réglage sans effet réel.
+- **⚠️ RLS à confirmer :** la vérification de rôle des Server Actions est une protection d'interface. Un utilisateur peut appeler Supabase directement avec sa session : seules les politiques RLS de `businesses`, `business_hours` et `profiles` garantissent que seuls `owner` et `administrator` modifient le commerce. À vérifier avec `select tablename, policyname, cmd, qual, with_check from pg_policies where tablename in ('businesses', 'business_hours', 'profiles', 'customers');`.
+
+Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des champs et des horaires ; création, doublon par email et par téléphone, modification et email en conflit ; recherche (y compris caractères spéciaux), filtre et pagination ; isolation entre commerces ; mise à jour de l'établissement ; remplacement des horaires. La ligne `businesses` de la démo a été restaurée, sauf `updated_at`, qu'un trigger remet à l'heure courante.
+
+---
+
+## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 
 1. ✅ Importer `types/supabase.ts` et vérifier la connexion au nouveau projet Supabase V2 dans `.env.local`.
 2. ✅ Implémenter les deux Route Handlers d'ingestion publique (`/api/v1/public/reservations` et `/api/v1/public/quotes`).
 3. ✅ Créer le TenantProvider et le wrapper dans `app/(dashboard)/layout.tsx`.
-4. 🟡 (code fait, à valider connecté) Implémenter la vue `/reservations` (affichage, changement de statut, ajout manuel).
-5. 🟡 (code fait, numérotation à valider connecté) Implémenter la vue `/quotes` (split-screen, gestion des leads).
-6. Implémenter la vue `/customers` (liste et historique).
+4. ✅ Implémenter la vue `/reservations` (affichage, changement de statut, ajout manuel).
+5. ✅ Implémenter la vue `/quotes` (split-screen, gestion des leads).
+6. 🟡 (code fait, à valider connecté) Implémenter la vue `/customers` (liste et historique) — section 5.1.
+7. 🟡 (code fait, préférences réservation/devis en attente de décision) Implémenter les paramètres du commerce `/settings` — section 5.2.
 
 ---
 

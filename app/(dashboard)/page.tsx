@@ -340,7 +340,7 @@ export default function HomePage() {
                             {[
                                 { label: "Réservation", sub: "ouvrir l'agenda", icon: CalendarDays, href: "/reservations" },
                                 { label: "Nouveau message", sub: "envoyer un devis", icon: MessageSquare, href: "/quotes" },
-                                { label: "Nouveau client", sub: "+ fiche client", icon: UserPlus, href: "/clients" },
+                                { label: "Nouveau client", sub: "+ fiche client", icon: UserPlus, href: "/customers?new=1" },
                                 { label: "Statistiques", sub: "voir les données", icon: BarChart3, href: "/stats" },
                             ].map((action) => {
                                 const Icon = action.icon;

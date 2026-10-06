@@ -46,7 +46,7 @@ const PAGE_LABELS: Record<string, string> = {
     "/quotes": "Messages",
     "/orders": "Commandes",
     "/reviews": "Avis",
-    "/clients": "Clients",
+    "/customers": "Clients",
     "/people": "Profils",
     "/services": "Services",
     "/products": "Produits",
@@ -88,7 +88,7 @@ const PAGE_LABELS: Record<string, string> = {
 const PAGE_CTA: Record<string, string> = {
     "/reservations": "Réservation",
     "/quotes": "Message",
-    "/clients": "Client",
+    "/customers": "Client",
     "/blog": "Article",
     "/products": "Produit",
     "/services": "Service",

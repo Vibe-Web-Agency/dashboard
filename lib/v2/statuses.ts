@@ -28,6 +28,21 @@ export const RESERVATION_QUICK_ACTIONS: Record<ReservationStatus, { to: Reservat
     cancelled: [{ to: 'confirmed', label: 'Rétablir', pill: 'pill pill-blue' }],
 }
 
+// Origine d'une fiche client (customers.source).
+export const CUSTOMER_SOURCES = ['reservation', 'quote', 'order', 'review', 'form', 'manual', 'import', 'instagram', 'whatsapp'] as const
+export type CustomerSource = (typeof CUSTOMER_SOURCES)[number]
+export const CUSTOMER_SOURCE_LABEL: Record<CustomerSource, string> = {
+    reservation: 'Réservation',
+    quote: 'Demande / devis',
+    order: 'Commande',
+    review: 'Avis',
+    form: 'Formulaire',
+    manual: 'Saisie manuelle',
+    import: 'Import',
+    instagram: 'Instagram',
+    whatsapp: 'WhatsApp',
+}
+
 export const QUOTE_STATUSES = ['request', 'draft', 'sent', 'accepted', 'declined', 'expired', 'cancelled'] as const
 export type QuoteStatus = (typeof QUOTE_STATUSES)[number]
 

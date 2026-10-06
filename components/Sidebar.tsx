@@ -184,7 +184,7 @@ export default function Sidebar() {
                 { title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
                 { title: "Commandes", href: "/orders", icon: ShoppingCart, badge: pendingOrders },
                 { title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
-                { title: "Clients", href: "/clients", icon: Contact },
+                { title: "Clients", href: "/customers", icon: Contact },
             ],
         },
         {
