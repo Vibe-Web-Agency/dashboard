@@ -67,13 +67,7 @@ FOR ALL USING (
   L'isolation par `business_id` et la restriction owner/administrator sur l'établissement sont donc garanties en base. Les Server Actions de la section 5.2 font le même contrôle côté interface.
 - **Vues :** `customer_stats` et `campaign_stats` sont `security_invoker=true` et suivent la RLS. `google_connexions_etat` est `security_invoker=false` mais filtre elle-même sur `accessible_business_ids('viewer')` (0 ligne en anonyme, vérifié) et masque `refresh_token`.
 - **Écritures refusées en silence :** un UPDATE ou DELETE refusé par la RLS ne lève pas d'erreur (0 ligne). Toutes les écritures de `lib/v2/data/*` vérifient le nombre de lignes touchées et lèvent `NotAllowedError` (`lib/v2/data/errors.ts`). L'interface masque les actions d'écriture aux rôles sous member (`canWrite` dans `lib/v2/roles.ts`).
-- **⚠️ Défaut dans `next_document_number` (à corriger en base) :** le passe-droit prévu pour la clé de service teste `current_setting('request.jwt.claim.role', true)`. PostgREST ne renseigne plus ce paramètre (il expose `request.jwt.claims` en JSON) : la condition ne reconnaît jamais `service_role`, et la fonction lève « Authentification requise ». C'est ce que donne un appel avec la clé de service (constaté le 2026-10-06). Conséquence : les crons et routes d'API ne peuvent pas numéroter. Le dashboard n'est pas touché (session utilisateur, rang member exigé). Correctif proposé, à appliquer par l'équipe base de données :
-  ```sql
-  -- dans public.next_document_number, remplacer la condition :
-  --   if coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' then
-  -- par (auth.role() lit les deux formats de claims) :
-  if coalesce(auth.role(), '') <> 'service_role' then
-  ```
+- **`next_document_number` — corrigé le 2026-10-06 (base de dev) :** le passe-droit de la clé de service testait `current_setting('request.jwt.claim.role')`, que PostgREST ne renseigne plus. Aucun appel serveur (crons, routes d'API) ne pouvait numéroter. La condition utilise maintenant `auth.role()`, qui lit les deux formats. Vérifié : la clé de service obtient `DEV-2026-0001`, l'anonyme est refusé, et un devis passé à `sent` reçoit son numéro. Script à rejouer sur chaque base V2, dont la production : `supabase/manual/next-document-number-service-role.sql`.
 
 Autres fonctions disponibles : `has_feature`, `effective_rank`, `role_rank`, `is_platform_admin`, `enabled_modules`, `invite_member`, `accept_invitation`, `change_member_role`, `remove_member`, `next_document_number`.
 
@@ -222,7 +216,7 @@ Tests d'écriture du 2026-10-06 sur le commerce de démo, données nettoyées :
 - **Ingestion (section 2) :** pas de régression après l'extraction de `customers.ts`.
 - **Devis — numérotation :** contrainte `quotes_check` = `CHECK (status IN ('request','draft','cancelled') OR number IS NOT NULL)`. Hors de ces trois statuts, `updateQuoteStatus` attribue un numéro via la RPC `next_document_number(p_business, 'quote')` si le devis n'en a pas.
   - Le numéro n'est posé que si `number` est encore NULL (`.is('number', null)`). En cas d'envoi simultané, un seul numéro est gardé ; l'autre crée un trou dans la séquence.
-  - ⚠️ Sous `service_role`, `next_document_number` lève « Authentification requise » (P0001), à cause d'un défaut de la fonction : voir « Audit RLS » en 1.3. Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
+  - Sous `service_role`, `next_document_number` levait « Authentification requise » à cause d'un défaut de la fonction, corrigé le 2026-10-06 (voir « Audit RLS » en 1.3). Chemin numéroté testé de bout en bout depuis : `sent` → `DEV-2026-0002`, numéro conservé ensuite, un seul numéro en cas d'envois simultanés. Le chemin numéroté (`sent`, `accepted`, `declined`, `expired`) n'est donc testable qu'en étant connecté. Si la RPC échoue, le statut reste inchangé (vérifié).
   - Testé sous `service_role` : `request`, `draft` et `cancelled` sans numéro, garde contre un autre commerce, suppression.
 
 ### 4.1 Vue Réservations (/reservations) ✅
