@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Dump du schéma de dev et fichiers temporaires de la CLI Supabase
+text.txt
+supabase/.temp/
