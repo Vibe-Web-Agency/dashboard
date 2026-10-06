@@ -28,6 +28,7 @@ export default async function DashboardLayout({
             currentBusiness={tenant.currentBusiness}
             currentRole={tenant.currentRole}
             userBusinesses={tenant.userBusinesses}
+            modules={tenant.modules}
         >
             <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
                 <Sidebar />

@@ -4,12 +4,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { Search, LogOut, User, MessageCircle, Settings, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useUserProfile } from "@/lib/useUserProfile";
 import { supabase } from "@/lib/supabase";
 import NotificationBell from "@/components/NotificationBell";
 import SearchPalette from "@/components/SearchPalette";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ALL_FEATURES } from "@/lib/businessConfig";
+import type { FeatureKey } from "@/lib/businessConfig";
+import { useTenant } from "@/providers/TenantProvider";
+import { bookingLabels } from "@/lib/v2/labels";
+import { navCta, navItemFor, navTitle } from "@/lib/v2/navigation";
 
 function useUnreadSupport(businessId?: string | null) {
     const [count, setCount] = useState(0);
@@ -40,71 +42,28 @@ function useUnreadSupport(businessId?: string | null) {
     return count;
 }
 
+// Titres des pages hors navigation (les autres viennent de lib/v2/navigation.ts).
 const PAGE_LABELS: Record<string, string> = {
-    "/": "Vue d'ensemble",
-    "/reservations": "Réservations",
-    "/quotes": "Messages",
-    "/orders": "Commandes",
-    "/reviews": "Avis",
-    "/customers": "Clients",
-    "/people": "Profils",
-    "/services": "Services",
-    "/products": "Produits",
-    "/projects": "Projets",
-    "/blog": "Actualités",
-    "/stats": "Statistiques",
-    "/analytics": "Analyse web",
-    "/messages": "Support",
-    "/settings": "Paramètres",
-    "/team": "Équipe",
-    "/billing": "Facturation",
-    "/calendar": "Calendrier",
-    "/campaigns": "Campagnes",
-    "/content": "Contenu",
-    "/loyalty": "Programme fidélité",
-    "/email": "E-mail marketing",
-    "/giftcards": "Chèques cadeaux",
-    "/ai": "Assistant IA",
-    "/ads": "Publicité digitale",
     "/sms": "Relance SMS",
     "/auto-replies": "Réponses automatiques",
     "/whatsapp": "RDV WhatsApp",
-    "/messaging": "Messageries — Instagram & WhatsApp",
-    "/reputation": "Avis Google & E-Réputation",
     "/invoicing": "Devis & Facturation",
-    "/finance": "Finance",
-    "/social": "Réseaux sociaux",
-    "/workspace": "Espace équipe & Planning",
-    "/seo": "Référencement",
     "/accounting": "Gestion financière",
     "/google-ads": "Google ADS",
     "/meta-ads": "Meta ADS",
     "/geo-ai": "GEO Référencement IA",
-    "/chatbot": "Chatbot Web",
-    "/multilingual": "Site multilingue",
-    "/crm": "Mini CRM",
-};
-
-const PAGE_CTA: Record<string, string> = {
-    "/reservations": "Réservation",
-    "/quotes": "Message",
-    "/customers": "Client",
-    "/blog": "Article",
-    "/products": "Produit",
-    "/services": "Service",
-    "/team": "Membre",
-    "/projects": "Projet",
-    "/messages": "Ticket",
 };
 
 export default function Topbar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { profile } = useUserProfile();
-    const features = profile?.business_type?.features ?? ALL_FEATURES;
+    const { currentBusiness, hasModule } = useTenant();
+    const labels = bookingLabels(currentBusiness);
+    // Cloche (composant V1) : elle n'attend que les clés « quotes » et « reservations ».
+    const features: FeatureKey[] = (["quotes", "reservations"] as const).filter((k) => hasModule(k));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
-    const unreadSupport = useUnreadSupport(profile?.business_id);
+    const unreadSupport = useUnreadSupport(currentBusiness.id);
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -125,9 +84,13 @@ export default function Topbar() {
 
     const segments = pathname.split("/").filter(Boolean);
     const base = "/" + (segments[0] || "");
-    const pageLabel = PAGE_LABELS[base] ?? (segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : "Vue d'ensemble");
-    const businessName = profile?.business_name || "Dashboard";
-    const ctaLabel = PAGE_CTA[base];
+    const navItem = navItemFor(pathname);
+    const pageLabel = navItem
+        ? navTitle(navItem, labels)
+        : PAGE_LABELS[base] ?? (segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : "Vue d'ensemble");
+    const businessName = currentBusiness.name;
+    // Pas de bouton « + » sur une page dont le module n'est pas accessible.
+    const ctaLabel = navItem && (navItem.module === null || hasModule(navItem.module)) ? navCta(navItem, labels) : undefined;
 
     return (
         <header
@@ -233,7 +196,7 @@ export default function Topbar() {
                 </Link>
                 <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
                 <ThemeToggle />
-                <NotificationBell businessId={profile?.business_id} features={features} />
+                <NotificationBell businessId={currentBusiness.id} features={features} />
                 <div
                     className="flex items-center gap-2 px-2 py-1 rounded"
                     style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
@@ -242,14 +205,14 @@ export default function Topbar() {
                         className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
                         style={{ background: "var(--accent-muted)", color: "var(--accent)", border: "1px solid var(--accent-glow)" }}
                     >
-                        {profile?.business_name?.[0]?.toUpperCase() || <User className="h-3 w-3" />}
+                        {currentBusiness.name[0]?.toUpperCase() || <User className="h-3 w-3" />}
                     </div>
                     <div className="flex flex-col min-w-0" style={{ maxWidth: 120 }}>
                         <p className="font-medium truncate" style={{ color: "var(--text)", fontSize: "11px", lineHeight: 1.3 }}>
-                            {profile?.business_name || "Mon entreprise"}
+                            {currentBusiness.name}
                         </p>
                         <p className="truncate" style={{ fontSize: "9.5px", color: "var(--text-muted)", lineHeight: 1.3 }}>
-                            {profile?.email}
+                            {currentBusiness.business_type.label}
                         </p>
                     </div>
                     <button

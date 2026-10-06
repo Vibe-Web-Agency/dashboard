@@ -26,6 +26,13 @@ Derrière le proxy d'entreprise, voir « Notes d'environnement » plus bas.
 
 ### 1.2 Schéma des Tables Clés (Structure V2 réelle)
 
+**Vocabulaire métier :** `verticals` → `business_types` (`vertical_id`, nullable) → `businesses` (`business_type_id`).
+- `booking_noun` : ce qu'on réserve (« réservation », « leçon », « consultation »…).
+- `customer_noun` (ajouté le 2026-10-06, défaut « client ») : nom des clients dans l'interface (« client », « patient », « élève », « membre », « joueur », « prospect »).
+- `party_noun` : unité de `reservations.party_size` (« couvert », « joueur », « personne »), NULL quand le nombre de personnes n'a pas de sens. Depuis le 2026-10-06, il ne sert plus à nommer les clients. Script : `supabase/manual/business-types-customer-noun.sql`.
+
+**Modules :** `modules` (slug, `is_core`), activés par commerce dans `business_module_settings.is_enabled`, accordés par plan (`business_plans` → `plan_modules`) ou option (`business_addons`). `enabled_modules(p_business)` / `has_feature(p_business, slug)` renvoient ce qui est à la fois activé et accordé (`is_core`, plan actif ou option), pour un commerce actif.
+
 **Tenancy & Auth :** `agencies`, `businesses`, `profiles`, `memberships`.
 - `memberships` relie `profile_id` à `agency_id` (obligatoire) et `business_id` (nullable).
 - Rôles : `owner | administrator | member | viewer`.
@@ -297,6 +304,43 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
 
 ---
 
+## SECTION 6 : CONTEXTE DYNAMIQUE & UI (VAGUE 3) — 🟡 code fait, à valider connecté
+
+### 6.1 Contexte commerce
+- `getTenantContext()` charge le commerce avec `business_type` (`booking_noun`, `customer_noun`, `party_noun`) et sa `vertical` (slug, label, icon), ainsi que `modules`, la liste renvoyée par `enabled_modules(p_business)`.
+- On lit `enabled_modules` et non `business_module_settings.is_enabled` seul : un module activé mais non accordé (pas de plan, pas d'option, pas `is_core`) n'est pas accessible.
+- `useTenant()` expose `modules` et `hasModule(slug)`.
+- `lib/v2/labels.ts` (`bookingLabels`) fournit les libellés : `title` / `singularTitle` (booking), `customerTitle` / `customerSingularTitle` / `customerPlural` (customer), `showParty` / `partyTitle` / `partyCount` (party).
+
+### 6.2 Navigation dynamique
+- `lib/v2/navigation.ts` (`NAV_ITEMS`) est la source unique de la Sidebar, de la Topbar (titre de page, bouton « + ») et de la recherche (`SearchPalette`). Chaque entrée porte son `module`, son groupe et un titre fixe ou tiré du vocabulaire.
+- **Correspondance entrée → module :**
+  - `/reservations` et `/calendar` → reservations ;
+  - `/quotes` → quotes ;
+  - `/orders` et `/products` → shop ;
+  - `/reviews` → reviews ;
+  - `/customers` → customers ;
+  - `/services` → services ;
+  - `/people` → talents ;
+  - `/team` → team ;
+  - `/projects` → projects ;
+  - `/blog` → blog ;
+  - `/campaigns` et `/email` → campaigns ;
+  - `/messaging` → inbox ;
+  - `/stats` et `/analytics` → analytics ;
+  - `/reputation` → google_reviews.
+- **Entrées sans module V2** (`module: null`), gardées visibles par décision du 2026-10-06 : accueil, contenu, réseaux sociaux, chatbot, référencement, publicité, fidélité, mini CRM, multilingue, finance, espace équipe, chèques cadeaux, assistant IA, facturation, support, paramètres.
+- **Libellés dynamiques :** « Réservations » devient `booking_noun` (Rendez-vous, Leçons, Consultations…) et « Clients » devient `customer_noun` (Patients, Élèves…), dans la Sidebar, la Topbar, la recherche et les pages `/customers`. Les boutons « + » suivent (« + Leçon », « + Élève »). Il n'y en a pas sur une page dont le module est inactif.
+- **Badges de la Sidebar en V2**, chacun calculé seulement si le module est actif :
+  - réservations du jour, selon `starts_at` dans le fuseau du commerce ;
+  - demandes au statut `request` ;
+  - avis au statut `pending` ;
+  - commandes au statut `pending`.
+- **Constat sur les données de dev :** la démo (barbier) n'a pas le module `reservations` (non core, sans plan) : ses menus Réservations et Calendrier sont masqués. FiFi a son plan `dev`.
+- **Encore en V1 :** `NotificationBell` (colonnes `customer_name`, `date`) et le compteur de support de la Topbar (`ticket_messages.sender`, devenu `author_id` en V2). Ils seront à migrer avec le module Support. Les pages des entrées sans module restent elles aussi en V1.
+- **Prévu, chantier « gating applicatif » :** bloquer dans le middleware l'accès direct par URL aux pages d'un module inactif (décision du 2026-10-06). Aujourd'hui, seuls les menus sont masqués.
+- **Démo :** pour qu'un module non core (ex. `reservations`) apparaisse, 'is_enabled' ne suffit pas : il faut aussi un plan actif qui l'inclut (`business_plans` → `plan_modules`) ou une option (`business_addons`), sinon `enabled_modules` l'écarte.
+
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 
@@ -307,10 +351,11 @@ Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 5. ✅ Implémenter la vue `/quotes` (split-screen, gestion des leads).
 6. 🟡 (code fait, à valider connecté) Implémenter la vue `/customers` (liste et historique) — section 5.1.
 7. 🟡 (code fait, préférences réservation/devis en attente de décision) Implémenter les paramètres du commerce `/settings` — section 5.2.
+8. 🟡 (code fait, à valider connecté) Contexte dynamique (verticale, vocabulaire, modules) et navigation — section 6.
 
 ---
 
-## SECTION 6 : MAPPING ET USAGE DES VARIABLES D'ENVIRONNEMENT (`.env.local`)
+## ANNEXE : MAPPING ET USAGE DES VARIABLES D'ENVIRONNEMENT (`.env.local`)
 
 L'application s'appuie strictement sur les variables d'environnement suivantes :
 

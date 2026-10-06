@@ -1,23 +1,32 @@
 import { cookies } from 'next/headers'
-import type { Tables } from '@/types/supabase'
+import type { Database, Tables } from '@/types/supabase'
 import { createServerSupabase } from './supabase-server'
 import { effectiveRole, type Role } from './roles'
 
-// Contexte commerce (tenant) résolu côté serveur, sous la session de l'utilisateur (CLAUDE.md, section 3).
+// Contexte commerce (tenant) résolu côté serveur, sous la session de l'utilisateur (CLAUDE.md, sections 3 et 6).
 
 export const CURRENT_BUSINESS_COOKIE = 'vwa_business_id'
 
-// Le type de commerce porte les libellés métier (booking_noun, party_noun).
-const BUSINESS_SELECT = '*, business_type:business_types ( slug, label, booking_noun, party_noun )' as const
+// verticals → business_types → businesses : le type porte le vocabulaire métier, la verticale le regroupe.
+const BUSINESS_SELECT = `*, business_type:business_types (
+    slug, label, booking_noun, customer_noun, party_noun,
+    vertical:verticals ( slug, label, icon )
+)` as const
 
 export type Business = Tables<'businesses'> & {
-    business_type: Pick<Tables<'business_types'>, 'slug' | 'label' | 'booking_noun' | 'party_noun'>
+    business_type: Pick<Tables<'business_types'>, 'slug' | 'label' | 'booking_noun' | 'customer_noun' | 'party_noun'> & {
+        vertical: Pick<Tables<'verticals'>, 'slug' | 'label' | 'icon'> | null
+    }
 }
+
+/** Module accessible au commerce : activé (business_module_settings) ET accordé (module de base, plan ou option). */
+export type EnabledModule = Database['public']['Functions']['enabled_modules']['Returns'][number]
 
 export type TenantContext = {
     currentBusiness: Business | null
     currentRole: Role | null
     userBusinesses: Business[]
+    modules: EnabledModule[]
 }
 
 /** null si aucun utilisateur connecté. */
@@ -46,6 +55,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
         currentBusiness,
         currentRole: currentBusiness ? effectiveRole(memberships.data, currentBusiness) : null,
         userBusinesses: businesses,
+        modules: currentBusiness ? await getEnabledModules(supabase, currentBusiness.id) : [],
     }
 }
 
@@ -60,4 +70,15 @@ export async function getAccessibleBusinesses(supabase: ServerSupabase): Promise
     const { data, error } = await supabase.from('businesses').select(BUSINESS_SELECT).in('id', ids).order('name')
     if (error) throw error
     return data satisfies Business[]
+}
+
+/**
+ * enabled_modules() plutôt qu'une lecture directe de business_module_settings : la fonction exige aussi que
+ * le module soit accordé (is_core, plan actif ou option) et que le commerce soit actif. Un module activé
+ * mais non payé n'apparaît donc pas.
+ */
+async function getEnabledModules(supabase: ServerSupabase, businessId: string): Promise<EnabledModule[]> {
+    const { data, error } = await supabase.rpc('enabled_modules', { p_business: businessId })
+    if (error) throw error
+    return data
 }

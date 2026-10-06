@@ -59,8 +59,8 @@ export default function CustomerDetailPage() {
     if (!detail) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-                <p style={{ color: 'var(--text-2)' }}>{error ? "Impossible de charger ce client." : "Ce client est introuvable."}</p>
-                <Link href="/customers"><Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux clients</Button></Link>
+                <p style={{ color: 'var(--text-2)' }}>{error ? "Impossible de charger cette fiche." : "Cette fiche est introuvable."}</p>
+                <Link href="/customers"><Button style={{ background: 'var(--accent)', color: '#0E0D0B' }}>Retour aux {labels.customerPlural}</Button></Link>
             </div>
         );
     }
@@ -96,7 +96,7 @@ export default function CustomerDetailPage() {
         <div className="flex flex-col gap-5 max-w-4xl mx-auto w-full">
             <Link href="/customers" className="flex items-center gap-2 w-fit" style={{ color: 'var(--accent)' }}>
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm font-medium">Retour aux clients</span>
+                <span className="text-sm font-medium">Retour aux {labels.customerPlural}</span>
             </Link>
 
             {/* ─── Fiche ─── */}
@@ -111,7 +111,7 @@ export default function CustomerDetailPage() {
                             <span className="pill pill-muted">{CUSTOMER_SOURCE_LABEL[customer.source as CustomerSource] ?? customer.source}</span>
                             {customer.is_blocked && <span className="pill pill-red">Bloqué</span>}
                         </div>
-                        <p style={{ fontSize: "12px", color: "var(--muted)" }}>Client depuis le {formatInZone(customer.created_at, tz, { day: "numeric", month: "long", year: "numeric" })}</p>
+                        <p style={{ fontSize: "12px", color: "var(--muted)" }}>{labels.customerSingularTitle} depuis le {formatInZone(customer.created_at, tz, { day: "numeric", month: "long", year: "numeric" })}</p>
                     </div>
                     {!editing && canWrite(currentRole) && (
                         <Button variant="outline" size="sm" onClick={startEdit} style={actionStyle}><Pencil className="w-3.5 h-3.5" /> Modifier</Button>

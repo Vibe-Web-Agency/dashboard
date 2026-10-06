@@ -3,93 +3,73 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-    LayoutDashboard, CalendarDays, FileText, BarChart3, Globe,
-    Scissors, Users, Package, Clapperboard, Star, Contact,
-    Newspaper, Menu, X, ChevronRight, ShoppingCart,
-    MessageCircle, Settings, LogOut, UserSquare2,
-    Calendar, Megaphone, Layers, CreditCard, Lock,
-    Gift, Mail, Bot, Heart,
-    Phone, Share2, Webhook,
-    BadgeCheck, Compass, TrendingUp,
-    Receipt, ClipboardList, Languages, BookUser,
-} from "lucide-react";
+import { Menu, X, ChevronRight, LogOut, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { useUserProfile } from "@/lib/useUserProfile";
 import NotificationBell from "@/components/NotificationBell";
-import { ALL_FEATURES } from "@/lib/businessConfig";
-import { planIncludes, type PlanId } from "@/lib/plans";
+import type { FeatureKey } from "@/lib/businessConfig";
+import { useTenant } from "@/providers/TenantProvider";
+import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
+import { bookingLabels } from "@/lib/v2/labels";
+import { NAV_GROUPS, NAV_ITEMS, type NavItem, navTitle, visibleNavItems } from "@/lib/v2/navigation";
+import { zonedDayKey, zonedToUtcIso } from "@/lib/v2/datetime";
 
-// ─── Badge hooks ──────────────────────────────────────────────────────────────
+// ─── Compteurs (badges) ──────────────────────────────────────────────────────
 
-function useBadge(table: string, businessId?: string | null, filter?: Record<string, string>) {
+type BadgeTable = "reservations" | "quotes" | "reviews" | "orders";
+
+/** Nombre de lignes du commerce correspondant au filtre, recompté à chaque changement de la table. */
+function useBadgeCount(table: BadgeTable, businessId: string, enabled: boolean, filter: (q: CountQuery) => CountQuery) {
     const [count, setCount] = useState(0);
     useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            let q = (supabase as any).from(table).select("*", { count: "exact", head: true }).eq("business_id", businessId);
-            if (filter) Object.entries(filter).forEach(([k, v]) => { q = q.eq(k, v); });
-            const { count: c } = await q;
-            setCount(c || 0);
+        if (!enabled) return;
+        const supabase = getBrowserSupabase();
+        let stale = false;
+        const refresh = async () => {
+            const base = supabase.from(table).select("*", { count: "exact", head: true }).eq("business_id", businessId);
+            const { count: c } = await filter(base as CountQuery);
+            if (!stale) setCount(c ?? 0);
         };
-        fetch();
-        const ch = supabase.channel(`badge-${table}-${businessId}`)
-            .on("postgres_changes", { event: "*", schema: "public", table }, fetch)
+        refresh();
+        const channel = supabase
+            .channel(`badge-${table}-${businessId}`)
+            .on("postgres_changes", { event: "*", schema: "public", table, filter: `business_id=eq.${businessId}` }, refresh)
             .subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
+        return () => { stale = true; supabase.removeChannel(channel); };
+        // filter est recréé à chaque rendu ; ses entrées sont couvertes par table et businessId.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [table, businessId, enabled]);
+    return enabled ? count : 0;
 }
 
-function useTodayResBadge(businessId?: string | null) {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            const start = new Date(); start.setHours(0, 0, 0, 0);
-            const end = new Date(); end.setHours(23, 59, 59, 999);
-            const { count: c } = await supabase.from("reservations").select("*", { count: "exact", head: true })
-                .eq("business_id", businessId).gte("date", start.toISOString()).lte("date", end.toISOString());
-            setCount(c || 0);
-        };
-        fetch();
-        const ch = supabase.channel(`badge-res-${businessId}`)
-            .on("postgres_changes", { event: "*", schema: "public", table: "reservations", filter: `business_id=eq.${businessId}` }, fetch)
-            .subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
+// Requête de comptage minimale utilisée par les filtres ci-dessous.
+type CountQuery = {
+    eq: (column: string, value: string) => CountQuery;
+    gte: (column: string, value: string) => CountQuery;
+    lt: (column: string, value: string) => CountQuery;
+} & PromiseLike<{ count: number | null }>;
+
+/** Bornes UTC de la journée en cours dans le fuseau du commerce. */
+function todayBounds(timeZone: string) {
+    const today = zonedDayKey(new Date(), timeZone);
+    const [y, m, d] = today.split("-").map(Number);
+    const tomorrow = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+    return { start: zonedToUtcIso(today, "00:00", timeZone), end: zonedToUtcIso(tomorrow, "00:00", timeZone) };
 }
 
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface NavItem {
-    title: string;
-    href: string;
-    icon: React.ElementType;
-    badge?: number;
-    locked?: PlanId;
-}
-
-interface NavGroup {
-    label: string;
-    items: NavItem[];
-}
-
-// ─── NavLink ──────────────────────────────────────────────────────────────────
+// ─── NavLink ─────────────────────────────────────────────────────────────────
 
 const PLAN_BADGE_STYLE: Record<string, { bg: string; color: string }> = {
     pro: { bg: "rgba(201,168,118,0.15)", color: "var(--accent)" },
     business: { bg: "rgba(167,139,250,0.15)", color: "#a78bfa" },
 };
 
-function NavLink({ item, collapsed, onClick, userPlan }: { item: NavItem; collapsed: boolean; onClick?: () => void; userPlan?: PlanId }) {
+type SidebarLink = { title: string; href: string; icon: NavItem["icon"]; badge?: number; locked?: NavItem["locked"] };
+
+function NavLink({ item, collapsed, onClick }: { item: SidebarLink; collapsed: boolean; onClick?: () => void }) {
     const pathname = usePathname();
     const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
     const Icon = item.icon;
-    const isLocked = false; // TODO: re-enable when plan column is in DB
+    const isLocked = false; // Verrous par plan : remplacés en V2 par les modules (enabled_modules).
 
     return (
         <Link
@@ -110,19 +90,13 @@ function NavLink({ item, collapsed, onClick, userPlan }: { item: NavItem; collap
             <Icon className="w-3.5 h-3.5 shrink-0" />
             {!collapsed && <span className="truncate flex-1">{item.title}</span>}
             {!collapsed && isLocked && item.locked && (
-                <span
-                    className="ml-auto flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold shrink-0"
-                    style={PLAN_BADGE_STYLE[item.locked] ?? PLAN_BADGE_STYLE.pro}
-                >
+                <span className="ml-auto flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold shrink-0" style={PLAN_BADGE_STYLE[item.locked] ?? PLAN_BADGE_STYLE.pro}>
                     <Lock className="w-2 h-2" />
                     {item.locked === "pro" ? "Pro" : "Business"}
                 </span>
             )}
             {!collapsed && !isLocked && item.badge != null && item.badge > 0 && (
-                <span
-                    className="ml-auto flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded text-[9px] font-bold"
-                    style={{ background: "var(--accent-muted)", color: "var(--accent)" }}
-                >
+                <span className="ml-auto flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
                     {item.badge > 99 ? "99+" : item.badge}
                 </span>
             )}
@@ -132,7 +106,6 @@ function NavLink({ item, collapsed, onClick, userPlan }: { item: NavItem; collap
                     style={{ background: "var(--surface-hi)", border: "1px solid var(--border-hi)", color: "var(--text)" }}
                 >
                     {item.title}
-                    {isLocked && item.locked && ` 🔒 ${item.locked === "pro" ? "Pro" : "Business"}`}
                     {!isLocked && item.badge != null && item.badge > 0 && ` (${item.badge})`}
                 </span>
             )}
@@ -145,95 +118,44 @@ function NavLink({ item, collapsed, onClick, userPlan }: { item: NavItem; collap
 export default function Sidebar() {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
+    // Le menu mobile se ferme dès qu'on change de page : il est ouvert pour une URL donnée.
+    const [mobileOpenFor, setMobileOpenFor] = useState<string | null>(null);
+    const mobileOpen = mobileOpenFor === pathname;
+    const setMobileOpen = (open: boolean) => setMobileOpenFor(open ? pathname : null);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const { profile } = useUserProfile();
+    const { currentBusiness, hasModule } = useTenant();
+    const labels = bookingLabels(currentBusiness);
+    const bid = currentBusiness.id;
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
-        await supabase.auth.signOut();
+        await getBrowserSupabase().auth.signOut();
         window.location.assign("/login");
     };
-    const features = profile?.business_type?.features ?? ALL_FEATURES;
-    const userPlan: PlanId = profile?.plan ?? "starter";
 
-    const bid = profile?.business_id;
-    const todayRes = useTodayResBadge(bid);
-    const pendingQuotes = useBadge("quotes", bid, { status: "pending" });
-    const unrepliedReviews = useBadge("reviews", bid);
-    const pendingOrders = useBadge("orders", bid, { status: "pending" });
+    const todayRes = useBadgeCount("reservations", bid, hasModule("reservations"), (q) => {
+        const { start, end } = todayBounds(currentBusiness.timezone);
+        return q.gte("starts_at", start).lt("starts_at", end);
+    });
+    const newQuotes = useBadgeCount("quotes", bid, hasModule("quotes"), (q) => q.eq("status", "request"));
+    const pendingReviews = useBadgeCount("reviews", bid, hasModule("reviews"), (q) => q.eq("status", "pending"));
+    const pendingOrders = useBadgeCount("orders", bid, hasModule("shop"), (q) => q.eq("status", "pending"));
+    const badges: Record<string, number> = { "/reservations": todayRes, "/quotes": newQuotes, "/reviews": pendingReviews, "/orders": pendingOrders };
 
-    useEffect(() => { setMobileOpen(false); }, [pathname]);
+    // Cloche (composant V1) : elle n'attend que les clés « quotes » et « reservations ».
+    const features: FeatureKey[] = (["quotes", "reservations"] as const).filter((k) => hasModule(k));
+
     useEffect(() => {
         document.body.style.overflow = mobileOpen ? "hidden" : "";
         return () => { document.body.style.overflow = ""; };
     }, [mobileOpen]);
 
-    const groups: NavGroup[] = [
-        {
-            label: "Pilotage",
-            items: [
-                { title: "Vue d'ensemble", href: "/", icon: LayoutDashboard },
-            ],
-        },
-        {
-            label: "Activité",
-            items: [
-                { title: "Réservations", href: "/reservations", icon: CalendarDays, badge: todayRes },
-                { title: "Calendrier", href: "/calendar", icon: Calendar },
-                { title: "Messages", href: "/quotes", icon: FileText, badge: pendingQuotes },
-                { title: "Commandes", href: "/orders", icon: ShoppingCart, badge: pendingOrders },
-                { title: "Avis", href: "/reviews", icon: Star, badge: unrepliedReviews },
-                { title: "Clients", href: "/customers", icon: Contact },
-            ],
-        },
-        {
-            label: "Contenu",
-            items: [
-                { title: "Services", href: "/services", icon: Scissors },
-                { title: "Profils", href: "/people", icon: UserSquare2 },
-                { title: "Produits", href: "/products", icon: Package },
-                { title: "Équipe", href: "/team", icon: Users },
-                { title: "Projets", href: "/projects", icon: Clapperboard },
-                { title: "Actualités", href: "/blog", icon: Newspaper },
-                { title: "Contenu", href: "/content", icon: Layers },
-            ],
-        },
-        {
-            label: "Communication",
-            items: [
-                { title: "SMS", href: "/campaigns", icon: Megaphone },
-                { title: "Messageries IG & WA", href: "/messaging", icon: Phone, locked: "pro" as PlanId },
-                { title: "E-mail marketing", href: "/email", icon: Mail, locked: "pro" as PlanId },
-                { title: "Réseaux sociaux", href: "/social", icon: Share2, locked: "pro" as PlanId },
-                { title: "Chatbot web", href: "/chatbot", icon: Webhook, locked: "business" as PlanId },
-            ],
-        },
-        {
-            label: "Visibilité",
-            items: [
-                { title: "Statistiques", href: "/stats", icon: BarChart3 },
-                { title: "Analyse web", href: "/analytics", icon: Globe },
-                { title: "Référencement", href: "/seo", icon: Compass, locked: "pro" as PlanId },
-                { title: "Avis Google", href: "/reputation", icon: BadgeCheck, locked: "pro" as PlanId },
-                { title: "Publicité digitale", href: "/ads", icon: TrendingUp, locked: "business" as PlanId },
-            ],
-        },
-        {
-            label: "Modules",
-            items: [
-                { title: "Programme fidélité", href: "/loyalty", icon: Heart, locked: "pro" as PlanId },
-                { title: "Mini CRM", href: "/crm", icon: BookUser, locked: "pro" as PlanId },
-                { title: "Site multilingue", href: "/multilingual", icon: Languages, locked: "pro" as PlanId },
-                { title: "Finance", href: "/finance", icon: Receipt, locked: "pro" as PlanId },
-                { title: "Espace équipe", href: "/workspace", icon: ClipboardList, locked: "pro" as PlanId },
-                { title: "Chèques cadeaux", href: "/giftcards", icon: Gift, locked: "business" as PlanId },
-                { title: "Assistant IA", href: "/ai", icon: Bot, locked: "business" as PlanId },
-                { title: "Facturation", href: "/billing", icon: CreditCard },
-            ],
-        },
-    ];
-
+    const toLink = (item: NavItem): SidebarLink => ({ title: navTitle(item, labels), href: item.href, icon: item.icon, badge: badges[item.href], locked: item.locked });
+    const visible = visibleNavItems(hasModule).filter((item) => !item.accountOnly);
+    const groups = NAV_GROUPS
+        .map((label) => ({ label, items: visible.filter((item) => item.group === label).map(toLink) }))
+        .filter((group) => group.items.length > 0);
+    const accountLinks = NAV_ITEMS.filter((item) => item.accountOnly).map(toLink);
 
     const sidebarContent = (isMobile = false) => (
         <div className="flex flex-col overflow-hidden" style={{ background: "var(--bg-elev)", height: "100%" }}>
@@ -268,7 +190,6 @@ export default function Sidebar() {
 
             {/* Nav */}
             <nav className="flex-1 min-h-0 overflow-y-auto space-y-3" style={{ padding: "10px 6px", scrollbarWidth: "none" }}>
-
                 {groups.map((group) => (
                     <div key={group.label}>
                         {(!collapsed || isMobile) ? (
@@ -280,42 +201,33 @@ export default function Sidebar() {
                         )}
                         <div className="space-y-0.5">
                             {group.items.map(item => (
-                                <NavLink
-                                    key={item.href}
-                                    item={item}
-                                    collapsed={collapsed && !isMobile}
-                                    onClick={isMobile ? () => setMobileOpen(false) : undefined}
-                                    userPlan={userPlan}
-                                />
+                                <NavLink key={item.href} item={item} collapsed={collapsed && !isMobile} onClick={isMobile ? () => setMobileOpen(false) : undefined} />
                             ))}
                         </div>
                     </div>
                 ))}
             </nav>
 
-            {/* Mobile-only footer: support, settings, profile, logout */}
+            {/* Mobile-only footer: support, settings, business, logout */}
             {isMobile && (
                 <div className="shrink-0" style={{ padding: "8px", borderTop: "1px solid var(--border)" }}>
                     <div className="space-y-0.5 mb-3">
-                        {[
-                            { title: "Support", href: "/messages", icon: MessageCircle },
-                            { title: "Paramètres", href: "/settings", icon: Settings },
-                        ].map(item => (
-                            <NavLink key={item.href} item={item} collapsed={false} onClick={() => setMobileOpen(false)} userPlan={userPlan} />
+                        {accountLinks.map(item => (
+                            <NavLink key={item.href} item={item} collapsed={false} onClick={() => setMobileOpen(false)} />
                         ))}
                     </div>
                     <div className="flex items-center gap-2 px-2 py-2 rounded" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
-                            style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
-                            {profile?.business_name?.[0]?.toUpperCase() || "?"}
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[10px] font-semibold" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
+                            {currentBusiness.name[0]?.toUpperCase() || "?"}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate" style={{ color: "var(--text)", fontSize: "11px" }}>{profile?.business_name}</p>
-                            <p className="truncate" style={{ fontSize: "9.5px", color: "var(--text-muted)" }}>{profile?.email}</p>
+                            <p className="font-medium truncate" style={{ color: "var(--text)", fontSize: "11px" }}>{currentBusiness.name}</p>
+                            <p className="truncate" style={{ fontSize: "9.5px", color: "var(--text-muted)" }}>{currentBusiness.business_type.label}</p>
                         </div>
                         <button
                             onClick={handleLogout}
                             disabled={isLoggingOut}
+                            aria-label="Se déconnecter"
                             className="flex h-6 w-6 items-center justify-center rounded-md transition-colors shrink-0"
                             style={{ color: "var(--text-muted)" }}
                             onMouseEnter={e => { e.currentTarget.style.color = "var(--danger)"; e.currentTarget.style.background = "var(--danger-bg)"; }}
@@ -364,11 +276,7 @@ export default function Sidebar() {
                 </Link>
                 <div className="flex items-center gap-2">
                     <NotificationBell businessId={bid} features={features} />
-                    <button
-                        onClick={() => setMobileOpen(true)}
-                        className="flex h-8 w-8 items-center justify-center rounded-md"
-                        style={{ color: "var(--text-muted)" }}
-                    >
+                    <button onClick={() => setMobileOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: "var(--text-muted)" }} aria-label="Ouvrir le menu">
                         <Menu className="w-4 h-4" />
                     </button>
                 </div>
@@ -380,11 +288,7 @@ export default function Sidebar() {
                     <div className="w-64 h-full" style={{ background: "var(--bg-elev)" }}>
                         {sidebarContent(true)}
                     </div>
-                    <div
-                        className="flex-1"
-                        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-                        onClick={() => setMobileOpen(false)}
-                    />
+                    <div className="flex-1" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} onClick={() => setMobileOpen(false)} />
                 </div>
             )}
         </>

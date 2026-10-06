@@ -14,6 +14,7 @@ import { CUSTOMER_PAGE_SIZE, listCustomers } from "@/lib/v2/data/customers";
 import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { CUSTOMER_SOURCES, CUSTOMER_SOURCE_LABEL, type CustomerSource } from "@/lib/v2/statuses";
 import { formatInZone } from "@/lib/v2/datetime";
+import { bookingLabels } from "@/lib/v2/labels";
 
 // Base clients du commerce (CLAUDE.md 5.1).
 
@@ -27,6 +28,7 @@ function CustomersPageInner() {
     const { currentBusiness, currentRole } = useTenant();
     const writable = canWrite(currentRole);
     const tz = currentBusiness.timezone;
+    const labels = bookingLabels(currentBusiness);
 
     const [searchInput, setSearchInput] = useState("");
     const [search, setSearch] = useState("");
@@ -97,7 +99,7 @@ function CustomersPageInner() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `clients-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `${labels.customerPlural}-${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         } finally {
@@ -109,16 +111,16 @@ function CustomersPageInner() {
         <div className="flex flex-col gap-5 max-w-6xl mx-auto w-full">
             <div className="page-head">
                 <div>
-                    <h1>Clients</h1>
+                    <h1>{labels.customerTitle}</h1>
                     <p style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)", marginTop: 4 }}>
-                        {total} client{total > 1 ? "s" : ""}{search || source ? " correspondant aux filtres" : ""}
+                        {total} {total > 1 ? labels.customerPlural : labels.customerSingular}{search || source ? " correspondant aux filtres" : ""}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     {writable && (
                         <Button onClick={() => setShowModal(true)}>
                             <Plus className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Nouveau client</span>
+                            <span className="hidden sm:inline">Nouveau {labels.customerSingular}</span>
                         </Button>
                     )}
                     <Button onClick={exportCSV} variant="outline" disabled={exporting || total === 0}>
@@ -153,7 +155,7 @@ function CustomersPageInner() {
 
             {error && (
                 <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
-                    <span>Impossible de charger les clients. Vérifiez votre connexion.</span>
+                    <span>Impossible de charger les {labels.customerPlural}. Vérifiez votre connexion.</span>
                     <button onClick={refresh} className="shrink-0 font-medium underline" style={{ color: 'var(--danger)' }}>Réessayer</button>
                 </div>
             )}
@@ -164,7 +166,7 @@ function CustomersPageInner() {
             ) : customers.length === 0 ? (
                 <div className="vos-empty" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 10 }}>
                     <Users className="w-6 h-6" style={{ color: 'var(--muted-2)' }} />
-                    <p>{search || source ? "Aucun client ne correspond" : "Aucun client pour le moment"}</p>
+                    <p>{search || source ? `Aucun ${labels.customerSingular} ne correspond` : `Aucun ${labels.customerSingular} pour le moment`}</p>
                 </div>
             ) : (
                 <div className="rounded-xl overflow-x-auto" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', opacity: loading ? 0.6 : 1 }}>
@@ -205,7 +207,7 @@ function CustomersPageInner() {
                     {totalPages > 1 && (
                         <div className="vos-pagination px-4 py-3">
                             <span style={{ fontSize: "10.5px", color: "var(--muted)", marginRight: "auto" }}>
-                                {total} clients · page {page + 1}/{totalPages}
+                                {total} {labels.customerPlural} · page {page + 1}/{totalPages}
                             </span>
                             <button className="vos-page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 0}><ChevronLeft className="w-3.5 h-3.5" /></button>
                             <button className="vos-page-btn" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}><ChevronRight className="w-3.5 h-3.5" /></button>
@@ -219,7 +221,7 @@ function CustomersPageInner() {
                 <div className="vos-modal-backdrop">
                     <div className="vos-modal">
                         <div className="vos-modal-header">
-                            <h2 className="vos-modal-title">Nouveau client</h2>
+                            <h2 className="vos-modal-title">Nouveau {labels.customerSingular}</h2>
                             <button onClick={closeModal} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: 'var(--muted)' }}>
                                 <X className="w-4 h-4" />
                             </button>
@@ -230,7 +232,7 @@ function CustomersPageInner() {
                             )}
                             {duplicate && (
                                 <div className="p-3 rounded-lg" style={{ background: 'var(--warning-bg)', border: '1px solid var(--warning)', color: 'var(--text)', fontSize: "12px" }}>
-                                    Un client existe déjà avec {duplicate.matchedBy === "phone" ? "ce téléphone" : "cet email"}.{" "}
+                                    Une fiche existe déjà avec {duplicate.matchedBy === "phone" ? "ce téléphone" : "cet email"}.{" "}
                                     <Link href={`/customers/${duplicate.id}`} style={{ color: 'var(--accent)' }}>Ouvrir sa fiche</Link>
                                 </div>
                             )}
@@ -254,7 +256,7 @@ function CustomersPageInner() {
                             <div className="flex gap-3 pt-2">
                                 <Button type="button" onClick={closeModal} className="flex-1" variant="outline">Annuler</Button>
                                 <Button type="submit" disabled={creating} className="flex-1 font-semibold" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
-                                    {creating ? "Création..." : "Créer le client"}
+                                    {creating ? "Création..." : `Créer la fiche`}
                                 </Button>
                             </div>
                         </form>

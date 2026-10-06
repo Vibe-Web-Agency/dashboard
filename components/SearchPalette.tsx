@@ -3,56 +3,50 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import {
-    Search, LayoutDashboard, CalendarDays, FileText, ShoppingCart,
-    Star, Contact, Scissors, Users, UserSquare2, Package, Clapperboard, Newspaper,
-    BarChart3, Globe, MessageCircle, Settings, ArrowRight,
-} from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
+import { useTenant } from "@/providers/TenantProvider";
+import { bookingLabels } from "@/lib/v2/labels";
+import { navTitle, visibleNavItems } from "@/lib/v2/navigation";
 
-const PAGES = [
-    { label: "Vue d'ensemble", href: "/", icon: LayoutDashboard, group: "Pilotage" },
-    { label: "Réservations", href: "/reservations", icon: CalendarDays, group: "Activité" },
-    { label: "Messages", href: "/quotes", icon: FileText, group: "Activité" },
-    { label: "Commandes", href: "/orders", icon: ShoppingCart, group: "Activité" },
-    { label: "Avis", href: "/reviews", icon: Star, group: "Activité" },
-    { label: "Clients", href: "/customers", icon: Contact, group: "Activité" },
-    { label: "Services", href: "/services", icon: Scissors, group: "Contenu" },
-    { label: "Profils", href: "/people", icon: UserSquare2, group: "Contenu" },
-    { label: "Équipe", href: "/team", icon: Users, group: "Contenu" },
-    { label: "Produits", href: "/products", icon: Package, group: "Contenu" },
-    { label: "Projets", href: "/projects", icon: Clapperboard, group: "Contenu" },
-    { label: "Actualités", href: "/blog", icon: Newspaper, group: "Contenu" },
-    { label: "Statistiques", href: "/stats", icon: BarChart3, group: "Outils" },
-    { label: "Analyse web", href: "/analytics", icon: Globe, group: "Outils" },
-    { label: "Support", href: "/messages", icon: MessageCircle, group: "Compte" },
-    { label: "Paramètres", href: "/settings", icon: Settings, group: "Compte" },
-];
+// Pages proposées par la recherche (même périmètre qu'en V1). Titres, icônes et visibilité
+// viennent de la navigation partagée : vocabulaire du commerce, pages masquées si leur module est inactif.
+const SEARCHABLE = new Set([
+    "/", "/reservations", "/quotes", "/orders", "/reviews", "/customers",
+    "/services", "/people", "/team", "/products", "/projects", "/blog",
+    "/stats", "/analytics", "/messages", "/settings",
+]);
 
 interface Props {
     open: boolean;
     onClose: () => void;
 }
 
+// Montée seulement à l'ouverture : la recherche et la sélection repartent de zéro à chaque fois.
 export default function SearchPalette({ open, onClose }: Props) {
+    return open ? <PaletteDialog onClose={onClose} /> : null;
+}
+
+function PaletteDialog({ onClose }: { onClose: () => void }) {
     const router = useRouter();
     const [query, setQuery] = useState("");
     const [active, setActive] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
+    const { currentBusiness, hasModule } = useTenant();
+    const labels = bookingLabels(currentBusiness);
+    const pages = visibleNavItems(hasModule)
+        .filter((item) => SEARCHABLE.has(item.href))
+        .map((item) => ({ label: navTitle(item, labels), href: item.href, icon: item.icon, group: item.group }));
+
     const results = query.trim()
-        ? PAGES.filter(p => p.label.toLowerCase().includes(query.toLowerCase()) || p.group.toLowerCase().includes(query.toLowerCase()))
-        : PAGES;
+        ? pages.filter(p => p.label.toLowerCase().includes(query.toLowerCase()) || p.group.toLowerCase().includes(query.toLowerCase()))
+        : pages;
 
     useEffect(() => {
-        if (open) {
-            setQuery("");
-            setActive(0);
-            setTimeout(() => inputRef.current?.focus(), 50);
-        }
-    }, [open]);
-
-    useEffect(() => { setActive(0); }, [query]);
+        const t = setTimeout(() => inputRef.current?.focus(), 50);
+        return () => clearTimeout(t);
+    }, []);
 
     // Scroll active item into view
     useEffect(() => {
@@ -72,7 +66,6 @@ export default function SearchPalette({ open, onClose }: Props) {
         if (e.key === "Escape") onClose();
     };
 
-    if (!open) return null;
 
     return createPortal(
         <div
@@ -95,7 +88,7 @@ export default function SearchPalette({ open, onClose }: Props) {
                     <input
                         ref={inputRef}
                         value={query}
-                        onChange={e => setQuery(e.target.value)}
+                        onChange={e => { setQuery(e.target.value); setActive(0); }}
                         onKeyDown={handleKey}
                         placeholder="Rechercher une page…"
                         className="flex-1 bg-transparent outline-none"
