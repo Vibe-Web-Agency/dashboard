@@ -1,287 +1,247 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-
-import { useState, useEffect, Suspense } from "react";
+import { Suspense, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus, X, Pencil, Tag, Clock, Euro, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/lib/supabase";
-import { inputStyle } from "@/lib/sharedStyles";
-import { useUserProfile } from "@/lib/useUserProfile";
+import { useTenant } from "@/providers/TenantProvider";
+import { canWrite } from "@/lib/v2/roles";
+import { bookingLabels } from "@/lib/v2/labels";
+import { useServices } from "@/lib/v2/hooks/useServices";
+import type { Service, ServiceInput } from "@/lib/v2/data/services";
 
-interface Service {
-    id: string;
-    name: string;
-    description: string | null;
-    price: number | null;
-    duration: number | null;
-    category: string | null;
-    active: boolean;
-    display_order: number;
+// Prestations réservables (module `services`), affichées sous le nom du métier : « Formules » pour un
+// restaurant, « Prestations » pour un barbier, « Soins » pour un institut. La carte non réservable est sur /menu.
+
+type Form = { id: string | null; name: string; description: string; price: string; duration: string; category: string };
+const EMPTY: Form = { id: null, name: "", description: "", price: "", duration: "", category: "" };
+
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : "L’opération a échoué.");
+
+function formatDuration(min: number) {
+    return min >= 60 ? `${Math.floor(min / 60)} h${min % 60 > 0 ? ` ${min % 60}` : ""}` : `${min} min`;
 }
 
 export default function ServicesPage() { return <Suspense><ServicesPageInner /></Suspense>; }
 
 function ServicesPageInner() {
-    const { profile, loading: profileLoading } = useUserProfile();
-    const catalogLabel = profile?.business_type?.catalog_label ?? "Services";
-    const catalogSingular = catalogLabel.toLowerCase().replace(/s$/, "");
-    const [services, setServices] = useState<Service[]>([]);
-    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
-    useEffect(() => {
-        if (searchParams.get("new") === "1") {
-            setShowModal(true);
-            window.history.replaceState(null, "", window.location.pathname);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchParams]);
+    const { currentBusiness, currentRole } = useTenant();
+    const labels = bookingLabels(currentBusiness);
+    const writable = canWrite(currentRole);
+    const { services, loading, error, refresh, create, update, setActive, remove } = useServices();
 
-        const [showModal, setShowModal] = useState(false);
-    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [form, setForm] = useState<Form | null>(null);
     const [saving, setSaving] = useState(false);
-    const [form, setForm] = useState({ name: "", description: "", price: "", duration: "", category: "" });
+    const [formError, setFormError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!profileLoading) {
-            if (profile?.business_id) fetchServices();
-            else setLoading(false);
-        }
-    }, [profile?.business_id, profileLoading]);
+    // Bouton « + Formule » de la Topbar : ?new=1 ouvre la création.
+    const wantsNew = writable && searchParams.get("new") === "1";
+    const shownForm = form ?? (wantsNew ? EMPTY : null);
+    const close = () => { setForm(null); setFormError(null); if (searchParams.get("new") === "1") router.replace(pathname); };
 
-    const fetchServices = async () => {
-        if (!profile?.business_id) return;
-        setLoading(true);
-        const { data, error } = await supabase
-            .from("services")
-            .select("*")
-            .eq("business_id", profile.business_id)
-            .order("display_order", { ascending: true })
-            .order("created_at", { ascending: true });
-
-        if (!error) setServices((data as Service[]) || []);
-        setLoading(false);
-    };
-
-    const openCreate = () => {
-        setEditingService(null);
-        setForm({ name: "", description: "", price: "", duration: "", category: "" });
-        setShowModal(true);
-    };
-
-    const openEdit = (service: Service) => {
-        setEditingService(service);
-        setForm({
-            name: service.name,
-            description: service.description || "",
-            price: service.price != null ? String(service.price) : "",
-            duration: service.duration != null ? String(service.duration) : "",
-            category: service.category || "",
-        });
-        setShowModal(true);
-    };
-
-    const handleSave = async () => {
-        if (!form.name.trim() || !profile?.business_id) return;
+    const save = async (f: Form) => {
+        const price = f.price.trim() ? Math.round(Number(f.price.replace(",", ".")) * 100) : null;
+        const duration = f.duration.trim() ? Number(f.duration) : null;
+        if (price !== null && !Number.isFinite(price)) { setFormError("Prix invalide (ex. 24,90)."); return; }
+        if (duration !== null && !Number.isFinite(duration)) { setFormError("Durée invalide (en minutes)."); return; }
+        const input: ServiceInput = { name: f.name, description: f.description || null, price_cents: price, duration_min: duration, category: f.category || null };
         setSaving(true);
-
-        const payload = {
-            name: form.name,
-            description: form.description || null,
-            price: form.price ? parseFloat(form.price) : null,
-            duration: form.duration ? parseInt(form.duration) : null,
-            category: form.category || null,
-        };
-
-        if (editingService) {
-            const { error } = await supabase.from("services").update(payload).eq("id", editingService.id);
-            if (!error) setServices(services.map(s => s.id === editingService.id ? { ...s, ...payload } : s));
-        } else {
-            const { data, error } = await supabase.from("services").insert({ ...payload, business_id: profile.business_id, active: true }).select().single();
-            if (!error && data) setServices([...services, data as Service]);
+        setFormError(null);
+        try {
+            if (f.id) await update(f.id, input);
+            else await create(input);
+            close();
+        } catch (e) {
+            setFormError(errorMessage(e));
+        } finally {
+            setSaving(false);
         }
-
-        setSaving(false);
-        setShowModal(false);
     };
 
-    const toggleActive = async (service: Service) => {
-        const { error } = await supabase.from("services").update({ active: !service.active }).eq("id", service.id);
-        if (!error) setServices(services.map(s => s.id === service.id ? { ...s, active: !s.active } : s));
+    const handleDelete = async (f: Form) => {
+        if (!f.id || !confirm(`Supprimer « ${f.name} » ?`)) return;
+        setSaving(true);
+        setFormError(null);
+        try {
+            await remove(f.id);
+            close();
+        } catch (e) {
+            setFormError(errorMessage(e));
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const handleDelete = async (id: string) => {
-        const { error } = await supabase.from("services").delete().eq("id", id);
-        if (!error) setServices(services.filter(s => s.id !== id));
-        setShowModal(false);
+    const toggle = async (s: Service) => {
+        setActionError(null);
+        try { await setActive(s.id, !s.is_active); } catch (e) { setActionError(errorMessage(e)); }
     };
 
-    const categories = [...new Set(services.map(s => s.category).filter(Boolean))] as string[];
+    const edit = (s: Service) => setForm({
+        id: s.id, name: s.name, description: s.description ?? "",
+        price: s.price_cents === null ? "" : (s.price_cents / 100).toFixed(2).replace(".", ","),
+        duration: s.duration_min === null ? "" : String(s.duration_min), category: s.category ?? "",
+    });
+
+    const categories = [...new Set(services.map((s) => s.category).filter((c): c is string => !!c))];
+    const groups: { label: string; muted: boolean; items: Service[] }[] = [
+        ...categories.map((c) => ({ label: c, muted: false, items: services.filter((s) => s.category === c) })),
+        { label: "Sans catégorie", muted: true, items: services.filter((s) => !s.category) },
+    ].filter((g) => g.items.length > 0);
+    const activeCount = services.filter((s) => s.is_active).length;
 
     return (
-        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-5 max-w-5xl mx-auto w-full">
+            <div className="page-head">
                 <div>
-                    <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.75rem)", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.2 }}>{catalogLabel}</h1>
-                    <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-                        {services.filter(s => s.active).length} actifs · {services.length} au total
+                    <h1>{labels.serviceTitle}</h1>
+                    <p style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--muted)", marginTop: 4 }}>
+                        {activeCount} en ligne · {services.length} au total
                     </p>
                 </div>
-                <Button
-                    onClick={openCreate}
-                    className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg"
-                    style={{ background: "var(--accent)", color: "var(--on-accent)" }}
-                >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Nouveau {catalogSingular}</span>
-                    <span className="sm:hidden">Nouveau</span>
-                </Button>
+                {writable && (
+                    <Button onClick={() => setForm(EMPTY)}>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{labels.service.newTitle}</span>
+                    </Button>
+                )}
             </div>
 
-            {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" style={{ background: "var(--bg)" }} />)}
+            {(error || actionError) && (
+                <div className="p-4 rounded-xl text-sm flex items-center justify-between gap-3" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
+                    <span>{actionError ?? `Impossible de charger les ${labels.servicePlural}. Vérifiez votre connexion.`}</span>
+                    <button onClick={() => { setActionError(null); refresh(); }} className="shrink-0 font-medium underline" style={{ color: 'var(--danger)' }}>Réessayer</button>
                 </div>
-            ) : (
-                <>
-                    {categories.map(category => (
-                        <div key={category} className="mb-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Tag className="w-3.5 h-3.5" style={{ color: "var(--accent)" }} />
-                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent)" }}>{category}</span>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {services.filter(s => s.category === category).map(service => (
-                                    <ServiceCard key={service.id} service={service} onEdit={() => openEdit(service)} onToggle={() => toggleActive(service)} />
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-
-                    {/* Services sans catégorie */}
-                    {services.filter(s => !s.category).length > 0 && (
-                        <div className="mb-6">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Tag className="w-3.5 h-3.5" style={{ color: "var(--text-muted)" }} />
-                                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Sans catégorie</span>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {services.filter(s => !s.category).map(service => (
-                                    <ServiceCard key={service.id} service={service} onEdit={() => openEdit(service)} onToggle={() => toggleActive(service)} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {services.length === 0 && (
-                        <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
-                            <Tag className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                            <p className="text-sm">Aucun {catalogSingular} pour le moment</p>
-                            <Button onClick={openCreate} className="mt-4 text-sm" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
-                                Créer un {catalogSingular}
-                            </Button>
-                        </div>
-                    )}
-                </>
             )}
 
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <div className="w-full max-w-md rounded-2xl p-6" style={{ background: "var(--bg)", border: "1px solid var(--border-hi)" }}>
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-semibold" style={{ color: "var(--text)" }}>
-                                {editingService ? `Modifier le ${catalogSingular}` : `Nouveau ${catalogSingular}`}
-                            </h2>
-                            <button onClick={() => setShowModal(false)} style={{ color: "var(--text-muted)" }}>
-                                <X className="w-5 h-5" />
-                            </button>
+            {loading && services.length === 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+                </div>
+            ) : services.length === 0 ? (
+                <div className="vos-empty" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                    <Tag className="w-6 h-6" style={{ color: 'var(--muted-2)' }} />
+                    <p>{labels.service.none} pour le moment</p>
+                </div>
+            ) : (
+                groups.map((g) => (
+                    <div key={g.label}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Tag className="w-3.5 h-3.5" style={{ color: g.muted ? "var(--text-muted)" : "var(--accent)" }} />
+                            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: g.muted ? "var(--text-muted)" : "var(--accent)" }}>{g.label}</span>
                         </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Nom *</Label>
-                                <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Coupe homme" style={inputStyle} />
-                            </div>
-                            <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Description</Label>
-                                <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Courte description" style={inputStyle} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Prix (€)</Label>
-                                    <Input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0" style={inputStyle} />
-                                </div>
-                                <div>
-                                    <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Durée (min)</Label>
-                                    <Input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} placeholder="30" style={inputStyle} />
-                                </div>
-                            </div>
-                            <div>
-                                <Label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Catégorie</Label>
-                                <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="Ex: Coupe, Couleur, Soin..." style={inputStyle} />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-6">
-                            {editingService && (
-                                <Button onClick={() => handleDelete(editingService.id)} className="text-sm px-4 py-2 rounded-lg" style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
-                                    Supprimer
-                                </Button>
-                            )}
-                            <Button onClick={() => setShowModal(false)} className="flex-1 text-sm px-4 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
-                                Annuler
-                            </Button>
-                            <Button onClick={handleSave} disabled={!form.name.trim() || saving} className="flex-1 text-sm font-semibold px-4 py-2 rounded-lg" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
-                                {saving ? "..." : editingService ? "Enregistrer" : "Créer"}
-                            </Button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {g.items.map((s) => <ServiceCard key={s.id} service={s} writable={writable} onEdit={() => edit(s)} onToggle={() => toggle(s)} />)}
                         </div>
                     </div>
-                </div>
+                ))
+            )}
+
+            {shownForm && (
+                <ServiceModal
+                    key={shownForm.id ?? "new"}
+                    initial={shownForm}
+                    title={shownForm.id ? `Modifier « ${shownForm.name} »` : labels.service.newTitle}
+                    saving={saving}
+                    error={formError}
+                    onCancel={close}
+                    onSave={save}
+                    onDelete={handleDelete}
+                />
             )}
         </div>
     );
 }
 
-function ServiceCard({ service, onEdit, onToggle }: { service: Service; onEdit: () => void; onToggle: () => void }) {
+function ServiceModal({ initial, title, saving, error, onCancel, onSave, onDelete }: {
+    initial: Form; title: string; saving: boolean; error: string | null;
+    onCancel: () => void; onSave: (f: Form) => void; onDelete: (f: Form) => void;
+}) {
+    const [form, setForm] = useState(initial);
+    const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
     return (
-        <div className="rounded-xl p-4" style={{ background: "var(--bg)", border: `1px solid ${service.active ? "var(--border-hi)" : "rgba(113,113,122,0.2)"}`, opacity: service.active ? 1 : 0.6 }}>
+        <div className="vos-modal-backdrop">
+            <div className="vos-modal">
+                <div className="vos-modal-header">
+                    <h2 className="vos-modal-title">{title}</h2>
+                    <button onClick={onCancel} className="flex h-7 w-7 items-center justify-center rounded-md" style={{ color: 'var(--muted)' }} aria-label="Fermer"><X className="w-4 h-4" /></button>
+                </div>
+                <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} className="flex flex-col gap-4">
+                    {error && <div className="p-3 rounded-lg text-xs" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>{error}</div>}
+                    <div>
+                        <label className="vos-label">Nom *</label>
+                        <Input value={form.name} onChange={set("name")} required placeholder="Ex. Menu dégustation, Coupe homme…" />
+                    </div>
+                    <div>
+                        <label className="vos-label">Description</label>
+                        <Input value={form.description} onChange={set("description")} placeholder="Courte description" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="vos-label">Prix (€)</label>
+                            <Input value={form.price} onChange={set("price")} inputMode="decimal" placeholder="Vide si sur devis" />
+                        </div>
+                        <div>
+                            <label className="vos-label">Durée (min)</label>
+                            <Input value={form.duration} onChange={set("duration")} inputMode="numeric" placeholder="Vide si sans objet" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="vos-label">Catégorie</label>
+                        <Input value={form.category} onChange={set("category")} placeholder="Ex. Formules, Coupe, Soin…" />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                        {form.id && (
+                            <Button type="button" onClick={() => onDelete(form)} disabled={saving} style={{ background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-bg)" }}>
+                                Supprimer
+                            </Button>
+                        )}
+                        <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>Annuler</Button>
+                        <Button type="submit" className="flex-1" disabled={saving || !form.name.trim()}>{saving ? "Enregistrement..." : "Enregistrer"}</Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function ServiceCard({ service, writable, onEdit, onToggle }: { service: Service; writable: boolean; onEdit: () => void; onToggle: () => void }) {
+    return (
+        <div className="rounded-xl p-4" style={{ background: "var(--bg-elev)", border: `1px solid ${service.is_active ? "var(--border-hi)" : "var(--border)"}`, opacity: service.is_active ? 1 : 0.6 }}>
             <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="font-semibold text-sm leading-tight" style={{ color: "var(--text)" }}>{service.name}</span>
-                <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={onEdit} className="flex h-7 w-7 items-center justify-center rounded-lg transition-all" style={{ color: "var(--text-muted)" }}
-                        onMouseEnter={e => { e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "transparent"; }}>
-                        <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={onToggle} className="flex h-7 w-7 items-center justify-center rounded-lg transition-all" style={{ color: service.active ? "var(--accent)" : "var(--text-muted)" }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-dim)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                        {service.active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                    </button>
-                </div>
+                {writable && (
+                    <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={onEdit} className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ color: "var(--text-muted)" }} aria-label="Modifier"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={onToggle} className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ color: service.is_active ? "var(--accent)" : "var(--text-muted)" }}
+                            aria-label={service.is_active ? "Mettre hors ligne" : "Mettre en ligne"} title={service.is_active ? "Mettre hors ligne" : "Mettre en ligne"}>
+                            {service.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                        </button>
+                    </div>
+                )}
             </div>
             {service.description && <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>{service.description}</p>}
             <div className="flex items-center gap-3">
-                {service.price != null && (
-                    <div className="flex items-center gap-1">
-                        <Euro className="w-3 h-3" style={{ color: "var(--accent)" }} />
-                        <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{service.price}€</span>
-                    </div>
-                )}
-                {service.duration != null && service.duration > 0 && (
+                <div className="flex items-center gap-1">
+                    <Euro className="w-3 h-3" style={{ color: "var(--accent)" }} />
+                    <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
+                        {service.price_cents === null ? "Sur devis" : (service.price_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: service.currency })}
+                    </span>
+                </div>
+                {service.duration_min !== null && (
                     <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" style={{ color: "var(--text-muted)" }} />
-                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-                            {service.duration >= 60 ? `${Math.floor(service.duration / 60)}h${service.duration % 60 > 0 ? service.duration % 60 : ""}` : `${service.duration}min`}
-                        </span>
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{formatDuration(service.duration_min)}</span>
                     </div>
                 )}
-                {!service.active && <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(113,113,122,0.2)", color: "var(--text-muted)" }}>Inactif</span>}
+                {!service.is_active && <span className="ml-auto pill pill-muted">Hors ligne</span>}
             </div>
         </div>
     );
 }
-

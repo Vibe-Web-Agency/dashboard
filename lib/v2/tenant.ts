@@ -9,12 +9,12 @@ export const CURRENT_BUSINESS_COOKIE = 'vwa_business_id'
 
 // verticals → business_types → businesses : le type porte le vocabulaire métier, la verticale le regroupe.
 const BUSINESS_SELECT = `*, business_type:business_types (
-    slug, label, booking_noun, customer_noun, party_noun,
+    slug, label, booking_noun, customer_noun, party_noun, service_noun,
     vertical:verticals ( slug, label, icon )
 )` as const
 
 export type Business = Tables<'businesses'> & {
-    business_type: Pick<Tables<'business_types'>, 'slug' | 'label' | 'booking_noun' | 'customer_noun' | 'party_noun'> & {
+    business_type: Pick<Tables<'business_types'>, 'slug' | 'label' | 'booking_noun' | 'customer_noun' | 'party_noun' | 'service_noun'> & {
         vertical: Pick<Tables<'verticals'>, 'slug' | 'label' | 'icon'> | null
     }
 }

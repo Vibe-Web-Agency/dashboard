@@ -2,7 +2,7 @@ import {
     LayoutDashboard, CalendarDays, FileText, BarChart3, Globe,
     Scissors, Users, Package, Clapperboard, Star, Contact,
     Newspaper, ShoppingCart, MessageCircle, Settings, UserSquare2,
-    Calendar, Megaphone, CreditCard, Mail, Phone, BadgeCheck, BookUser,
+    Calendar, Megaphone, CreditCard, Mail, Phone, BadgeCheck, BookUser, UtensilsCrossed,
     type LucideIcon,
 } from 'lucide-react'
 import type { BookingLabels } from './labels'
@@ -42,7 +42,8 @@ export const NAV_ITEMS: NavItem[] = [
     { href: '/reviews', icon: Star, group: 'Activité', module: 'reviews', title: 'Avis' },
     { href: '/customers', icon: Contact, group: 'Activité', module: 'customers', title: (l) => l.customerTitle, cta: (l) => l.customerSingularTitle },
 
-    { href: '/services', icon: Scissors, group: 'Contenu', module: 'services', title: 'Services', cta: 'Service' },
+    { href: '/services', icon: Scissors, group: 'Contenu', module: 'services', title: (l) => l.serviceTitle, cta: (l) => l.serviceSingularTitle },
+    { href: '/menu', icon: UtensilsCrossed, group: 'Contenu', module: 'menu', title: 'Carte', cta: 'Plat' },
     { href: '/people', icon: UserSquare2, group: 'Contenu', module: 'talents', title: 'Profils' },
     { href: '/products', icon: Package, group: 'Contenu', module: 'shop', title: 'Produits', cta: 'Produit' },
     { href: '/team', icon: Users, group: 'Contenu', module: 'team', title: 'Équipe', cta: 'Membre' },

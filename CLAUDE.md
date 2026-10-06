@@ -29,7 +29,12 @@ Derrière le proxy d'entreprise, voir « Notes d'environnement » plus bas.
 **Vocabulaire métier :** `verticals` → `business_types` (`vertical_id`, nullable) → `businesses` (`business_type_id`).
 - `booking_noun` : ce qu'on réserve (« réservation », « leçon », « consultation »…).
 - `customer_noun` (ajouté le 2026-10-06, défaut « client ») : nom des clients dans l'interface (« client », « patient », « élève », « membre », « joueur », « prospect »).
+- `service_noun` (ajouté le 2026-10-06, défaut « prestation ») : nom de ce qu'on réserve dans `services` (« formule » pour la restauration, « soin » pour institut et spa). Script : `supabase/manual/business-types-service-noun.sql`.
 - `party_noun` : unité de `reservations.party_size` (« couvert », « joueur », « personne »), NULL quand le nombre de personnes n'a pas de sens. Depuis le 2026-10-06, il ne sert plus à nommer les clients. Script : `supabase/manual/business-types-customer-noun.sql`.
+
+**Prestations et carte (décision du 2026-10-06) :**
+- `services` (module de base « Prestations ») = ce qui est **réservable** : formules, brunch, privatisation, coupe, soin… Lié à `reservations.service_id` et au champ `service_id` de l'API publique.
+- `menu` (`menu_sections` / `menu_items`) = la **carte** : plats et boissons, non réservables.
 
 **Modules :** `modules` (slug, `is_core`), activés par commerce dans `business_module_settings.is_enabled`, accordés par plan (`business_plans` → `plan_modules`) ou option (`business_addons`). `enabled_modules(p_business)` / `has_feature(p_business, slug)` renvoient ce qui est à la fois activé et accordé (`is_core`, plan actif ou option), pour un commerce actif.
 
@@ -179,7 +184,7 @@ lib/v2/
 ├── roles.ts                   <-- Classement des rôles + effectiveRole()
 ├── statuses.ts                <-- Statuts réservations / devis
 ├── supabase-browser.ts        <-- Client navigateur typé, session utilisateur (RLS)
-├── data/                      <-- Accès aux données par domaine (voir 4.0)
+├── data/                      <-- Accès aux données par domaine (voir 4.0, 5, 6.4)
 └── hooks/                     <-- Hooks React par domaine (voir 4.0)
 ```
 
@@ -360,6 +365,30 @@ Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp
 
   Note pour les tests : laisser environ 2 s entre `SUBSCRIBED` et la première insertion, le temps que Realtime enregistre le filtre.
 - ✅ **Démo :** l'agence de `client-demo` n'avait aucun membre. `test-auth@vwa.local` y est rattaché comme owner (base de dev uniquement : `supabase/manual/dev-demo-agency-member.sql`). Modules synchronisés depuis son type (`supabase/manual/sync-business-modules-from-type.sql`) : 11 modules. Vérifié en session : Sidebar « Rendez-vous », « Clients », sans Commandes, Produits, Profils ni Projets ; `/reservations` titré « Rendez-vous », sans champ « Couverts ». FiFi garde « Réservations ».
+
+### 6.4 Carte & prestations — 2026-10-06 ✅
+- **Libellés :** `bookingLabels` expose `serviceTitle` / `serviceSingularTitle` / `servicePlural` (depuis `service_noun`). `/services` s'affiche « Formules » (restaurant), « Prestations » (barbier) ou « Soins ».
+- **Page `/services` migrée en V2** (`lib/v2/data/services.ts`, hook `useServices`) :
+  - titre et boutons au vocabulaire du métier ;
+  - cartes par catégorie ; prix en centimes (« Sur devis » si vide) ; durée facultative ; interrupteur en ligne / hors ligne ;
+  - `?new=1` pour le bouton Topbar ; écriture réservée au rôle member et plus ;
+  - slug généré depuis le nom (sans accents, suffixe `-2`… si déjà pris, index unique `(business_id, slug)`) et **jamais recalculé** au renommage, car le site public peut s'en servir ;
+  - suppression refusée avec un message explicite si la prestation est liée à des réservations ou à des employés (FK) : on la désactive à la place.
+- **Accords de genre :** `bookingLabels` fournit des formes accordées pour chaque nom (`booking`, `customer`, `service`) : `the`, `a`, `this`, `of`, `newTitle`, `none` (« Nouvelle formule », « Nouvel élève », « Aucune réservation », « cet essayage », « l'intervention »). Les noms féminins sont listés dans `FEMININE` (`lib/v2/labels.ts`) : à compléter lors de l'ajout d'un nom féminin dans `business_types`. Pages Réservations et Clients corrigées (elles affichaient « Nouveau réservation », « Détails du réservation »…).
+  - Reste : les libellés de statut des réservations sont au féminin (« Confirmée », « Annulée ») quel que soit le nom (« rendez-vous » est masculin).
+- **Page `/menu` (« Carte »)**, entrée de navigation liée au module `menu`, bouton Topbar « + Plat » :
+  - rubriques et plats, ordre réglable (↑/↓), plat disponible ou indisponible, allergènes (les 14 du CHECK de `menu_items.allergens`), prix facultatif ;
+  - données dans `lib/v2/data/menu.ts`, hook `useMenu` ;
+  - une rubrique ne peut être supprimée que vide, jamais avec ses plats ;
+  - écriture réservée au rôle member et plus (même seuil que la RLS) ;
+  - tables non publiées en Realtime : la carte se recharge après chaque modification.
+- **Données FiFi** (`supabase/manual/dev-fifi-move-dishes-to-menu.sql`) : « Plat du jour » a rejoint la rubrique « Plats ». « Bœuf bourguignon » existait déjà sur la carte à 13,50 € : la ligne de la carte est gardée (description complétée), et le prix de 29,90 € de l'ancienne version `services` n'a pas été repris. `services` ne contient plus que les formules et la privatisation.
+- **Plans :** depuis la création des plans par agence, il existe deux « Pro ». Celui de Vibe Web Agency (`…0012`) n'accordait aucun module, et FiFi avait perdu Réservations et Carte. Correction immédiate : il reçoit les modules du « Pro » de l'Agence Démo (`supabase/manual/dev-vwa-pro-plan-modules.sql`). Les plans `starter` et `enterprise` de l'Agence Démo n'accordent toujours aucun module.
+  - **À trancher :** plans communs à toutes les agences (`agency_id` NULL) ou plans par agence.
+  - **À faire :** allumer automatiquement les modules du type à la création d'un commerce (trigger reprenant `sync-business-modules-from-type.sql`).
+- **Vérifié :**
+  - couche de données de la carte : 14 cas en écriture sur FiFi, carte restaurée à l'identique ;
+  - session réelle : FiFi affiche « Réservations », « Formules », « Carte » ; la démo affiche « Rendez-vous », « Prestations », sans carte ; le viewer voit la carte sans bouton d'édition.
 
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
