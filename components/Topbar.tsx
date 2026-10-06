@@ -52,6 +52,17 @@ const PAGE_LABELS: Record<string, string> = {
     "/google-ads": "Google ADS",
     "/meta-ads": "Meta ADS",
     "/geo-ai": "GEO Référencement IA",
+    // Retirées de la navigation (pas de module V2), encore accessibles par URL.
+    "/social": "Réseaux sociaux",
+    "/chatbot": "Chatbot web",
+    "/seo": "Référencement",
+    "/ads": "Publicité digitale",
+    "/loyalty": "Programme fidélité",
+    "/multilingual": "Site multilingue",
+    "/finance": "Finance",
+    "/workspace": "Espace équipe & Planning",
+    "/giftcards": "Chèques cadeaux",
+    "/ai": "Assistant IA",
 };
 
 export default function Topbar() {
