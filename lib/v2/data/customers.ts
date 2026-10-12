@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, Tables, TablesInsert } from '@/types/supabase'
+import type { Database, TablesInsert } from '@/types/supabase'
 import { assertTouched } from './errors'
 
 // Clients (customers) : résolution partagée par l'ingestion publique et le dashboard, puis base clients (5.1).
@@ -148,7 +148,7 @@ export async function listCustomers(
         .range(page * pageSize, page * pageSize + pageSize - 1)
     if (error) throw error
 
-    // Statistiques (vue customer_stats) pour la page affichée uniquement.
+    // Statistiques de visites pour la page affichée uniquement.
     const stats = await getStats(supabase, businessId, data.map((c) => c.id))
     return {
         rows: data.map((c) => ({ ...c, stats: stats.get(c.id) ?? null })),
@@ -158,17 +158,34 @@ export async function listCustomers(
 
 export type CustomerListRow = Awaited<ReturnType<typeof listCustomers>>['rows'][number]
 
-type CustomerStats = Pick<Tables<'customer_stats'>, 'customer_id' | 'visit_count' | 'last_visit_at' | 'total_spent_cents'>
+type CustomerStats = { visit_count: number; last_visit_at: string | null }
 
-async function getStats(supabase: Client, businessId: string, customerIds: string[]): Promise<Map<string | null, CustomerStats>> {
-    if (customerIds.length === 0) return new Map()
-    const { data, error } = await supabase
-        .from('customer_stats')
-        .select('customer_id, visit_count, last_visit_at, total_spent_cents')
-        .eq('business_id', businessId)
-        .in('customer_id', customerIds)
-    if (error) throw error
-    return new Map(data.map((s) => [s.customer_id, s]))
+// Les ids partent dans l'URL de la requête : on les envoie par lots pour ne pas la rendre trop longue.
+const STATS_BATCH = 100
+
+/**
+ * Visites par client : réservations au statut `completed` (le client est venu).
+ * Calculé ici depuis que la vue `customer_stats` a été retirée de la base (constat du 2026-10-12).
+ */
+async function getStats(supabase: Client, businessId: string, customerIds: string[]): Promise<Map<string, CustomerStats>> {
+    const stats = new Map<string, CustomerStats>()
+    for (let i = 0; i < customerIds.length; i += STATS_BATCH) {
+        const { data, error } = await supabase
+            .from('reservations')
+            .select('customer_id, starts_at')
+            .eq('business_id', businessId)
+            .eq('status', 'completed')
+            .in('customer_id', customerIds.slice(i, i + STATS_BATCH))
+        if (error) throw error
+        for (const r of data) {
+            if (!r.customer_id) continue
+            const s = stats.get(r.customer_id) ?? { visit_count: 0, last_visit_at: null }
+            s.visit_count++
+            if (!s.last_visit_at || r.starts_at > s.last_visit_at) s.last_visit_at = r.starts_at
+            stats.set(r.customer_id, s)
+        }
+    }
+    return stats
 }
 
 /** Fiche client + statistiques + historique (réservations et demandes de devis). null si absent ou d'un autre commerce. */

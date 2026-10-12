@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           billing_address: string | null
           billing_email: string | null
+          byok_credentials: Json | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
@@ -32,10 +33,12 @@ export type Database = {
           stripe_account_id: string | null
           stripe_customer_id: string | null
           updated_at: string
+          whitelabel_settings: Json | null
         }
         Insert: {
           billing_address?: string | null
           billing_email?: string | null
+          byok_credentials?: Json | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -50,10 +53,12 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
+          whitelabel_settings?: Json | null
         }
         Update: {
           billing_address?: string | null
           billing_email?: string | null
+          byok_credentials?: Json | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -68,6 +73,7 @@ export type Database = {
           stripe_account_id?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
+          whitelabel_settings?: Json | null
         }
         Relationships: []
       }
@@ -116,6 +122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "agency_domains_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
         ]
       }
@@ -170,6 +183,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "agency_email_senders_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
         ]
       }
@@ -309,6 +329,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
           },
+          {
+            foreignKeyName: "agency_portfolio_items_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
         ]
       }
       agency_subscriptions: {
@@ -424,6 +451,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "audit_log_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       blog_posts: {
@@ -487,6 +521,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "blog_posts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       business_addons: {
@@ -544,6 +585,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "business_addons_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "business_addons_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
@@ -594,6 +642,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "business_closures_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       business_hours: {
@@ -631,6 +686,109 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_hours_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+      business_integrations: {
+        Row: {
+          account_id: string | null
+          business_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          refresh_token: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          business_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider: string
+          refresh_token?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          business_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          refresh_token?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_integrations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_integrations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+      business_knowledge_base: {
+        Row: {
+          answer: string
+          business_id: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          business_id: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          business_id?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_knowledge_base_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_knowledge_base_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -672,6 +830,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_module_settings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "business_module_settings_module_id_fkey"
@@ -748,6 +913,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "business_plans_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
           {
             foreignKeyName: "business_plans_plan_id_fkey"
@@ -839,17 +1011,21 @@ export type Database = {
         Row: {
           address_line: string | null
           agency_id: string
+          allowed_origins: string[] | null
           billing_address: string | null
           billing_email: string | null
           business_type_id: string
+          byok_override: Json | null
           city: string | null
           country: string
           cover_url: string | null
           created_at: string
           description: string | null
           email: string | null
+          gbp_place_id: string | null
           google_location_id: string | null
           id: string
+          is_active: boolean
           latitude: number | null
           locale: string
           logo_url: string | null
@@ -871,17 +1047,21 @@ export type Database = {
         Insert: {
           address_line?: string | null
           agency_id: string
+          allowed_origins?: string[] | null
           billing_address?: string | null
           billing_email?: string | null
           business_type_id: string
+          byok_override?: Json | null
           city?: string | null
           country?: string
           cover_url?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          gbp_place_id?: string | null
           google_location_id?: string | null
           id?: string
+          is_active?: boolean
           latitude?: number | null
           locale?: string
           logo_url?: string | null
@@ -903,17 +1083,21 @@ export type Database = {
         Update: {
           address_line?: string | null
           agency_id?: string
+          allowed_origins?: string[] | null
           billing_address?: string | null
           billing_email?: string | null
           business_type_id?: string
+          byok_override?: Json | null
           city?: string | null
           country?: string
           cover_url?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
+          gbp_place_id?: string | null
           google_location_id?: string | null
           id?: string
+          is_active?: boolean
           latitude?: number | null
           locale?: string
           logo_url?: string | null
@@ -1020,6 +1204,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "campaigns_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "campaigns_sender_id_agency_id_fkey"
             columns: ["sender_id", "agency_id"]
             isOneToOne: false
@@ -1063,6 +1254,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_optouts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -1206,11 +1404,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "conversations_customer_id_business_id_fkey"
-            columns: ["customer_id", "business_id"]
+            foreignKeyName: "conversations_business_id_fkey"
+            columns: ["business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "conversations_customer_id_business_id_fkey"
@@ -1218,6 +1416,58 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "conversations_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
+          },
+        ]
+      }
+      cookie_consents: {
+        Row: {
+          business_id: string
+          consents: Json
+          created_at: string
+          id: string
+          ip_hash: string | null
+          user_agent: string | null
+          visitor_id: string
+        }
+        Insert: {
+          business_id: string
+          consents?: Json
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          user_agent?: string | null
+          visitor_id: string
+        }
+        Update: {
+          business_id?: string
+          consents?: Json
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          user_agent?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cookie_consents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cookie_consents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -1261,15 +1511,15 @@ export type Database = {
             foreignKeyName: "customer_notes_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
           },
           {
             foreignKeyName: "customer_notes_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id", "business_id"]
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
         ]
       }
@@ -1337,11 +1587,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+          {
             foreignKeyName: "customers_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_session_summaries: {
+        Row: {
+          avg_duration_seconds: number | null
+          avg_pages_per_session: number | null
+          business_id: string
+          created_at: string
+          date: string
+          desktop_sessions: number
+          id: string
+          mobile_sessions: number
+          total_page_views: number
+          total_sessions: number
+          unique_visitors: number
+          updated_at: string
+        }
+        Insert: {
+          avg_duration_seconds?: number | null
+          avg_pages_per_session?: number | null
+          business_id: string
+          created_at?: string
+          date: string
+          desktop_sessions?: number
+          id?: string
+          mobile_sessions?: number
+          total_page_views?: number
+          total_sessions?: number
+          unique_visitors?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_duration_seconds?: number | null
+          avg_pages_per_session?: number | null
+          business_id?: string
+          created_at?: string
+          date?: string
+          desktop_sessions?: number
+          id?: string
+          mobile_sessions?: number
+          total_page_views?: number
+          total_sessions?: number
+          unique_visitors?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_session_summaries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_session_summaries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -1371,6 +1688,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_sequences_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -1436,6 +1760,13 @@ export type Database = {
             referencedColumns: ["id", "business_id"]
           },
           {
+            foreignKeyName: "employee_absences_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
+          },
+          {
             foreignKeyName: "employee_absences_requested_by_fkey"
             columns: ["requested_by"]
             isOneToOne: false
@@ -1492,6 +1823,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id", "business_id"]
           },
+          {
+            foreignKeyName: "employee_availabilities_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
+          },
         ]
       }
       employee_hr: {
@@ -1539,6 +1877,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id", "business_id"]
           },
+          {
+            foreignKeyName: "employee_hr_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
+          },
         ]
       }
       employee_services: {
@@ -1569,6 +1914,13 @@ export type Database = {
             referencedColumns: ["id", "business_id"]
           },
           {
+            foreignKeyName: "employee_services_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
+          },
+          {
             foreignKeyName: "employee_services_service_id_business_id_fkey"
             columns: ["service_id", "business_id"]
             isOneToOne: false
@@ -1583,10 +1935,11 @@ export type Database = {
           bio: string | null
           business_id: string
           created_at: string
-          full_name: string
+          first_name: string | null
           id: string
           is_active: boolean
           job_title: string | null
+          last_name: string | null
           planning_color: string | null
           position: number
           profile_id: string | null
@@ -1598,10 +1951,11 @@ export type Database = {
           bio?: string | null
           business_id: string
           created_at?: string
-          full_name: string
+          first_name?: string | null
           id?: string
           is_active?: boolean
           job_title?: string | null
+          last_name?: string | null
           planning_color?: string | null
           position?: number
           profile_id?: string | null
@@ -1613,10 +1967,11 @@ export type Database = {
           bio?: string | null
           business_id?: string
           created_at?: string
-          full_name?: string
+          first_name?: string | null
           id?: string
           is_active?: boolean
           job_title?: string | null
+          last_name?: string | null
           planning_color?: string | null
           position?: number
           profile_id?: string | null
@@ -1630,6 +1985,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "employees_profile_id_fkey"
@@ -1714,6 +2076,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "expenses_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "expenses_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1774,11 +2143,25 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "google_connexions_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "google_connexions_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: true
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_connexions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "google_connexions_connecte_par_fkey"
@@ -1848,6 +2231,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "invitations_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -1897,6 +2287,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "invoice_items_invoice_id_business_id_fkey"
+            columns: ["invoice_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_summary"
+            referencedColumns: ["invoice_id", "business_id"]
           },
         ]
       }
@@ -2000,6 +2397,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+          {
             foreignKeyName: "invoices_credits_invoice_id_business_id_fkey"
             columns: ["credits_invoice_id", "business_id"]
             isOneToOne: false
@@ -2007,11 +2411,11 @@ export type Database = {
             referencedColumns: ["id", "business_id"]
           },
           {
-            foreignKeyName: "invoices_customer_id_business_id_fkey"
-            columns: ["customer_id", "business_id"]
+            foreignKeyName: "invoices_credits_invoice_id_business_id_fkey"
+            columns: ["credits_invoice_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "v_invoices_summary"
+            referencedColumns: ["invoice_id", "business_id"]
           },
           {
             foreignKeyName: "invoices_customer_id_business_id_fkey"
@@ -2019,6 +2423,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
           {
             foreignKeyName: "invoices_order_id_business_id_fkey"
@@ -2081,6 +2492,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "memberships_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
           {
             foreignKeyName: "memberships_profile_id_fkey"
@@ -2191,6 +2609,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_sections_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -2397,11 +2822,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "orders_customer_id_business_id_fkey"
-            columns: ["customer_id", "business_id"]
+            foreignKeyName: "orders_business_id_fkey"
+            columns: ["business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "orders_customer_id_business_id_fkey"
@@ -2409,6 +2834,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
         ]
       }
@@ -2513,11 +2945,11 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
-            foreignKeyName: "outbound_messages_campaign_id_business_id_fkey"
-            columns: ["campaign_id", "business_id"]
+            foreignKeyName: "outbound_messages_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
             isOneToOne: false
-            referencedRelation: "campaign_stats"
-            referencedColumns: ["campaign_id", "business_id"]
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
           {
             foreignKeyName: "outbound_messages_campaign_id_business_id_fkey"
@@ -2530,15 +2962,15 @@ export type Database = {
             foreignKeyName: "outbound_messages_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
           },
           {
             foreignKeyName: "outbound_messages_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id", "business_id"]
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
           {
             foreignKeyName: "outbound_messages_invoice_id_business_id_fkey"
@@ -2546,6 +2978,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoices"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_invoice_id_business_id_fkey"
+            columns: ["invoice_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_invoices_summary"
+            referencedColumns: ["invoice_id", "business_id"]
           },
           {
             foreignKeyName: "outbound_messages_order_id_business_id_fkey"
@@ -2567,6 +3006,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "reservations"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_reservation_id_business_id_fkey"
+            columns: ["reservation_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_reservations_detail"
+            referencedColumns: ["reservation_id", "business_id"]
           },
         ]
       }
@@ -2824,6 +3270,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       profiles: {
@@ -2954,6 +3407,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -3110,6 +3570,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
           },
+          {
+            foreignKeyName: "prospects_converted_business_id_agency_id_fkey"
+            columns: ["converted_business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
         ]
       }
       quote_items: {
@@ -3238,6 +3705,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "quotes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+          {
             foreignKeyName: "quotes_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -3248,15 +3722,15 @@ export type Database = {
             foreignKeyName: "quotes_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
           },
           {
             foreignKeyName: "quotes_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id", "business_id"]
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
         ]
       }
@@ -3333,6 +3807,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reservations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+          {
             foreignKeyName: "reservations_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -3343,15 +3824,15 @@ export type Database = {
             foreignKeyName: "reservations_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "customers"
+            referencedColumns: ["id", "business_id"]
           },
           {
             foreignKeyName: "reservations_customer_id_business_id_fkey"
             columns: ["customer_id", "business_id"]
             isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id", "business_id"]
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
           {
             foreignKeyName: "reservations_employee_id_business_id_fkey"
@@ -3361,11 +3842,63 @@ export type Database = {
             referencedColumns: ["id", "business_id"]
           },
           {
+            foreignKeyName: "reservations_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
+          },
+          {
             foreignKeyName: "reservations_service_id_business_id_fkey"
             columns: ["service_id", "business_id"]
             isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id", "business_id"]
+          },
+        ]
+      }
+      review_collector_logs: {
+        Row: {
+          business_id: string
+          created_at: string
+          customer_email: string | null
+          feedback_text: string | null
+          id: string
+          rating_given: number
+          redirected_to_google: boolean
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          customer_email?: string | null
+          feedback_text?: string | null
+          id?: string
+          rating_given: number
+          redirected_to_google?: boolean
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          customer_email?: string | null
+          feedback_text?: string | null
+          id?: string
+          rating_given?: number
+          redirected_to_google?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_collector_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_collector_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -3424,11 +3957,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_customer_id_business_id_fkey"
-            columns: ["customer_id", "business_id"]
+            foreignKeyName: "reviews_business_id_fkey"
+            columns: ["business_id"]
             isOneToOne: false
-            referencedRelation: "customer_stats"
-            referencedColumns: ["customer_id", "business_id"]
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
           {
             foreignKeyName: "reviews_customer_id_business_id_fkey"
@@ -3436,6 +3969,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "reviews_customer_id_business_id_fkey"
+            columns: ["customer_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_customer_profiles_360"
+            referencedColumns: ["customer_id", "business_id"]
           },
         ]
       }
@@ -3499,6 +4039,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       sessions: {
@@ -3551,6 +4098,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
           },
         ]
       }
@@ -3617,6 +4171,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id", "business_id"]
+          },
+          {
+            foreignKeyName: "shifts_employee_id_business_id_fkey"
+            columns: ["employee_id", "business_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_public_directory"
+            referencedColumns: ["employee_id", "business_id"]
           },
         ]
       }
@@ -3716,6 +4277,13 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "talents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
       tasks: {
@@ -3794,6 +4362,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "tasks_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
           },
           {
             foreignKeyName: "tasks_created_by_fkey"
@@ -3934,6 +4509,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "tickets_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "tickets_opened_by_fkey"
             columns: ["opened_by"]
             isOneToOne: false
@@ -3991,6 +4573,13 @@ export type Database = {
             referencedColumns: ["id", "agency_id"]
           },
           {
+            foreignKeyName: "usage_events_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
+          {
             foreignKeyName: "usage_events_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
@@ -4033,41 +4622,104 @@ export type Database = {
         }
         Relationships: []
       }
-    }
-    Views: {
-      campaign_stats: {
+      website_audits: {
         Row: {
-          business_id: string | null
-          campaign_id: string | null
-          clicked: number | null
-          delivered: number | null
-          failed: number | null
-          opened: number | null
-          recipients: number | null
-        }
-        Relationships: []
-      }
-      customer_stats: {
-        Row: {
-          business_id: string | null
-          customer_id: string | null
-          last_visit_at: string | null
-          total_spent_cents: number | null
-          visit_count: number | null
+          accessibility_score: number | null
+          ai_summary: string | null
+          business_id: string
+          cls_score: number | null
+          created_at: string | null
+          id: string
+          lcp_seconds: number | null
+          performance_score: number | null
+          requested_contact: boolean | null
+          seo_score: number | null
+          status: string | null
+          url: string
         }
         Insert: {
-          business_id?: string | null
-          customer_id?: string | null
-          last_visit_at?: never
-          total_spent_cents?: never
-          visit_count?: never
+          accessibility_score?: number | null
+          ai_summary?: string | null
+          business_id: string
+          cls_score?: number | null
+          created_at?: string | null
+          id?: string
+          lcp_seconds?: number | null
+          performance_score?: number | null
+          requested_contact?: boolean | null
+          seo_score?: number | null
+          status?: string | null
+          url: string
         }
         Update: {
-          business_id?: string | null
-          customer_id?: string | null
-          last_visit_at?: never
-          total_spent_cents?: never
-          visit_count?: never
+          accessibility_score?: number | null
+          ai_summary?: string | null
+          business_id?: string
+          cls_score?: number | null
+          created_at?: string | null
+          id?: string
+          lcp_seconds?: number | null
+          performance_score?: number | null
+          requested_contact?: boolean | null
+          seo_score?: number | null
+          status?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_audits_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_audits_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      v_agency_businesses_overview: {
+        Row: {
+          agency_id: string | null
+          business_id: string | null
+          business_name: string | null
+          business_type_label: string | null
+          created_at: string | null
+          is_active: boolean | null
+          plan_name: string | null
+          slug: string | null
+          subscription_status: string | null
+          vertical_label: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "businesses_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_customer_profiles_360: {
+        Row: {
+          average_review_rating: number | null
+          business_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          last_visit_at: string | null
+          phone: string | null
+          total_reservations: number | null
+          total_spent_cents: number | null
         }
         Relationships: [
           {
@@ -4077,34 +4729,121 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
         ]
       }
-      google_connexions_etat: {
+      v_employee_public_directory: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           business_id: string | null
-          connecte_le: string | null
-          derniere_erreur: string | null
-          derniere_synchro: string | null
-          est_connecte: boolean | null
-          location_id: string | null
+          employee_id: string | null
+          first_name: string | null
+          is_active: boolean | null
+          last_name: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           business_id?: string | null
-          connecte_le?: string | null
-          derniere_erreur?: string | null
-          derniere_synchro?: string | null
-          est_connecte?: never
-          location_id?: string | null
+          employee_id?: string | null
+          first_name?: string | null
+          is_active?: boolean | null
+          last_name?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           business_id?: string | null
-          connecte_le?: string | null
-          derniere_erreur?: string | null
-          derniere_synchro?: string | null
-          est_connecte?: never
-          location_id?: string | null
+          employee_id?: string | null
+          first_name?: string | null
+          is_active?: boolean | null
+          last_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+      v_google_connections_status: {
+        Row: {
+          account_id: string | null
+          agency_id: string | null
+          business_id: string | null
+          connecte_le: string | null
+          connecte_par: string | null
+          created_at: string | null
+          derniere_erreur: string | null
+          derniere_synchro: string | null
+          is_connected: boolean | null
+          location_id: string | null
+          scopes: string[] | null
+          sync_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          agency_id?: string | null
+          business_id?: string | null
+          connecte_le?: string | null
+          connecte_par?: string | null
+          created_at?: string | null
+          derniere_erreur?: string | null
+          derniere_synchro?: string | null
+          is_connected?: never
+          location_id?: string | null
+          scopes?: string[] | null
+          sync_status?: never
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          agency_id?: string | null
+          business_id?: string | null
+          connecte_le?: string | null
+          connecte_par?: string | null
+          created_at?: string | null
+          derniere_erreur?: string | null
+          derniere_synchro?: string | null
+          is_connected?: never
+          location_id?: string | null
+          scopes?: string[] | null
+          sync_status?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_connexions_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "google_connexions_business_id_agency_id_fkey"
+            columns: ["business_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id", "agency_id"]
+          },
           {
             foreignKeyName: "google_connexions_business_id_fkey"
             columns: ["business_id"]
@@ -4112,7 +4851,117 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "google_connexions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+          {
+            foreignKeyName: "google_connexions_connecte_par_fkey"
+            columns: ["connecte_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      v_invoices_summary: {
+        Row: {
+          amount_paid_cents: number | null
+          business_id: string | null
+          currency: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          discount_cents: number | null
+          due_date: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          is_overdue: boolean | null
+          issued_at: string | null
+          kind: string | null
+          remaining_balance_cents: number | null
+          status: string | null
+          subtotal_cents: number | null
+          tax_cents: number | null
+          total_ht_net_cents: number | null
+          total_ttc_cents: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+      v_reservations_detail: {
+        Row: {
+          business_id: string | null
+          customer_email: string | null
+          customer_first_name: string | null
+          customer_full_name: string | null
+          customer_id: string | null
+          customer_last_name: string | null
+          customer_phone: string | null
+          employee_first_name: string | null
+          employee_id: string | null
+          employee_last_name: string | null
+          ends_at: string | null
+          reservation_id: string | null
+          service_duration: number | null
+          service_id: string | null
+          service_name: string | null
+          service_price_cents: number | null
+          starts_at: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
+      v_shifts_overview: {
+        Row: {
+          break_minutes: number | null
+          business_id: string | null
+          contract_hours_per_week: number | null
+          employee_first_name: string | null
+          employee_id: string | null
+          employee_last_name: string | null
+          employment_type: string | null
+          ends_at: string | null
+          is_ai_generated: boolean | null
+          published_at: string | null
+          role_label: string | null
+          shift_id: string | null
+          starts_at: string | null
+          status: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -4122,10 +4971,12 @@ export type Database = {
         Args: { min_role?: string }
         Returns: string[]
       }
+      aggregate_daily_sessions: { Args: never; Returns: undefined }
       assert_not_last_agency_owner: {
         Args: { m: Database["public"]["Tables"]["memberships"]["Row"] }
         Returns: undefined
       }
+      business_is_operational: { Args: { p_status: string }; Returns: boolean }
       change_member_role: {
         Args: { p_membership: string; p_role: string }
         Returns: undefined
@@ -4145,6 +4996,14 @@ export type Database = {
         }[]
       }
       granted_module_ids: { Args: { p_business: string }; Returns: string[] }
+      has_agency_access: {
+        Args: { target_agency_id: string }
+        Returns: boolean
+      }
+      has_business_access: {
+        Args: { target_business_id: string }
+        Returns: boolean
+      }
       has_feature: {
         Args: { p_business: string; p_module: string }
         Returns: boolean
@@ -4164,6 +5023,7 @@ export type Database = {
         Args: { p_business: string; p_kind: string }
         Returns: string
       }
+      purge_old_sessions: { Args: never; Returns: undefined }
       remove_member: { Args: { p_membership: string }; Returns: undefined }
       role_rank: { Args: { r: string }; Returns: number }
       visible_agency_ids: { Args: never; Returns: string[] }
