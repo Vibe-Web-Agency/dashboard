@@ -4,7 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { getBrowserSupabase } from "@/lib/v2/supabase-browser"
+
+const supabase = getBrowserSupabase()
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -51,22 +53,9 @@ export default function LoginPage() {
                 throw error
             }
 
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const { data: profile } = await (supabase as any)
-                    .from("users")
-                    .select("is_admin")
-                    .eq("dashboard_user_id", user.id)
-                    .single()
-                if (profile?.is_admin) {
-                    router.push("/admin")
-                } else {
-                    router.push("/")
-                }
-            } else {
-                router.push("/")
-            }
+            // Les administrateurs de la plateforme arrivent sur le back-office.
+            const { data: isPlatformAdmin } = await supabase.rpc("is_platform_admin")
+            router.push(isPlatformAdmin === true ? "/admin" : "/")
             router.refresh()
         } catch (err) {
             setError(err instanceof Error ? err.message : "Une erreur est survenue")
@@ -230,25 +219,6 @@ export default function LoginPage() {
                             )}
                         </Button>
 
-                        <div className="relative w-full">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full" style={{ borderTop: '1px solid var(--border)' }} />
-                            </div>
-                            <div className="relative flex justify-center">
-                                <span className="px-2" style={{ background: 'var(--bg-elev)', color: 'var(--text-muted)', fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>ou</span>
-                            </div>
-                        </div>
-
-                        <p className="text-center" style={{ color: 'var(--muted)', fontSize: '12px' }}>
-                            Première connexion ?{' '}
-                            <Link
-                                href="/signup"
-                                className="font-medium transition-colors underline-offset-4 hover:underline"
-                                style={{ color: 'var(--accent)' }}
-                            >
-                                Activer mon compte
-                            </Link>
-                        </p>
                     </CardFooter>
                 </form>
             </Card>
