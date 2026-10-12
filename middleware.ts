@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Node.js runtime pour respecter les certificats système derrière le proxy d'entreprise.
+export const runtime = 'nodejs'
+
 export async function middleware(request: NextRequest) {
     const response = NextResponse.next()
 
