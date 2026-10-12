@@ -8,13 +8,8 @@ import { useTenant } from "@/providers/TenantProvider";
 import { bookingLabels } from "@/lib/v2/labels";
 import { navTitle, visibleNavItems } from "@/lib/v2/navigation";
 
-// Pages proposées par la recherche (même périmètre qu'en V1). Titres, icônes et visibilité
-// viennent de la navigation partagée : vocabulaire du commerce, pages masquées si leur module est inactif.
-const SEARCHABLE = new Set([
-    "/", "/reservations", "/quotes", "/orders", "/reviews", "/customers",
-    "/services", "/people", "/team", "/products", "/projects", "/blog",
-    "/stats", "/analytics", "/messages", "/settings",
-]);
+// Pages proposées par la recherche : celles de la navigation, avec le vocabulaire du commerce,
+// masquées si leur module est inactif.
 
 interface Props {
     open: boolean;
@@ -36,7 +31,6 @@ function PaletteDialog({ onClose }: { onClose: () => void }) {
     const { currentBusiness, hasModule } = useTenant();
     const labels = bookingLabels(currentBusiness);
     const pages = visibleNavItems(hasModule)
-        .filter((item) => SEARCHABLE.has(item.href))
         .map((item) => ({ label: navTitle(item, labels), href: item.href, icon: item.icon, group: item.group }));
 
     const results = query.trim()

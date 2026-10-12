@@ -3,10 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronRight, LogOut, Lock } from "lucide-react";
+import { Menu, X, ChevronRight, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
-import NotificationBell from "@/components/NotificationBell";
-import type { FeatureKey } from "@/lib/businessConfig";
 import { useTenant } from "@/providers/TenantProvider";
 import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { bookingLabels } from "@/lib/v2/labels";
@@ -15,7 +13,7 @@ import { zonedDayKey, zonedToUtcIso } from "@/lib/v2/datetime";
 
 // ─── Compteurs (badges) ──────────────────────────────────────────────────────
 
-type BadgeTable = "reservations" | "quotes" | "reviews" | "orders";
+type BadgeTable = "reservations" | "quotes";
 
 /** Nombre de lignes du commerce correspondant au filtre, recompté à chaque changement de la table. */
 function useBadgeCount(table: BadgeTable, businessId: string, enabled: boolean, filter: (q: CountQuery) => CountQuery) {
@@ -58,18 +56,12 @@ function todayBounds(timeZone: string) {
 
 // ─── NavLink ─────────────────────────────────────────────────────────────────
 
-const PLAN_BADGE_STYLE: Record<string, { bg: string; color: string }> = {
-    pro: { bg: "rgba(201,168,118,0.15)", color: "var(--accent)" },
-    business: { bg: "rgba(167,139,250,0.15)", color: "#a78bfa" },
-};
-
-type SidebarLink = { title: string; href: string; icon: NavItem["icon"]; badge?: number; locked?: NavItem["locked"] };
+type SidebarLink = { title: string; href: string; icon: NavItem["icon"]; badge?: number };
 
 function NavLink({ item, collapsed, onClick }: { item: SidebarLink; collapsed: boolean; onClick?: () => void }) {
     const pathname = usePathname();
     const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
     const Icon = item.icon;
-    const isLocked = false; // Verrous par plan : remplacés en V2 par les modules (enabled_modules).
 
     return (
         <Link
@@ -80,22 +72,15 @@ function NavLink({ item, collapsed, onClick }: { item: SidebarLink; collapsed: b
             style={{
                 ...(isActive
                     ? { background: "var(--accent-muted)", color: "var(--accent)", borderLeft: "2px solid var(--accent)", paddingLeft: 8, paddingRight: 10 }
-                    : { color: isLocked ? "var(--text-faint)" : "var(--text-muted)", borderLeft: "2px solid transparent", paddingLeft: 8, paddingRight: 10 }
+                    : { color: "var(--text-muted)", borderLeft: "2px solid transparent", paddingLeft: 8, paddingRight: 10 }
                 ),
-                opacity: isLocked ? 0.6 : 1,
             }}
-            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = isLocked ? "var(--text-muted)" : "var(--text)"; } }}
-            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = isLocked ? "var(--text-faint)" : "var(--text-muted)"; } }}
+            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "var(--text)"; } }}
+            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; } }}
         >
             <Icon className="w-3.5 h-3.5 shrink-0" />
             {!collapsed && <span className="truncate flex-1">{item.title}</span>}
-            {!collapsed && isLocked && item.locked && (
-                <span className="ml-auto flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold shrink-0" style={PLAN_BADGE_STYLE[item.locked] ?? PLAN_BADGE_STYLE.pro}>
-                    <Lock className="w-2 h-2" />
-                    {item.locked === "pro" ? "Pro" : "Business"}
-                </span>
-            )}
-            {!collapsed && !isLocked && item.badge != null && item.badge > 0 && (
+            {!collapsed && item.badge != null && item.badge > 0 && (
                 <span className="ml-auto flex h-3.5 min-w-3.5 px-1 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--accent-muted)", color: "var(--accent)" }}>
                     {item.badge > 99 ? "99+" : item.badge}
                 </span>
@@ -106,7 +91,7 @@ function NavLink({ item, collapsed, onClick }: { item: SidebarLink; collapsed: b
                     style={{ background: "var(--surface-hi)", border: "1px solid var(--border-hi)", color: "var(--text)" }}
                 >
                     {item.title}
-                    {!isLocked && item.badge != null && item.badge > 0 && ` (${item.badge})`}
+                    {item.badge != null && item.badge > 0 && ` (${item.badge})`}
                 </span>
             )}
         </Link>
@@ -138,19 +123,14 @@ export default function Sidebar() {
         return q.gte("starts_at", start).lt("starts_at", end);
     });
     const newQuotes = useBadgeCount("quotes", bid, hasModule("quotes"), (q) => q.eq("status", "request"));
-    const pendingReviews = useBadgeCount("reviews", bid, hasModule("reviews"), (q) => q.eq("status", "pending"));
-    const pendingOrders = useBadgeCount("orders", bid, hasModule("shop"), (q) => q.eq("status", "pending"));
-    const badges: Record<string, number> = { "/reservations": todayRes, "/quotes": newQuotes, "/reviews": pendingReviews, "/orders": pendingOrders };
-
-    // Cloche (composant V1) : elle n'attend que les clés « quotes » et « reservations ».
-    const features: FeatureKey[] = (["quotes", "reservations"] as const).filter((k) => hasModule(k));
+    const badges: Record<string, number> = { "/reservations": todayRes, "/quotes": newQuotes };
 
     useEffect(() => {
         document.body.style.overflow = mobileOpen ? "hidden" : "";
         return () => { document.body.style.overflow = ""; };
     }, [mobileOpen]);
 
-    const toLink = (item: NavItem): SidebarLink => ({ title: navTitle(item, labels), href: item.href, icon: item.icon, badge: badges[item.href], locked: item.locked });
+    const toLink = (item: NavItem): SidebarLink => ({ title: navTitle(item, labels), href: item.href, icon: item.icon, badge: badges[item.href] });
     const visible = visibleNavItems(hasModule).filter((item) => !item.accountOnly);
     const groups = NAV_GROUPS
         .map((label) => ({ label, items: visible.filter((item) => item.group === label).map(toLink) }))
@@ -275,7 +255,6 @@ export default function Sidebar() {
                     <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>VWA</span>
                 </Link>
                 <div className="flex items-center gap-2">
-                    <NotificationBell businessId={bid} features={features} />
                     <button onClick={() => setMobileOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md" style={{ color: "var(--text-muted)" }} aria-label="Ouvrir le menu">
                         <Menu className="w-4 h-4" />
                     </button>

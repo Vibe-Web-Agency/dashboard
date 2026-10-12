@@ -194,6 +194,7 @@ Retour : `{ "success": true, "quote_id": "UUID" }`, HTTP 201.
 app/
 ├── (auth)/
 │   └── login/page.tsx
+├── (admin)/admin/             <-- Back-office plateforme (section 7, phase 4)
 ├── (dashboard)/
 │   ├── layout.tsx             <-- Wrap avec TenantProvider
 │   ├── reservations/page.tsx  <-- Vue RDV / Réservations
@@ -436,11 +437,30 @@ Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp
 - **Mises à jour optimistes :** `useBusinessQuery().optimistic(updater, action)` applique le changement à l'écran, lance l'écriture, puis recharge. En cas d'échec, le rechargement rétablit l'état réel. Utilisé pour les statuts des réservations et des demandes, l'interrupteur des prestations et la disponibilité des plats.
 - **Vérifié :** calcul des créneaux (9 cas), 13 vérifications en session réelle (pages, horaires sous RLS, réservation avec prestation et heure de fin, préremplissage, statistiques). **Non vérifié :** les interactions dans un navigateur (clics dans la frise et le sélecteur).
 
-### Phase 4 (back-office SuperAdmin) — en attente de décisions
-- Le rôle `staff` du cahier n'existe pas : `memberships.role` accepte `owner | administrator | member | viewer`.
-- `platform_admins` est vide : personne ne peut être reconnu admin plateforme.
-- Un espace `/admin` V1 existe (9 pages, 10 routes `/api/admin`) : il lit la table V1 `users` et la colonne `is_admin`, et ne fonctionne pas sur la base V2. `/admin/plans` existe déjà en V1 (plans Stripe).
-- Le cahier (2.1) demande de masquer toute route V1 incomplète. 15 pages du dashboard sont encore en V1 : accueil, calendar, reviews, team, blog, stats, analytics, orders, products, people, projects, campaigns, email, crm, billing, messages (support).
+### Périmètre réduit aux pages V2 — 2026-10-12
+Décision : ne garder que ce qui sert aux quatre premiers clients. Tout ce qui lisait le schéma V1 est supprimé (retrouvable dans l'historique git) et reviendra réécrit en V2, module par module.
+- **Menu** (`lib/v2/navigation.ts`) : Vue d'ensemble, Réservations, Demandes & devis, Clients, Prestations, Carte, Paramètres. Cette liste **remplace** celles des sections 6.2 et 6.3 (Mini CRM, facturation, support, statistiques, calendrier, avis, équipe… n'existent plus).
+- **Accueil** (`app/(dashboard)/page.tsx`) réécrit en V2 : prochaines réservations (hors annulées, compteurs du jour et en attente) et demandes au statut `request`, chacun affiché seulement si son module est actif. Raccourcis de création masqués sous le rôle member.
+- **Supprimé :** 35 pages V1 du dashboard, l'inscription V1 (`/signup`, `/api/auth/signup`), le support (`/messages`), les composants `Navbar`, `AdminNavbar`, `NotificationBell`, `OnboardingModal`, `LockedScreen`, et les fichiers V1 devenus inutiles de `lib/` (`supabase.ts`, `useUserProfile`, `useFeatureAccess`, `businessConfig`, `plans`, `formatters`, `statusConfig`, `sharedStyles`, `database.v2.types`). Sidebar : plus de verrous par plan ni de badges avis / commandes.
+- **Connexion :** `/login` envoie les admins plateforme (`is_platform_admin`) vers `/admin`, les autres vers `/`. `/auth/callback` n'écrit plus dans la table V1 `users`. Les pages mot de passe utilisent le client V2.
+- **Encore en V1, non branché à l'interface, à réécrire ou supprimer :** routes `/api/billing/*`, `/api/campaigns/send`, `/api/cron/{reminders,reports}`, `/api/invite`, `/api/orders/ship`, `/api/tickets`, `/api/unsubscribe`, `/api/webhooks/stripe`, avec `lib/supabase-admin.ts`, `lib/supabase-server.ts`, `lib/database.types.ts`, `lib/emails`, `lib/resend.ts`, `lib/stripe.ts`, `lib/twilio.ts`. `vercel.json` déclenche toujours `/api/cron/reminders` chaque jour à 8 h : la route échoue sur la base V2.
+- **Création de compte :** il n'y a plus de parcours d'inscription. Un compte se crée depuis Supabase (invitation, qui passe par `/auth/callback` puis `/set-password`), puis reçoit un accès dans `/admin/memberships`.
+
+### Phase 4 — back-office plateforme (`/admin`) — 2026-10-12
+Remplace entièrement l'espace admin V1 (9 pages, 10 routes `/api/admin`, supprimées).
+- **Accès :** réservé aux profils de `platform_admins` (RPC `is_platform_admin`). `getPlatformAdmin()` (`lib/v2/admin.ts`) est appelé par le layout, par chaque page et par **chaque Server Action** avant tout usage de la clé de service. Sans session : `/login`. Connecté sans être admin : `/`.
+- **`/admin/tenants`** : liste (agence, type, statut, plan) et création (nom, identifiant d'URL, agence, type, statut ; le trigger `businesses_activer_coeur` active les modules du type).
+- **`/admin/tenants/[id]`** : nom, type, statut ; plan en cours ; modules du commerce (`business_module_settings.is_enabled`), avec pour chacun ce qui l'accorde (module de base, plan, option) et s'il est visible. L'agence n'est pas modifiable (clés composites `(id, agency_id)`).
+- **`/admin/plans`** : matrice plans × modules (`plan_modules`). Les modules `is_core` ne sont pas cochables.
+- **`/admin/memberships`** : rôles `owner | administrator | member | viewer` (le rôle `staff` du cahier n'existe pas), activation, et rattachement d'un compte existant par email, à une agence entière ou à un seul commerce.
+- **Règles de `lib/v2/admin.ts` :**
+  - un seul plan en cours par commerce (index unique partiel) : changer de plan passe l'ancien à `cancelled` puis insère le nouveau en `active`, au prix du plan ;
+  - un plan d'une autre agence est refusé ;
+  - le dernier propriétaire actif de niveau agence ne peut être ni rétrogradé ni désactivé (aucun trigger ne le garantit en base) ;
+  - `lib/v2/admin-constants.ts` porte ce qui est importé côté client (statuts, libellés).
+- **Vérifié (lecture seule, 2026-10-12) :** chargeurs sur la base de dev (4 commerces, 5 plans × 19 modules, 8 memberships) ; modules « visibles » de FiFi identiques à `enabled_modules` ; `/admin/*` redirige vers `/login` sans session et vers `/` pour un owner et un viewer ; accueil et pages V2 en 200 ; pages supprimées en 404.
+- **Non vérifié :** le rendu des écrans admin et les écritures (plan, modules, rôles, création), car `platform_admins` est vide et aucune écriture en base n'a été faite. À tester dès qu'un admin est inscrit.
+- **RLS :** la liste des politiques à corriger est dans `supabase/manual/RLS-A-CORRIGER.md`. Rien n'est corrigé tant qu'elle n'est pas validée.
 
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
@@ -490,6 +510,5 @@ L'application s'appuie strictement sur les variables d'environnement suivantes :
 - Réseau d'entreprise avec proxy TLS : Node doit tourner avec `--use-system-ca` (ou `NODE_OPTIONS=--use-system-ca`), sinon `SELF_SIGNED_CERT_IN_CHAIN`. Ne pas désactiver la vérification TLS.
 - La CLI Supabase 2.x n'utilise pas le magasin de certificats Windows : exporter les racines Windows en PEM, puis préfixer la commande de génération par `NODE_EXTRA_CA_CERTS=<roots.pem> SSL_CERT_FILE=<roots.pem>`.
 - `text.txt` = dump du schéma de dev (64 tables). Il n'inclut ni les vues (`campaign_stats`, `customer_stats`, `google_connexions_etat`), ni les index uniques, ni les CHECK multi-colonnes (ex. `quotes_check`), ni les triggers. Pour ces éléments, interroger `pg_indexes` / `pg_constraint` / `pg_trigger`.
-- `lib/database.v2.types.ts` est un ancien export obsolète, remplacé par `types/supabase.ts` (à supprimer à la migration).
-- `lib/database.types.ts` (V1) est encore utilisé par `lib/supabase.ts` et `lib/supabase-server.ts`, jusqu'à la migration.
+- `lib/database.types.ts` (V1) n'est plus utilisé que par `lib/supabase-server.ts` et `lib/supabase-admin.ts`, eux-mêmes réservés aux routes d'API V1 restantes (section 7).
 - Le middleware exclut `/api/*` : les routes publiques ne sont pas redirigées vers `/login`.

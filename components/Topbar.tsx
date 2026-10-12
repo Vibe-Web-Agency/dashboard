@@ -1,80 +1,23 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Search, LogOut, User, MessageCircle, Settings, Plus } from "lucide-react";
+import { Search, LogOut, User, Settings, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import NotificationBell from "@/components/NotificationBell";
 import SearchPalette from "@/components/SearchPalette";
 import ThemeToggle from "@/components/ThemeToggle";
-import type { FeatureKey } from "@/lib/businessConfig";
 import { useTenant } from "@/providers/TenantProvider";
 import { bookingLabels } from "@/lib/v2/labels";
 import { navCta, navItemFor, navTitle } from "@/lib/v2/navigation";
-
-function useUnreadSupport(businessId?: string | null) {
-    const [count, setCount] = useState(0);
-    useEffect(() => {
-        if (!businessId) return;
-        const fetch = async () => {
-            const { data } = await (supabase as any)
-                .from("tickets")
-                .select("id, ticket_messages(sender, created_at)")
-                .eq("business_id", businessId)
-                .neq("status", "resolved");
-            if (!data) return;
-            let c = 0;
-            for (const ticket of data) {
-                const msgs = (ticket.ticket_messages as { sender: string; created_at: string }[]) || [];
-                if (!msgs.length) continue;
-                const last = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).at(-1);
-                if (last?.sender === "admin") c++;
-            }
-            setCount(c);
-        };
-        fetch();
-        const ch = supabase.channel(`topbar-support-${businessId}`)
-            .on("postgres_changes", { event: "*", schema: "public", table: "ticket_messages" }, fetch)
-            .subscribe();
-        return () => { supabase.removeChannel(ch); };
-    }, [businessId]);
-    return count;
-}
-
-// Titres des pages hors navigation (les autres viennent de lib/v2/navigation.ts).
-const PAGE_LABELS: Record<string, string> = {
-    "/sms": "Relance SMS",
-    "/auto-replies": "Réponses automatiques",
-    "/whatsapp": "RDV WhatsApp",
-    "/invoicing": "Devis & Facturation",
-    "/accounting": "Gestion financière",
-    "/google-ads": "Google ADS",
-    "/meta-ads": "Meta ADS",
-    "/geo-ai": "GEO Référencement IA",
-    // Retirées de la navigation (pas de module V2), encore accessibles par URL.
-    "/social": "Réseaux sociaux",
-    "/chatbot": "Chatbot web",
-    "/seo": "Référencement",
-    "/ads": "Publicité digitale",
-    "/loyalty": "Programme fidélité",
-    "/multilingual": "Site multilingue",
-    "/finance": "Finance",
-    "/workspace": "Espace équipe & Planning",
-    "/giftcards": "Chèques cadeaux",
-    "/ai": "Assistant IA",
-};
+import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 
 export default function Topbar() {
     const pathname = usePathname();
     const router = useRouter();
     const { currentBusiness, hasModule } = useTenant();
     const labels = bookingLabels(currentBusiness);
-    // Cloche (composant V1) : elle n'attend que les clés « quotes » et « reservations ».
-    const features: FeatureKey[] = (["quotes", "reservations"] as const).filter((k) => hasModule(k));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
-    const unreadSupport = useUnreadSupport(currentBusiness.id);
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -89,7 +32,7 @@ export default function Topbar() {
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
-        await supabase.auth.signOut();
+        await getBrowserSupabase().auth.signOut();
         window.location.assign("/login");
     };
 
@@ -98,7 +41,7 @@ export default function Topbar() {
     const navItem = navItemFor(pathname);
     const pageLabel = navItem
         ? navTitle(navItem, labels)
-        : PAGE_LABELS[base] ?? (segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : "Vue d'ensemble");
+        : segments[0] ? segments[0].charAt(0).toUpperCase() + segments[0].slice(1) : "Vue d'ensemble";
     const businessName = currentBusiness.name;
     // Pas de bouton « + » sur une page dont le module n'est pas accessible.
     const ctaLabel = navItem && (navItem.module === null || hasModule(navItem.module)) ? navCta(navItem, labels) : undefined;
@@ -174,26 +117,6 @@ export default function Topbar() {
 
             {/* Right — actions + user profile */}
             <div className="flex items-center gap-1 shrink-0 ml-auto">
-                {/* Support with unread badge */}
-                <Link
-                    href="/messages"
-                    title="Support"
-                    className="relative flex h-7 w-7 items-center justify-center rounded-md transition-all no-underline"
-                    style={{ color: "var(--text-muted)" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--accent-muted)"; e.currentTarget.style.color = "var(--accent)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
-                >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    {unreadSupport > 0 && (
-                        <span
-                            className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-[8px] font-bold"
-                            style={{ minWidth: 13, height: 13, padding: "0 2px", background: "var(--danger)", color: "#fff" }}
-                        >
-                            {unreadSupport > 9 ? "9+" : unreadSupport}
-                        </span>
-                    )}
-                </Link>
-
                 {/* Paramètres */}
                 <Link
                     href="/settings"
@@ -207,7 +130,6 @@ export default function Topbar() {
                 </Link>
                 <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
                 <ThemeToggle />
-                <NotificationBell businessId={currentBusiness.id} features={features} />
                 <div
                     className="flex items-center gap-2 px-2 py-1 rounded"
                     style={{ background: "var(--surface)", border: "1px solid var(--border)" }}

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-import OnboardingModal from "@/components/OnboardingModal";
 import { TenantProvider } from "@/providers/TenantProvider";
 import { getTenantContext } from "@/lib/v2/tenant";
 
@@ -42,7 +41,6 @@ export default async function DashboardLayout({
                         </div>
                     </main>
                 </div>
-                <OnboardingModal />
             </div>
         </TenantProvider>
     );

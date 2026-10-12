@@ -78,11 +78,11 @@ To safely manage database complexity without direct SQL intervention, a dedicate
 
 ### Phase 4: SuperAdmin Platform Back-Office
 
-* \[ \] Tenant Management (`/admin/tenants`): Inspect and edit business profiles, types, and agency links.
+* \[x\] Tenant Management (`/admin/tenants`): Inspect and edit business profiles, types, and agency links.
 
-* \[ \] Module Matrix Editor (`/admin/plans`): Toggle features per plan or per tenant in real-time.
+* \[x\] Module Matrix Editor (`/admin/plans`): Toggle features per plan or per tenant in real-time.
 
-* \[ \] User & Membership Manager (`/admin/memberships`): Assign `owner`, `administrator`, or `staff` roles.
+* \[x\] User & Membership Manager (`/admin/memberships`): Assign `owner`, `administrator`, `member`, or `viewer` roles (the `staff` role does not exist in the database).
 
 ## 4. Claude Execution Prompts (Copy-Paste Directives)
 
