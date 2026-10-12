@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabase } from '@/lib/v2/supabase-server'
 import { getTenantContext } from '@/lib/v2/tenant'
 import { assertTouched } from '@/lib/v2/data/errors'
-import { type IssuerSettings, cleanClarityProjectId, cleanIssuer, writeModuleSetting } from '@/lib/v2/data/module-settings'
+import { type IssuerSettings, cleanIssuer, writeModuleSetting } from '@/lib/v2/data/module-settings'
 import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
 import {
     type FieldErrors,
@@ -115,7 +115,7 @@ export async function saveNotificationSettings(input: NotificationSettings): Pro
     return { ok: true }
 }
 
-// Réglages de module (CLAUDE.md 9.4 et 9.8). Les messages de validation de `clean*` sont rédigés pour l'utilisateur.
+// Réglages de module (CLAUDE.md 9.4). Les messages de validation de `clean*` sont rédigés pour l'utilisateur.
 async function saveModuleSetting(slug: string, key: string, build: () => Parameters<typeof writeModuleSetting>[4], path: string): Promise<ActionResult> {
     const guard = await requireManager()
     if (!guard.ok) return guard
@@ -137,9 +137,4 @@ async function saveModuleSetting(slug: string, key: string, build: () => Paramet
 /** Mentions légales de l'émetteur, reprises sur les devis en PDF. */
 export async function saveQuoteIssuer(input: IssuerSettings): Promise<ActionResult> {
     return saveModuleSetting('quotes', 'issuer', () => cleanIssuer(input), '/settings')
-}
-
-/** Identifiant du projet Microsoft Clarity du site du commerce (vide pour le retirer). */
-export async function saveClarityProject(projectId: string): Promise<ActionResult> {
-    return saveModuleSetting('analytics', 'clarity', () => ({ project_id: cleanClarityProjectId(projectId) }), '/analytics')
 }

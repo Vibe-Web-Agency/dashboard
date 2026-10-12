@@ -5,7 +5,6 @@ import { assertTouched } from './errors'
 // Réglages d'un module pour un commerce : business_module_settings.settings (jsonb), une clé par sujet.
 //   reservations.notifications : messages automatiques (CLAUDE.md 9.3)
 //   quotes.issuer              : mentions légales de l'émetteur des devis (9.4)
-//   analytics.clarity          : identifiant du projet Microsoft Clarity (9.8)
 //
 // ATTENTION : ces réglages sont lisibles par un visiteur anonyme pour les modules activés (politique
 // `bms_public_widget_select`, dont les sites des commerces se servent). N'y mettre AUCUN secret :
@@ -64,17 +63,4 @@ export function cleanIssuer(input: IssuerSettings): IssuerSettings {
     const siret = input.siret.replace(/\s/g, '')
     if (siret && !/^\d{9}(\d{5})?$/.test(siret)) throw new Error('SIREN (9 chiffres) ou SIRET (14 chiffres) invalide.')
     return { legal_name: input.legal_name.trim().slice(0, 200), siret, vat_number: input.vat_number.trim().slice(0, 30), mentions: input.mentions.trim().slice(0, 1000) }
-}
-
-// ── Microsoft Clarity ──
-
-/** Identifiant du projet Clarity (ex. « abcd1234ef »), tel qu'il figure dans le script de suivi. */
-export function readClarityProjectId(settings: JsonObject) {
-    return str(asObject(settings.clarity).project_id)
-}
-
-export function cleanClarityProjectId(input: string) {
-    const id = input.trim()
-    if (id && !/^[a-z0-9]{6,20}$/i.test(id)) throw new Error("Identifiant Clarity invalide : c'est le code de 10 caractères environ visible dans l'adresse de votre projet.")
-    return id.toLowerCase()
 }

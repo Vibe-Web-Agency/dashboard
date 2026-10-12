@@ -539,21 +539,17 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois : réservations, couverts, taux d'absence, nouveaux clients, demandes, devis acceptés, répartition par jour de la semaine et par prestation.
 - **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. Pas d'email d'alerte à l'agence pour une nouvelle demande.
 
-### 9.8 Analyse web et Microsoft Clarity — 2026-10-13
-- **Page `/analytics` (« Analyse web », module `analytics`)** : rétablit la fréquentation du site à partir du suivi maison (`daily_session_summaries`, alimentée chaque heure par pg_cron depuis `sessions`) : visites, visiteurs, pages vues, durée moyenne, part du mobile, visites par jour, sur 7, 30 ou 90 jours. `/stats` reste la page de l'activité (réservations, devis).
-- **Clarity, terrain préparé :**
-  - l'identifiant du projet Clarity du site est saisi sur la page (propriétaire, administrateur) et rangé dans `business_module_settings.settings.clarity.project_id` du module `analytics` ;
-  - la page donne alors le lien vers le tableau de bord Clarity et le script à placer dans le `<head>` du site ;
-  - le site du commerce peut lire cet identifiant sans session (réglages des modules activés, politique `bms_public_widget_select`) et charger Clarity tout seul.
-- **Règle :** les réglages de module sont publics (`lib/v2/data/module-settings.ts`). Aucun secret n'y va.
-- **Pas encore fait :** afficher les chiffres de Clarity dans le dashboard. Cela passe par son API d'export, qui demande un jeton par projet (à ranger dans `business_integrations`, provider `clarity`, serveur uniquement) et se limite à 10 appels par jour et aux 3 derniers jours : il faudra donc une récupération quotidienne par cron et une table de cache. Reste aussi à décider si le suivi maison (`sessions`) est conservé une fois Clarity en place.
+### 9.8 Analyse web — 2026-10-13
+- **Page `/analytics` (« Analyse web », module `analytics`)** : fréquentation du site à partir du suivi maison (`daily_session_summaries`, alimentée chaque heure par pg_cron depuis `sessions`) : visites, visiteurs, pages vues, durée moyenne, part du mobile, visites par jour, sur 7, 30 ou 90 jours. `/stats` reste la page de l'activité (réservations, devis).
+- **Microsoft Clarity (décision du 2026-10-13) :** l'agence installe et suit Clarity elle-même pour ses clients, hors du dashboard. Rien n'est stocké en base à ce sujet : ni table, ni réglage, ni jeton. Si ses chiffres doivent un jour apparaître ici, il faudra son API d'export (jeton par projet à ranger dans `business_integrations`, 10 appels par jour, 3 derniers jours).
+- **Règle :** les réglages de module (`lib/v2/data/module-settings.ts`) sont lisibles par un visiteur anonyme. Aucun secret n'y va.
 
 ### 9.6 Vérifications du 2026-10-12
 Données de test supprimées à chaque fois, aucun email ni SMS réellement envoyé (clés retirées des tests).
 - anti-spam et messages : 21 contrôles (origines, compteur, 403, 429, confirmation journalisée une seule fois, fenêtre des rappels, envoi après la réponse) ;
 - devis : 10 contrôles (totaux, remplacement des lignes, refus d'un autre commerce, devis figé) ;
 - pages et accès : 35 contrôles en session réelle (pages, menu, sélecteur, garde de module, droits du viewer, avis, équipe, actualités, statistiques, support).
-- devis en PDF, mentions légales, Clarity et analyse web (2026-10-13) : 16 contrôles en session réelle, et le PDF produit a été relu (mise en page, accents, montants).
+- devis en PDF, mentions légales et analyse web (2026-10-13) : 16 contrôles en session réelle, et le PDF produit a été relu (mise en page, accents, montants).
 - **Non vérifié :** l'envoi réel par Resend et Twilio, le déclenchement du cron par Vercel, les Server Actions de l'équipe et de l'envoi de devis (appelées seulement par un navigateur), et tout clic dans un navigateur.
 
 ### 9.7 Non fait, en attente de décisions
