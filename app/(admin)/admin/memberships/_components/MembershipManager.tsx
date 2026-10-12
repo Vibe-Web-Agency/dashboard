@@ -3,89 +3,69 @@
 import { useState } from "react";
 import type { loadMemberships } from "@/lib/v2/admin";
 import { ROLE_LABEL, fieldStyle, panelStyle } from "@/lib/v2/admin-constants";
-import { ROLES } from "@/lib/v2/roles";
-import { createMembership, saveMembershipActive, saveMembershipRole } from "../../actions";
+import { resendAccessLink, saveMembershipActive, saveMembershipRole } from "../../actions";
+import { AccessOutcome, ROLE_CHOICES } from "../../_components/InviteForm";
 import { ErrorLine, Toggle, useAdminAction } from "../../_components/ui";
 
-type Data = Awaited<ReturnType<typeof loadMemberships>>;
+export type MembershipRow = Awaited<ReturnType<typeof loadMemberships>>["memberships"][number] & { pending: boolean };
 
-// Du rôle le plus élevé au plus bas.
-const ROLE_CHOICES = [...ROLES].reverse();
+/** Accès existants : rôle, activation, renvoi du lien de connexion. `showScope` masque l'agence et le périmètre sur la fiche d'un commerce. */
+export function MembershipManager({ memberships, showScope = true }: { memberships: MembershipRow[]; showScope?: boolean }) {
+    const { run, pending, error } = useAdminAction();
+    const [sent, setSent] = useState<{ email: string; link: string; emailSent: boolean; emailError: string | null } | null>(null);
 
-export function MembershipManager({ memberships, agencies, businesses }: Data) {
-    const list = useAdminAction();
-    const add = useAdminAction();
-    const [email, setEmail] = useState("");
-    const [agencyId, setAgencyId] = useState(agencies[0]?.id ?? "");
-    const [businessId, setBusinessId] = useState("");
-    const [role, setRole] = useState<string>("owner");
-    const agencyBusinesses = businesses.filter((b) => b.agency_id === agencyId);
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        add.run(() => createMembership({ email, agency_id: agencyId, business_id: businessId || null, role }), () => setEmail(""));
-    }
+    if (memberships.length === 0) return <p className="text-sm" style={{ color: "var(--text-faint)" }}>Personne n&apos;a encore accès.</p>;
 
     return (
         <>
-            <ErrorLine error={list.error} />
+            <ErrorLine error={error} />
+            {sent && (
+                <div className="rounded-xl p-4 flex flex-col gap-2" style={panelStyle}>
+                    <p className="text-sm" style={{ color: "var(--text)" }}>Nouveau lien pour {sent.email}</p>
+                    <AccessOutcome outcome={{ kind: "link", ...sent }} />
+                </div>
+            )}
             <div className="rounded-xl overflow-x-auto" style={panelStyle}>
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-left" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
                             <th className="font-medium px-4 py-3">Compte</th>
-                            <th className="font-medium px-4 py-3">Agence</th>
+                            {showScope && <th className="font-medium px-4 py-3">Agence</th>}
                             <th className="font-medium px-4 py-3">Périmètre</th>
                             <th className="font-medium px-4 py-3">Rôle</th>
                             <th className="font-medium px-4 py-3">Actif</th>
+                            <th className="font-medium px-4 py-3"><span className="sr-only">Lien de connexion</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         {memberships.map((m) => (
                             <tr key={m.id} style={{ borderBottom: "1px solid var(--border)", color: "var(--text)", opacity: m.is_active ? 1 : 0.55 }}>
                                 <td className="px-4 py-3">
-                                    {m.email}
+                                    {m.email} {m.pending && <span className="pill pill-amber ml-1">Invitation en attente</span>}
                                     {m.fullName && <span className="block text-xs" style={{ color: "var(--text-faint)" }}>{m.fullName}</span>}
                                 </td>
-                                <td className="px-4 py-3">{m.agencyName}</td>
+                                {showScope && <td className="px-4 py-3">{m.agencyName}</td>}
                                 <td className="px-4 py-3">{m.businessName ?? <span style={{ color: "var(--text-muted)" }}>Toute l&apos;agence</span>}</td>
                                 <td className="px-4 py-3">
-                                    <select value={m.role} disabled={list.pending} className="rounded-md px-2 py-1 text-sm" style={fieldStyle} aria-label={`Rôle de ${m.email}`}
-                                        onChange={(e) => list.run(() => saveMembershipRole(m.id, e.target.value))}>
+                                    <select value={m.role} disabled={pending} className="rounded-md px-2 py-1 text-sm" style={fieldStyle} aria-label={`Rôle de ${m.email}`}
+                                        onChange={(e) => run(() => saveMembershipRole(m.id, e.target.value))}>
                                         {ROLE_CHOICES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                                     </select>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <Toggle checked={m.is_active} disabled={list.pending} label={`Accès actif pour ${m.email}`}
-                                        onChange={(next) => list.run(() => saveMembershipActive(m.id, next))} />
+                                    <Toggle checked={m.is_active} disabled={pending} label={`Accès actif pour ${m.email}`} onChange={(next) => run(() => saveMembershipActive(m.id, next))} />
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                    <button type="button" disabled={pending} className="text-xs" style={{ color: "var(--accent)" }}
+                                        onClick={() => { setSent(null); run(() => resendAccessLink(m.profile_id), (r) => setSent({ email: m.email, ...r })); }}>
+                                        {m.pending ? "Renvoyer l'invitation" : "Envoyer un lien"}
+                                    </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-
-            <form onSubmit={submit} className="rounded-xl p-5 flex flex-col gap-4" style={panelStyle}>
-                <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>Donner un accès</h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <input required type="email" placeholder="email du compte" value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-md px-3 py-2 text-sm" style={fieldStyle} aria-label="Email du compte" />
-                    <select value={agencyId} onChange={(e) => { setAgencyId(e.target.value); setBusinessId(""); }} className="rounded-md px-3 py-2 text-sm" style={fieldStyle} aria-label="Agence">
-                        {agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </select>
-                    <select value={businessId} onChange={(e) => setBusinessId(e.target.value)} className="rounded-md px-3 py-2 text-sm" style={fieldStyle} aria-label="Périmètre">
-                        <option value="">Toute l&apos;agence</option>
-                        {agencyBusinesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                    <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-md px-3 py-2 text-sm" style={fieldStyle} aria-label="Rôle">
-                        {ROLE_CHOICES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-                    </select>
-                </div>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Le compte doit déjà exister. « Toute l&apos;agence » donne accès à tous ses commerces.</p>
-                <div className="flex items-center gap-3">
-                    <button type="submit" disabled={add.pending} className="btn btn-primary btn-sm">{add.pending ? "Ajout…" : "Ajouter"}</button>
-                    <ErrorLine error={add.error} />
-                </div>
-            </form>
         </>
     );
 }

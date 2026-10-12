@@ -445,7 +445,7 @@ Décision : ne garder que ce qui sert aux quatre premiers clients. Tout ce qui l
 - **Supprimé :** 35 pages V1 du dashboard, l'inscription V1 (`/signup`, `/api/auth/signup`), le support (`/messages`), les composants `Navbar`, `AdminNavbar`, `NotificationBell`, `OnboardingModal`, `LockedScreen`, et les fichiers V1 devenus inutiles de `lib/` (`supabase.ts`, `useUserProfile`, `useFeatureAccess`, `businessConfig`, `plans`, `formatters`, `statusConfig`, `sharedStyles`, `database.v2.types`). Sidebar : plus de verrous par plan ni de badges avis / commandes.
 - **Connexion :** `/login` envoie les admins plateforme (`is_platform_admin`) vers `/admin`, les autres vers `/`. `/auth/callback` n'écrit plus dans la table V1 `users`. Les pages mot de passe utilisent le client V2.
 - **Routes d'API V1 supprimées le 2026-10-12 :** facturation, campagnes, crons, invitation, commandes, tickets, désinscription, webhook Stripe, avec leurs fichiers `lib/` (`supabase-admin`, `supabase-server`, `database.types`, `emails`, `resend`, `stripe`, `twilio`…) et `vercel.json` (cron des rappels). Il ne reste dans `lib/` que `utils.ts` et `v2/`, et dans `app/api` que `v1/public/*` et `revalidate-iconik` (relais vers un site client, sans lien avec la base). Les rappels, les emails et Stripe seront réécrits en V2 quand ils seront nécessaires.
-- **Création de compte :** il n'y a plus de parcours d'inscription. Un compte se crée depuis Supabase (invitation, qui passe par `/auth/callback` puis `/set-password`), puis reçoit un accès dans `/admin/memberships`.
+- **Création de compte :** par invitation depuis `/admin` (voir ci-dessous). L'inscription libre n'a plus de page ; le trigger `handle_new_user` crée toujours un établissement de démonstration pour un compte créé hors invitation.
 
 ### Phase 4 — back-office plateforme (`/admin`) — 2026-10-12
 Remplace entièrement l'espace admin V1 (9 pages, 10 routes `/api/admin`, supprimées).
@@ -460,7 +460,29 @@ Remplace entièrement l'espace admin V1 (9 pages, 10 routes `/api/admin`, suppri
   - le dernier propriétaire actif de niveau agence ne peut être ni rétrogradé ni désactivé (aucun trigger ne le garantit en base) ;
   - `lib/v2/admin-constants.ts` porte ce qui est importé côté client (statuts, libellés).
 - **Vérifié (lecture seule, 2026-10-12) :** chargeurs sur la base de dev (4 commerces, 5 plans × 19 modules, 8 memberships) ; modules « visibles » de FiFi identiques à `enabled_modules` ; `/admin/*` redirige vers `/login` sans session et vers `/` pour un owner et un viewer ; accueil et pages V2 en 200 ; pages supprimées en 404.
-- **Non vérifié :** le rendu des écrans admin et les écritures (plan, modules, rôles, création), car `platform_admins` est vide et aucune écriture en base n'a été faite. À tester dès qu'un admin est inscrit.
+- **Non vérifié :** le rendu des écrans admin et les Server Actions sous une session d'admin plateforme, car `platform_admins` est vide. La couche de données, elle, est testée (ci-dessous).
+
+#### Invitations, clients et CRM — 2026-10-12
+Menu : Tableau de bord, Clients, Prospects, Tâches, Utilisateurs, Plans & modules.
+- **Invitations** (`lib/v2/admin-invite.ts`) :
+  - la base ne sait pas envoyer d'email. `inviteUser` crée le compte et son lien à usage unique avec Supabase Auth (`generateLink`, type `invite`), insère la `memberships`, puis envoie l'email par Resend (`RESEND_API_KEY`, expéditeur `noreply@vibewebagency.fr`). La table `invitations` et les RPC `invite_member` / `accept_invitation` ne sont pas utilisées ;
+  - le lien est toujours affiché à l'admin, pour le transmettre à la main si l'email ne part pas. Il vaut 24 heures (réglage Supabase Auth) ;
+  - si l'adresse a déjà un compte, l'accès est ajouté sans email ;
+  - si la membership ne peut pas être créée, le compte créé est supprimé ;
+  - le lien pointe vers `/auth/confirm?token_hash=…&type=invite|recovery` (`app/auth/confirm/route.ts`), qui ouvre la session côté serveur puis redirige vers `/set-password`. Le middleware laisse passer cette route, même si une autre session est ouverte ;
+  - « Renvoyer l'invitation » / « Envoyer un lien » produit un lien `recovery` ;
+  - un compte jamais connecté est affiché « Invitation en attente » (`auth.users.last_sign_in_at`).
+- **Trigger `handle_new_user`** (`supabase/manual/handle-new-user-invited.sql`, à rejouer en production) : un compte invité porte `vwa_invited = true` dans ses métadonnées et ne reçoit **pas** d'établissement de démonstration. L'agence par défaut des inscriptions libres est maintenant l'agence interne, et non plus une agence prise au hasard (`LIMIT 1` sans ordre).
+- **Nouveau client** (`/admin/tenants/new`) : commerce, plan, email du propriétaire, en un seul envoi. Le commerce créé n'est pas annulé si le plan ou l'invitation échoue : l'étape est signalée et se refait depuis la fiche. `?prospect=<id>` préremplit depuis un prospect et le passe à « signé ».
+- **Fiche client** : en plus du plan et des modules, section « Accès » (membres directs et membres de niveau agence, invitation verrouillée sur ce commerce) et section « Suivi » (tâches du client).
+- **CRM** (`lib/v2/admin-crm.ts`), sur les tables existantes :
+  - `prospects` appartient à l'agence interne (`agencies.is_internal`) ; statuts `nouveau | contacte | en_discussion | signe | perdu`. Contraintes en base : « perdu » exige `lost_reason`, et `converted_at` est renseigné si et seulement si le statut est « signé ». Chaque changement de statut s'inscrit dans `prospect_activities` (`status_change`) ;
+  - `converted_business_id` n'est posé que si le commerce est dans la même agence que le prospect (clé composite) ;
+  - `tasks` : liée à un client **ou** à un prospect, ou à personne ; elle porte l'agence de son sujet. `done_at` est renseigné si et seulement si le statut est `done` ;
+  - « en retard » est calculé côté serveur (`isLate`), pas au rendu.
+- **Tableau de bord** (`/admin`) : revenu mensuel (somme de `business_plans.price_monthly_cents` des plans en cours), clients par statut, prospects en cours et leur valeur, invitations en attente, relances et tâches dues.
+- **Vérifié (32 contrôles, données de test supprimées, base revenue à l'identique)** : prospects, statuts, historique, tâches, tableau de bord ; invitation d'une adresse nouvelle (profil créé, aucun établissement de démonstration, une seule membership), lien ouvrant `/set-password` puis le dashboard du commerce, lien refusé au second usage, renvoi, jeton inconnu, refus des doublons et des commerces d'une autre agence.
+- **Non vérifié :** l'envoi réel de l'email par Resend (la clé était retirée du test pour ne rien envoyer) et le domaine d'expédition.
 - **RLS :** corrigée le 2026-10-12, voir « Durcissement » en section 1.3.
 
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS

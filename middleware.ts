@@ -28,7 +28,8 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/login') ||
         pathname.startsWith('/forgot-password') ||
         pathname.startsWith('/reset-password') ||
-        pathname.startsWith('/auth/callback')
+        pathname.startsWith('/auth/callback') ||
+        pathname.startsWith('/auth/confirm')
 
     // Gérer les erreurs de refresh token invalide
     let session = null
@@ -59,7 +60,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    if (session && isAuthRoute) {
+    // Un lien d'invitation ouvre sa propre session, même si une autre est déjà ouverte dans ce navigateur.
+    if (session && isAuthRoute && !pathname.startsWith('/auth/confirm')) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)

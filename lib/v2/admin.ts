@@ -9,7 +9,7 @@ import { BUSINESS_STATUSES } from './admin-constants'
 // doit d'abord appeler getPlatformAdmin().
 
 // Statuts de business_plans qui comptent comme « plan en cours » (index unique partiel sur business_id).
-const CURRENT_PLAN_STATUSES = ['trialing', 'active', 'past_due']
+export const CURRENT_PLAN_STATUSES = ['trialing', 'active', 'past_due']
 
 export class AdminInputError extends Error {}
 
@@ -26,14 +26,14 @@ export async function getPlatformAdmin(): Promise<{ userId: string; db: AdminCli
 type Result<T> = { data: T; error: { message: string } | null }
 
 /** Résultat d'une requête qui doit renvoyer quelque chose (liste, .single()). */
-function unwrap<T>(res: Result<T>): NonNullable<T> {
+export function unwrap<T>(res: Result<T>): NonNullable<T> {
     if (res.error) throw new Error(res.error.message)
     if (res.data == null) throw new Error('Réponse vide')
     return res.data
 }
 
 /** Résultat d'un .maybeSingle() : null si la ligne n'existe pas. */
-function unwrapMaybe<T>(res: Result<T>): T {
+export function unwrapMaybe<T>(res: Result<T>): T {
     if (res.error) throw new Error(res.error.message)
     return res.data
 }
@@ -217,7 +217,7 @@ export async function loadMemberships(db: AdminClient) {
     }
 }
 
-function checkRole(role: string): Role {
+export function checkRole(role: string): Role {
     if (!(ROLES as readonly string[]).includes(role)) throw new AdminInputError('Rôle inconnu.')
     return role as Role
 }

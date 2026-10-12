@@ -2,18 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getPlatformAdmin, loadTenants } from "@/lib/v2/admin";
 import { BUSINESS_STATUS_LABEL, type BusinessStatus, panelStyle } from "@/lib/v2/admin-constants";
-import { NewTenantForm } from "./_components/NewTenantForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function TenantsPage() {
     const admin = await getPlatformAdmin();
     if (!admin) redirect("/");
-    const { tenants, agencies, businessTypes } = await loadTenants(admin.db);
+    const { tenants } = await loadTenants(admin.db);
 
     return (
         <div className="flex flex-col gap-6 max-w-5xl">
-            <h1 className="text-xl font-medium" style={{ color: "var(--text)" }}>Commerces ({tenants.length})</h1>
+            <div className="flex items-center justify-between gap-4">
+                <h1 className="text-xl font-medium" style={{ color: "var(--text)" }}>Clients ({tenants.length})</h1>
+                <Link href="/admin/tenants/new" className="btn btn-primary btn-sm no-underline">Nouveau client</Link>
+            </div>
 
             <div className="rounded-xl overflow-x-auto" style={panelStyle}>
                 <table className="w-full text-sm">
@@ -42,8 +44,6 @@ export default async function TenantsPage() {
                     </tbody>
                 </table>
             </div>
-
-            <NewTenantForm agencies={agencies} businessTypes={businessTypes} />
         </div>
     );
 }
