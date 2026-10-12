@@ -21,7 +21,7 @@ import { useBusinessQuery } from './useBusinessQuery'
 // Carte du commerce courant (module `menu`). Les tables de la carte ne sont pas publiées en Realtime :
 // la carte se recharge après chaque modification faite ici.
 export function useMenu() {
-    const { data, loading, error, refresh, supabase, businessId } = useBusinessQuery(getMenu)
+    const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(getMenu)
 
     // Exécute une modification puis recharge la carte, même en cas d'erreur (l'état affiché reste fidèle).
     const run = useCallback(
@@ -69,7 +69,12 @@ export function useMenu() {
         moveSection,
         createItem: (input: ItemInput) => run(() => createItem(supabase, businessId, input)),
         updateItem: (id: string, input: ItemInput) => run(() => updateItem(supabase, businessId, id, input)),
-        setItemAvailability: (id: string, available: boolean) => run(() => setItemAvailability(supabase, businessId, id, available)),
+        // Optimiste : le plat passe disponible / indisponible tout de suite.
+        setItemAvailability: (id: string, available: boolean) =>
+            optimistic(
+                (menu) => menu.map((s) => ({ ...s, items: s.items.map((i) => (i.id === id ? { ...i, is_available: available } : i)) })),
+                () => setItemAvailability(supabase, businessId, id, available),
+            ),
         deleteItem: (id: string) => run(() => deleteItem(supabase, businessId, id)),
         moveItem,
     }

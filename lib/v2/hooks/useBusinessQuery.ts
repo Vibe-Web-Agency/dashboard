@@ -78,5 +78,22 @@ export function useBusinessQuery<T>(
         }
     }, [supabase, businessId, realtimeTable, refresh, instanceId])
 
-    return { data, loading, error, refresh, supabase, businessId }
+    /**
+     * Mise à jour optimiste : applique `updater` aux données affichées tout de suite, lance `action`,
+     * puis recharge dans tous les cas. Si l'action échoue, le rechargement rétablit l'état réel
+     * et l'erreur est relancée à l'appelant.
+     */
+    const optimistic = useCallback(
+        async <R,>(updater: (current: T) => T, action: () => Promise<R>): Promise<R> => {
+            setResult((prev) => (prev && prev.data !== null ? { ...prev, data: updater(prev.data) } : prev))
+            try {
+                return await action()
+            } finally {
+                refresh()
+            }
+        },
+        [refresh],
+    )
+
+    return { data, loading, error, refresh, optimistic, supabase, businessId }
 }

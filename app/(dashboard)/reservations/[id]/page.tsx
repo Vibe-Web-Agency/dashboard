@@ -155,7 +155,7 @@ export default function ReservationDetailPage() {
                 {/* Détails */}
                 <div className="grid gap-4 mb-6">
                     <DetailRow icon={Calendar} label="Date">{formatDateTimeInZone(reservation.starts_at, tz)}</DetailRow>
-                    {reservation.service && <DetailRow icon={Scissors} label="Prestation">{reservation.service.name}</DetailRow>}
+                    {reservation.service && <DetailRow icon={Scissors} label={labels.serviceSingularTitle}>{reservation.service.name}</DetailRow>}
                     {labels.showParty && <DetailRow icon={Users} label={labels.partyTitle}>{labels.partyCount(reservation.party_size)}</DetailRow>}
                     {reservation.customer?.email && (
                         <DetailRow icon={Mail} label="Email" muted>

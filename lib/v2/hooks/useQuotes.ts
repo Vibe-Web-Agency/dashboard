@@ -12,14 +12,16 @@ export function useQuotes(opts: { status?: QuoteStatus } = {}) {
         (supabase: Parameters<typeof listQuotes>[0], businessId: string) => listQuotes(supabase, businessId, { status }),
         [status],
     )
-    const { data, loading, error, refresh, supabase, businessId } = useBusinessQuery(fetcher, 'quotes')
+    const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(fetcher, 'quotes')
 
+    // Optimiste : le statut change à l'écran tout de suite ; le numéro éventuel arrive au rechargement.
     const setStatus = useCallback(
-        async (id: string, next: QuoteStatus) => {
-            await updateQuoteStatus(supabase, businessId, id, next)
-            refresh()
-        },
-        [supabase, businessId, refresh],
+        (id: string, next: QuoteStatus) =>
+            optimistic(
+                (list) => list.map((q) => (q.id === id ? { ...q, status: next } : q)),
+                () => updateQuoteStatus(supabase, businessId, id, next),
+            ),
+        [optimistic, supabase, businessId],
     )
 
     const remove = useCallback(
@@ -39,14 +41,15 @@ export function useQuote(id: string) {
         (supabase: Parameters<typeof getQuote>[0], businessId: string) => getQuote(supabase, businessId, id),
         [id],
     )
-    const { data, loading, error, refresh, supabase, businessId } = useBusinessQuery(fetcher, 'quotes')
+    const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(fetcher, 'quotes')
 
     const setStatus = useCallback(
-        async (next: QuoteStatus) => {
-            await updateQuoteStatus(supabase, businessId, id, next)
-            refresh()
-        },
-        [supabase, businessId, id, refresh],
+        (next: QuoteStatus) =>
+            optimistic(
+                (q) => (q ? { ...q, status: next } : q),
+                () => updateQuoteStatus(supabase, businessId, id, next),
+            ),
+        [optimistic, supabase, businessId, id],
     )
 
     const remove = useCallback(() => deleteQuote(supabase, businessId, id), [supabase, businessId, id])

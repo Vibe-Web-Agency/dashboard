@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Users } from "lucide-react";
+import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +15,7 @@ import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { CUSTOMER_SOURCES, CUSTOMER_SOURCE_LABEL, type CustomerSource } from "@/lib/v2/statuses";
 import { formatInZone } from "@/lib/v2/datetime";
 import { bookingLabels } from "@/lib/v2/labels";
+import { CustomerQuickView } from "./_components/CustomerQuickView";
 import { personName } from "@/lib/v2/names";
 
 // Base clients du commerce (CLAUDE.md 5.1).
@@ -59,6 +60,7 @@ function CustomersPageInner() {
     const [createError, setCreateError] = useState<string | null>(null);
     const [duplicate, setDuplicate] = useState<{ id: string; matchedBy?: "email" | "phone" } | null>(null);
     const [exporting, setExporting] = useState(false);
+    const [quickId, setQuickId] = useState<string | null>(null);
 
     const closeModal = () => { setShowModal(false); setCreateError(null); setDuplicate(null); };
 
@@ -180,6 +182,7 @@ function CustomersPageInner() {
                                 <th className="text-left font-medium px-4 py-3 hidden lg:table-cell">Source</th>
                                 <th className="text-right font-medium px-4 py-3">Visites</th>
                                 <th className="text-right font-medium px-4 py-3 hidden md:table-cell">Dernière visite</th>
+                                <th className="px-2 py-3"><span className="sr-only">Action rapide</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -201,6 +204,12 @@ function CustomersPageInner() {
                                     <td className="px-4 py-3 text-right hidden md:table-cell" style={{ color: "var(--text-2)" }}>
                                         {c.stats?.last_visit_at ? formatInZone(c.stats.last_visit_at, tz, { day: "numeric", month: "short", year: "numeric" }) : "—"}
                                     </td>
+                                    <td className="px-2 py-3 text-right">
+                                        <button onClick={(e) => { e.stopPropagation(); setQuickId(c.id); }} className="inline-flex h-7 w-7 items-center justify-center rounded-md"
+                                            style={{ color: 'var(--accent)' }} aria-label={`Action rapide : ${personName(c) || "sans nom"}`} title="Aperçu et réservation rapide">
+                                            <Zap className="w-4 h-4" />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -216,6 +225,8 @@ function CustomersPageInner() {
                     )}
                 </div>
             )}
+
+            {quickId && <CustomerQuickView key={quickId} customerId={quickId} onClose={() => setQuickId(null)} />}
 
             {/* ─── Modale nouveau client ─── */}
             {showModal && (

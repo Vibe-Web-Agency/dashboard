@@ -423,6 +423,25 @@ Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp
   - couche de données de la carte : 14 cas en écriture sur FiFi, carte restaurée à l'identique ;
   - session réelle : FiFi affiche « Réservations », « Formules », « Carte » ; la démo affiche « Rendez-vous », « Prestations », sans carte ; le viewer voit la carte sans bouton d'édition.
 
+## SECTION 7 : CAHIER DES CHARGES V2 (`cahier_des_charges_plan_de_travail_v2.md`)
+
+### Phases 2 et 3 — faites le 2026-10-12
+- **Réservations :**
+  - `_components/CreateReservationModal.tsx` : prénom / nom, prestation (libellé `service_noun`, seulement si le commerce a le module `services`), heure de fin = début + durée de la prestation, et **sélecteur de créneaux**. Les créneaux viennent de `business_hours` (`lib/v2/slots.ts`, pas de 30 min, fermetures après minuit gérées). Chaque créneau indique ce qui est déjà réservé ; aucun n'est bloqué, la saisie manuelle de l'heure reste possible.
+  - `_components/DayTimeline.tsx` : **frise du jour**, ouverte en cliquant un jour du calendrier. Une ligne par heure d'ouverture, les réservations à leur heure, un « + » pour créer sur l'heure choisie.
+  - Préremplissage : `/reservations?new=1&customer=<id>` ouvre la création avec le client rempli.
+- **Clients :** `_components/CustomerQuickView.tsx`, action rapide (éclair) dans la liste : contact, chiffres clés, dernières réservations et demandes, « nouvelle réservation » préremplie, lien vers la fiche.
+- **Catalogue :** `/services` et `/menu` (section 6.4).
+- **Temps réel :** badges de la Sidebar et listes abonnés à `supabase_realtime` (section 6.3).
+- **Mises à jour optimistes :** `useBusinessQuery().optimistic(updater, action)` applique le changement à l'écran, lance l'écriture, puis recharge. En cas d'échec, le rechargement rétablit l'état réel. Utilisé pour les statuts des réservations et des demandes, l'interrupteur des prestations et la disponibilité des plats.
+- **Vérifié :** calcul des créneaux (9 cas), 13 vérifications en session réelle (pages, horaires sous RLS, réservation avec prestation et heure de fin, préremplissage, statistiques). **Non vérifié :** les interactions dans un navigateur (clics dans la frise et le sélecteur).
+
+### Phase 4 (back-office SuperAdmin) — en attente de décisions
+- Le rôle `staff` du cahier n'existe pas : `memberships.role` accepte `owner | administrator | member | viewer`.
+- `platform_admins` est vide : personne ne peut être reconnu admin plateforme.
+- Un espace `/admin` V1 existe (9 pages, 10 routes `/api/admin`) : il lit la table V1 `users` et la colonne `is_admin`, et ne fonctionne pas sur la base V2. `/admin/plans` existe déjà en V1 (plans Stripe).
+- Le cahier (2.1) demande de masquer toute route V1 incomplète. 15 pages du dashboard sont encore en V1 : accueil, calendar, reviews, team, blog, stats, analytics, orders, products, people, projects, campaigns, email, crm, billing, messages (support).
+
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 

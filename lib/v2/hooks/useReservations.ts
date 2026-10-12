@@ -21,14 +21,16 @@ export function useReservations(opts: { scope?: ReservationScope; status?: Reser
             listReservations(supabase, businessId, { scope, status }),
         [scope, status],
     )
-    const { data, loading, error, refresh, supabase, businessId } = useBusinessQuery(fetcher, 'reservations')
+    const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(fetcher, 'reservations')
 
+    // Optimiste : le statut change à l'écran tout de suite, puis la liste se resynchronise.
     const setStatus = useCallback(
-        async (id: string, next: ReservationStatus) => {
-            await updateReservationStatus(supabase, businessId, id, next)
-            refresh()
-        },
-        [supabase, businessId, refresh],
+        (id: string, next: ReservationStatus) =>
+            optimistic(
+                (list) => list.map((r) => (r.id === id ? { ...r, status: next } : r)),
+                () => updateReservationStatus(supabase, businessId, id, next),
+            ),
+        [optimistic, supabase, businessId],
     )
 
     const create = useCallback(
@@ -58,14 +60,15 @@ export function useReservation(id: string) {
         (supabase: Parameters<typeof getReservation>[0], businessId: string) => getReservation(supabase, businessId, id),
         [id],
     )
-    const { data, loading, error, refresh, supabase, businessId } = useBusinessQuery(fetcher, 'reservations')
+    const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(fetcher, 'reservations')
 
     const setStatus = useCallback(
-        async (next: ReservationStatus) => {
-            await updateReservationStatus(supabase, businessId, id, next)
-            refresh()
-        },
-        [supabase, businessId, id, refresh],
+        (next: ReservationStatus) =>
+            optimistic(
+                (r) => (r ? { ...r, status: next } : r),
+                () => updateReservationStatus(supabase, businessId, id, next),
+            ),
+        [optimistic, supabase, businessId, id],
     )
 
     const remove = useCallback(() => deleteReservation(supabase, businessId, id), [supabase, businessId, id])

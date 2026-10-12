@@ -1,14 +1,16 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar, Mail, Phone, Clock, Users } from "lucide-react";
+import { Plus, X, Search, ChevronLeft, ChevronRight, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenant } from "@/providers/TenantProvider";
 import { useReservations } from "@/lib/v2/hooks/useReservations";
+import { useServices } from "@/lib/v2/hooks/useServices";
+import { useBusinessHours } from "@/lib/v2/hooks/useBusinessHours";
+import { useBusinessQuery } from "@/lib/v2/hooks/useBusinessQuery";
 import { type ReservationWithCustomer, upcomingThreshold } from "@/lib/v2/data/reservations";
 import {
     RESERVATION_QUICK_ACTIONS,
@@ -25,14 +27,13 @@ import {
     formatDayHeaderInZone,
     formatTimeInZone,
     zonedDayKey,
-    zonedToUtcIso,
 } from "@/lib/v2/datetime";
+import { CreateReservationModal, type ReservationPrefill } from "./_components/CreateReservationModal";
+import { DayTimeline } from "./_components/DayTimeline";
 
 type Tab = "upcoming" | "history" | "calendar";
 
 const PAGE_SIZE = 20;
-
-const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "", date: "", time: "", party_size: 2, note: "" };
 
 function displayName(r: ReservationWithCustomer) {
     return personName(r.customer) || r.guest_name || "Client inconnu";
@@ -65,11 +66,15 @@ function StatusControls({ reservation, onChange, readOnly }: {
 export default function ReservationsPage() { return <Suspense><ReservationsPageInner /></Suspense>; }
 
 function ReservationsPageInner() {
-    const { currentBusiness, currentRole } = useTenant();
+    const { currentBusiness, currentRole, hasModule } = useTenant();
     const writable = canWrite(currentRole);
     const tz = currentBusiness.timezone;
     const labels = bookingLabels(currentBusiness);
     const { reservations, loading, error, refresh, setStatus, create } = useReservations();
+    const { hours } = useBusinessHours();
+    const { services: allServices } = useServices();
+    // Prestations proposées à la réservation : seulement si le commerce a le module, et seulement celles en ligne.
+    const services = useMemo(() => (hasModule("services") ? allServices.filter((s) => s.is_active) : []), [hasModule, allServices]);
 
     const searchParams = useSearchParams();
     // La modale est ouverte par le bouton de la page, ou par ?new=1 (accueil, bouton « + » de la Topbar, même depuis cette page).
@@ -78,9 +83,30 @@ function ReservationsPageInner() {
     const wantsNew = searchParams.get("new") === "1";
     const [modalOpen, setModalOpen] = useState(false);
     const showModal = writable && (modalOpen || wantsNew);
+    // Date, heure et client préremplis : créneau choisi dans la frise, ou ?customer=<id> depuis la fiche d'un client.
+    const [prefill, setPrefill] = useState<ReservationPrefill | undefined>(undefined);
+    const customerParam = searchParams.get("customer");
+    const fetchPrefillCustomer = useCallback(
+        async (supabase: Parameters<Parameters<typeof useBusinessQuery>[0]>[0], businessId: string) => {
+            if (!customerParam) return null;
+            const { data, error } = await supabase
+                .from("customers")
+                .select("first_name, last_name, email, phone")
+                .eq("business_id", businessId)
+                .eq("id", customerParam)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        [customerParam],
+    );
+    const prefillCustomer = useBusinessQuery(fetchPrefillCustomer);
     const setShowModal = (open: boolean) => {
         setModalOpen(open);
-        if (!open && wantsNew) router.replace(pathname);
+        if (!open) {
+            setPrefill(undefined);
+            if (wantsNew) router.replace(pathname);
+        }
     };
 
     const [tab, setTab] = useState<Tab>("upcoming");
@@ -88,10 +114,6 @@ function ReservationsPageInner() {
     const [searchQuery, setSearchQuery] = useState("");
     const [page, setPage] = useState(0);
     const [actionError, setActionError] = useState<string | null>(null);
-
-    const [form, setForm] = useState(EMPTY_FORM);
-    const [creating, setCreating] = useState(false);
-    const [createError, setCreateError] = useState<string | null>(null);
 
     const [currentMonth, setCurrentMonth] = useState(() => new Date());
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -153,28 +175,6 @@ function ReservationsPageInner() {
             await setStatus(id, status);
         } catch (e) {
             setActionError(e instanceof Error ? e.message : "Impossible de modifier le statut.");
-        }
-    };
-
-    const closeModal = () => { setShowModal(false); setCreateError(null); };
-
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setCreating(true);
-        setCreateError(null);
-        try {
-            await create({
-                customer: { first_name: form.first_name, last_name: form.last_name, email: form.email.trim() || null, phone: form.phone.trim() || null },
-                starts_at: zonedToUtcIso(form.date, form.time, tz),
-                party_size: labels.showParty ? form.party_size : 1,
-                internal_note: form.note.trim() || null,
-            });
-            setForm(EMPTY_FORM);
-            setShowModal(false);
-        } catch (err) {
-            setCreateError(err instanceof Error ? err.message : "Création impossible.");
-        } finally {
-            setCreating(false);
         }
     };
 
@@ -344,76 +344,19 @@ function ReservationsPageInner() {
                 </div>
             )}
 
-            {/* ─── Modal nouvelle réservation ─── */}
-            {showModal && (
-                <div className="vos-modal-backdrop">
-                    <div className="vos-modal">
-                        <div className="vos-modal-header">
-                            <h2 className="vos-modal-title">{labels.booking.newTitle}</h2>
-                            <button onClick={closeModal} className="flex h-7 w-7 items-center justify-center rounded-md transition-colors" style={{ color: 'var(--muted)' }} onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleCreate} className="flex flex-col gap-4">
-                            {createError && (
-                                <div className="p-3 rounded-lg" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: "12px" }}>
-                                    {createError}
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="vos-label">Prénom</label>
-                                    <Input value={form.first_name} onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))} required={!form.last_name.trim()} placeholder="Jean" />
-                                </div>
-                                <div>
-                                    <label className="vos-label">Nom</label>
-                                    <Input value={form.last_name} onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))} required={!form.first_name.trim()} placeholder="Dupont" />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="vos-label">Email</label>
-                                    <Input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@exemple.com" />
-                                </div>
-                                <div>
-                                    <label className="vos-label">Téléphone</label>
-                                    <Input type="tel" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="06 12 34 56 78" />
-                                </div>
-                            </div>
-                            <div className={`grid gap-3 ${labels.showParty ? "grid-cols-3" : "grid-cols-2"}`}>
-                                <div>
-                                    <label className="vos-label">Date *</label>
-                                    <Input type="date" value={form.date} onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))} required />
-                                </div>
-                                <div>
-                                    <label className="vos-label">Heure *</label>
-                                    <Input type="time" value={form.time} onChange={(e) => setForm(f => ({ ...f, time: e.target.value }))} required />
-                                </div>
-                                {labels.showParty && (
-                                    <div>
-                                        <label className="vos-label">{labels.partyTitle}</label>
-                                        <Input type="number" min={1} max={500} value={form.party_size} onChange={(e) => setForm(f => ({ ...f, party_size: Math.min(500, Math.max(1, parseInt(e.target.value) || 1)) }))} />
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <label className="vos-label">Note interne</label>
-                                <Input value={form.note} onChange={(e) => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Visible uniquement par l'équipe" />
-                            </div>
-                            <p style={{ fontSize: "11px", color: "var(--muted)" }}>
-                                Sans email ni téléphone, aucune fiche client n&apos;est créée ni rattachée.
-                            </p>
-                            <div className="flex gap-3 pt-2">
-                                <Button type="button" onClick={closeModal} className="flex-1" variant="outline" style={{ background: 'transparent', border: '1px solid var(--border-2)', color: 'var(--text-2)' }}>
-                                    Annuler
-                                </Button>
-                                <Button type="submit" disabled={creating} className="flex-1 font-semibold" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
-                                    {creating ? "Création..." : `Créer ${labels.booking.the}`}
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* ─── Modale de création ─── */}
+            {showModal && !(customerParam && prefillCustomer.loading) && (
+                <CreateReservationModal
+                    key={`${customerParam ?? ""}|${prefill?.date ?? ""}|${prefill?.time ?? ""}`}
+                    business={currentBusiness}
+                    labels={labels}
+                    reservations={reservations}
+                    services={services}
+                    hours={hours}
+                    prefill={{ ...prefill, customer: prefillCustomer.data ?? undefined }}
+                    onCreate={create}
+                    onClose={() => setShowModal(false)}
+                />
             )}
 
             {/* ─── Erreurs ─── */}
@@ -552,7 +495,7 @@ function ReservationsPageInner() {
                 </div>
             )}
 
-            {/* ─── Modale du jour (calendrier) ─── */}
+            {/* ─── Frise du jour (calendrier) ─── */}
             {selectedDay && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     style={{ background: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)' }}
@@ -579,55 +522,19 @@ function ReservationsPageInner() {
                             </Button>
                         </div>
 
-                        {selectedDayReservations.length === 0 ? (
-                            <div className="text-center py-12 rounded-xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                                <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--muted-2)' }} />
-                                <p className="text-sm" style={{ color: 'var(--text-2)' }}>{labels.booking.none} ce jour</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {selectedDayReservations.map((r) => (
-                                    <Link key={r.id} href={`/reservations/${r.id}`} className="card-hover block rounded-xl p-4"
-                                        style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-glow)' }}>
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <h4 className="font-medium" style={{ color: 'var(--text)' }}>{displayName(r)}</h4>
-                                                    <span className={RESERVATION_STATUS_UI[r.status as ReservationStatus]?.pill ?? "pill pill-muted"}>
-                                                        {RESERVATION_STATUS_UI[r.status as ReservationStatus]?.label ?? r.status}
-                                                    </span>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    {r.customer?.email && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                                                            <Mail className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                                                            {r.customer.email}
-                                                        </div>
-                                                    )}
-                                                    {r.customer?.phone && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                                                            <Phone className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                                                            {r.customer.phone}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                                                        <Clock className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                                                        {formatTimeInZone(r.starts_at, tz)}
-                                                    </div>
-                                                    {labels.showParty && (
-                                                        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-2)' }}>
-                                                            <Users className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-                                                            {labels.partyCount(r.party_size)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <ChevronRight className="w-5 h-5 mt-1" style={{ color: 'var(--accent)' }} />
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
+                        <DayTimeline
+                            dateKey={calendarDayKey(selectedDay)}
+                            reservations={selectedDayReservations}
+                            hours={hours}
+                            timeZone={tz}
+                            labels={labels}
+                            writable={writable}
+                            onCreateAt={(time) => {
+                                setPrefill({ date: calendarDayKey(selectedDay), time });
+                                setSelectedDay(null);
+                                setModalOpen(true);
+                            }}
+                        />
                     </div>
                 </div>
             )}

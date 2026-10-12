@@ -162,8 +162,8 @@ export default function CustomerDetailPage() {
                 <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
                     <Stat label="Visites" value={String(stats?.visit_count ?? 0)} />
                     <Stat label="Dernière visite" value={stats?.last_visit_at ? formatInZone(stats.last_visit_at, tz, { day: "numeric", month: "short", year: "numeric" }) : "—"} />
-                    <Stat label={labels.title} value={String(reservations.length)} />
-                    <Stat label="Demandes" value={String(quotes.length)} />
+                    <Stat label="Total payé" value={((stats?.total_spent_cents ?? 0) / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} />
+                    <Stat label="Note moyenne" value={stats?.average_review_rating != null ? `${Number(stats.average_review_rating).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5` : "—"} />
                 </div>
             </div>
 

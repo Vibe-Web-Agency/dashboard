@@ -75,6 +75,8 @@ export async function updateReservationStatus(
 export type ManualReservationInput = {
     customer: CustomerInput
     starts_at: string
+    /** Fin prévue, par exemple début + durée de la prestation. */
+    ends_at?: string | null
     party_size: number
     service_id?: string | null
     internal_note?: string | null
@@ -100,6 +102,7 @@ export async function createManualReservation(
             customer_id: customerId,
             guest_name: personName(input.customer) || null,
             starts_at: input.starts_at,
+            ends_at: input.ends_at ?? null,
             party_size: input.party_size,
             service_id: input.service_id ?? null,
             internal_note: input.internal_note ?? null,
