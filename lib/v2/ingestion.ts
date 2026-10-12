@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { AdminClient } from './supabase-admin'
-import { OPERATIONAL_BUSINESS_STATUSES } from './statuses'
+import { isOriginAllowed, loadPublicBusiness, rateLimited } from './public-guard'
 import { splitFullName } from './names'
 import { type CustomerInput, normalizeEmail } from './data/customers'
 
@@ -142,16 +142,21 @@ export function readCustomer(v: unknown, errors: FieldErrors): (CustomerInput & 
     return { first_name, last_name, email, phone }
 }
 
-/** Le commerce existe et est en service (voir OPERATIONAL_BUSINESS_STATUSES). */
-export async function isActiveBusiness(admin: AdminClient, businessId: string) {
-    const { data, error } = await admin
-        .from('businesses')
-        .select('id')
-        .eq('id', businessId)
-        .in('status', OPERATIONAL_BUSINESS_STATUSES)
-        .maybeSingle()
-    if (error) throw error
-    return data !== null
+/**
+ * Contrôles communs avant toute écriture (CLAUDE.md 2.0 et 2.0 bis) : le commerce existe et est en service,
+ * l'origine est autorisée, la limite de débit n'est pas atteinte. Renvoie la réponse de refus, ou null.
+ */
+export async function refusePublicRequest(admin: AdminClient, req: Request, businessId: string) {
+    const business = await loadPublicBusiness(admin, businessId)
+    if (!business) return json({ success: false, error: 'Commerce introuvable' }, 404)
+    if (!isOriginAllowed(req, business)) return json({ success: false, error: 'Origine non autorisée' }, 403)
+    const retryAfter = await rateLimited(admin, req, businessId)
+    if (retryAfter !== null) {
+        const res = json({ success: false, error: 'Trop de demandes, réessayez plus tard' }, 429)
+        res.headers.set('Retry-After', String(retryAfter))
+        return res
+    }
+    return null
 }
 
 export async function isBookableService(admin: AdminClient, businessId: string, serviceId: string) {

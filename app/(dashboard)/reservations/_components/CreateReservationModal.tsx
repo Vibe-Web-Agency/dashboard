@@ -10,6 +10,7 @@ import type { ManualReservationInput, ReservationWithCustomer } from "@/lib/v2/d
 import type { Service } from "@/lib/v2/data/services";
 import { daySlots, slotOf } from "@/lib/v2/slots";
 import { formatTimeInZone, zonedDayKey, zonedToUtcIso } from "@/lib/v2/datetime";
+import { emailReservationConfirmation } from "../actions";
 
 // Création manuelle d'une réservation (cahier des charges, phase 2) : client, prestation, date,
 // puis choix d'un créneau calculé depuis les horaires d'ouverture, avec l'affluence déjà réservée.
@@ -71,13 +72,15 @@ export function CreateReservationModal({ business, labels, reservations, service
         }));
     }, [form.date, reservations, hours, duration, tz]);
 
+    const [sendConfirmation, setSendConfirmation] = useState(true);
+
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setCreating(true);
         setError(null);
         try {
             const startsAt = zonedToUtcIso(form.date, form.time, tz);
-            await onCreate({
+            const createdId = await onCreate({
                 customer: { first_name: form.first_name, last_name: form.last_name, email: form.email.trim() || null, phone: form.phone.trim() || null },
                 starts_at: startsAt,
                 ends_at: duration ? new Date(Date.parse(startsAt) + duration * 60_000).toISOString() : null,
@@ -85,6 +88,8 @@ export function CreateReservationModal({ business, labels, reservations, service
                 service_id: form.service_id || null,
                 internal_note: form.note.trim() || null,
             });
+            // L'envoi ne bloque pas la fermeture : un email raté n'annule pas la réservation.
+            if (sendConfirmation && form.email.trim() && typeof createdId === "string") void emailReservationConfirmation(createdId);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Création impossible.");
@@ -200,6 +205,12 @@ export function CreateReservationModal({ business, labels, reservations, service
                         <label className="vos-label">Note interne</label>
                         <Input value={form.note} onChange={(e) => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Visible uniquement par l'équipe" />
                     </div>
+                    {form.email.trim() !== "" && (
+                        <label className="flex items-center gap-2 text-sm" style={{ color: "var(--text)" }}>
+                            <input type="checkbox" className="h-4 w-4" style={{ accentColor: "var(--accent)" }} checked={sendConfirmation} onChange={(e) => setSendConfirmation(e.target.checked)} />
+                            Envoyer un email de confirmation au client
+                        </label>
+                    )}
                     <p style={{ fontSize: "11px", color: "var(--muted)" }}>
                         Sans email ni téléphone, aucune fiche client n&apos;est créée ni rattachée.
                     </p>

@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createServerSupabase } from '@/lib/v2/supabase-server'
 import { getTenantContext } from '@/lib/v2/tenant'
+import { assertTouched } from '@/lib/v2/data/errors'
+import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
 import {
     type FieldErrors,
     NotAllowedError,
@@ -76,6 +78,35 @@ export async function saveProfile(input: { full_name: string | null; phone: stri
 
     try {
         await updateProfile(supabase, user.id, input)
+    } catch (e) {
+        return failure(e)
+    }
+    revalidatePath('/settings')
+    return { ok: true }
+}
+
+// Messages automatiques (CLAUDE.md 9) : rangés dans business_module_settings.settings.notifications du module
+// « reservations ». Les autres clés de `settings` sont conservées.
+export async function saveNotificationSettings(input: NotificationSettings): Promise<ActionResult> {
+    const guard = await requireManager()
+    if (!guard.ok) return guard
+    // Ne garde que les quatre booléens attendus.
+    const notifications = readNotificationSettings({ notifications: input })
+
+    try {
+        const supabase = await createServerSupabase()
+        const { data: mod } = await supabase.from('modules').select('id').eq('slug', 'reservations').maybeSingle()
+        if (!mod) return { ok: false, error: 'Module introuvable.' }
+        const { data: row } = await supabase.from('business_module_settings').select('settings').eq('business_id', guard.businessId).eq('module_id', mod.id).maybeSingle()
+        const current = row?.settings && typeof row.settings === 'object' && !Array.isArray(row.settings) ? row.settings : {}
+        const { data, error } = await supabase
+            .from('business_module_settings')
+            .update({ settings: { ...current, notifications } })
+            .eq('business_id', guard.businessId)
+            .eq('module_id', mod.id)
+            .select('id')
+        if (error) throw error
+        assertTouched(data)
     } catch (e) {
         return failure(e)
     }

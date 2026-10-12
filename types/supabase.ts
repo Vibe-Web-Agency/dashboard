@@ -392,6 +392,24 @@ export type Database = {
           },
         ]
       }
+      api_rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -4976,6 +4994,10 @@ export type Database = {
         Args: { m: Database["public"]["Tables"]["memberships"]["Row"] }
         Returns: undefined
       }
+      business_accepts_public_writes: {
+        Args: { p_business: string }
+        Returns: boolean
+      }
       business_is_operational: { Args: { p_status: string }; Returns: boolean }
       change_member_role: {
         Args: { p_membership: string; p_role: string }
@@ -5024,6 +5046,10 @@ export type Database = {
         Returns: string
       }
       purge_old_sessions: { Args: never; Returns: undefined }
+      rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
+      }
       remove_member: { Args: { p_membership: string }; Returns: undefined }
       role_rank: { Args: { r: string }; Returns: number }
       visible_agency_ids: { Args: never; Returns: string[] }

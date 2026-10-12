@@ -1,39 +1,22 @@
 import type { AdminClient } from './supabase-admin'
 import { AdminInputError, checkRole, unwrap, unwrapMaybe } from './admin'
 import { ROLE_LABEL } from './admin-constants'
+import { escapeHtml, sendEmail as send } from './mailer'
 
 // Invitations du back-office (CLAUDE.md 8).
 // La base ne sait pas envoyer d'email : le compte et son lien à usage unique sont créés par Supabase Auth
 // (generateLink), l'accès par une ligne `memberships`, et l'email part de notre serveur via Resend.
 // Le lien est toujours renvoyé à l'écran, pour pouvoir le transmettre à la main si l'email n'arrive pas.
 
-const FROM_EMAIL = 'Vibe Web Agency <noreply@vibewebagency.fr>'
-
 export type InviteInput = { email: string; agency_id: string; business_id: string | null; role: string }
 export type InviteResult =
     | { kind: 'existing' } // compte déjà existant : accès ajouté, pas d'email
     | { kind: 'invited'; link: string; emailSent: boolean; emailError: string | null }
 
-function escapeHtml(s: string) {
-    return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
-}
-
+/** Message d'erreur si l'email n'est pas parti, sinon null. */
 async function sendEmail(to: string, subject: string, html: string): Promise<string | null> {
-    const key = process.env.RESEND_API_KEY
-    if (!key) return "RESEND_API_KEY n'est pas configurée"
-    try {
-        const res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
-        })
-        if (res.ok) return null
-        console.error('[admin] Resend', res.status, await res.text())
-        return `Resend a répondu ${res.status}`
-    } catch (e) {
-        console.error('[admin] Resend', e)
-        return "le service d'envoi est injoignable"
-    }
+    const result = await send({ to, subject, html })
+    return result.ok ? null : result.error
 }
 
 function accessEmail(link: string, scopeName: string, intro: string) {

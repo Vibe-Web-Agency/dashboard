@@ -1,9 +1,10 @@
+import { after } from 'next/server'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
+import { notifyBusinessOfReservation, sendReservationConfirmation } from '@/lib/v2/notifications'
 import { personName } from '@/lib/v2/names'
 import {
     type FieldErrors,
     invalid,
-    isActiveBusiness,
     isBookableService,
     isRecord,
     json,
@@ -14,6 +15,7 @@ import {
     readJson,
     readText,
     readUuid,
+    refusePublicRequest,
     resolveCustomer,
     serverError,
 } from '@/lib/v2/ingestion'
@@ -46,9 +48,8 @@ export async function POST(req: Request) {
     try {
         const admin = getAdminClient()
 
-        if (!(await isActiveBusiness(admin, businessId))) {
-            return json({ success: false, error: 'Commerce introuvable' }, 404)
-        }
+        const refusal = await refusePublicRequest(admin, req, businessId)
+        if (refusal) return refusal
 
         // Vérifié avant de toucher à customers, pour ne pas créer de client sur une demande refusée.
         if (serviceId && !(await isBookableService(admin, businessId, serviceId))) {
@@ -74,6 +75,13 @@ export async function POST(req: Request) {
             .single()
 
         if (error) throw error
+
+        // Emails envoyés après la réponse : le visiteur n'attend pas, et un envoi raté n'annule pas la réservation.
+        const dashboardUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+        after(async () => {
+            const results = await Promise.allSettled([sendReservationConfirmation(admin, data.id), notifyBusinessOfReservation(admin, data.id, dashboardUrl)])
+            for (const r of results) if (r.status === 'rejected') console.error('[ingestion] notification', r.reason)
+        })
 
         return json({ success: true, reservation_id: data.id }, 201)
     } catch (error) {

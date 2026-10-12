@@ -1,8 +1,9 @@
+import { after } from 'next/server'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
+import { notifyBusinessOfQuote } from '@/lib/v2/notifications'
 import {
     type FieldErrors,
     invalid,
-    isActiveBusiness,
     isRecord,
     json,
     preflight,
@@ -12,6 +13,7 @@ import {
     readJson,
     readText,
     readUuid,
+    refusePublicRequest,
     resolveCustomer,
     serverError,
 } from '@/lib/v2/ingestion'
@@ -54,9 +56,8 @@ export async function POST(req: Request) {
     try {
         const admin = getAdminClient()
 
-        if (!(await isActiveBusiness(admin, businessId))) {
-            return json({ success: false, error: 'Commerce introuvable' }, 404)
-        }
+        const refusal = await refusePublicRequest(admin, req, businessId)
+        if (refusal) return refusal
 
         const customerId = await resolveCustomer(admin, businessId, customer, 'quote')
 
@@ -77,6 +78,9 @@ export async function POST(req: Request) {
             .single()
 
         if (error) throw error
+
+        const dashboardUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+        after(() => notifyBusinessOfQuote(admin, data.id, dashboardUrl).catch((e) => console.error('[ingestion] notification', e)))
 
         return json({ success: true, quote_id: data.id }, 201)
     } catch (error) {
