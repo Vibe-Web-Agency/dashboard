@@ -18,57 +18,48 @@ export default async function SettingsPage() {
     if (!tenant?.currentBusiness) redirect("/login");
 
     const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
-
+    const user = tenant.user;
     const business = tenant.currentBusiness;
-    const [profile, hours] = await Promise.all([getProfile(supabase, user.id), listBusinessHours(supabase, business.id)]);
     const canManage = tenant.currentRole === "owner" || tenant.currentRole === "administrator";
+    const hasModule = (slug: string) => tenant.modules.some((m) => m.slug === slug);
 
-    // Mentions légales des devis : seulement si le commerce a le module des demandes et devis.
-    const issuer = tenant.modules.some((m) => m.slug === "quotes") ? readIssuer(await readModuleSettings(supabase, business.id, "quotes")) : null;
+    // Toutes les lectures partent ensemble : la page ne coûte qu'un aller-retour avec la base, plus un pour l'équipe.
+    const [profile, hours, quoteSettings, reservationSettings, subscriptionRow, membershipRows, states] = await Promise.all([
+        getProfile(supabase, user.id),
+        listBusinessHours(supabase, business.id),
+        // Mentions légales des devis : seulement si le commerce a le module des demandes et devis.
+        hasModule("quotes") ? readModuleSettings(supabase, business.id, "quotes") : null,
+        // Messages automatiques : seulement si le commerce a le module de réservation.
+        hasModule("reservations") ? readModuleSettings(supabase, business.id, "reservations") : null,
+        // Abonnement : plan en cours du commerce (lecture seule, géré par l'agence).
+        supabase
+            .from("business_plans")
+            .select("status, price_monthly_cents, currency, current_period_end, trial_ends_at, plan:plans ( name )")
+            .eq("business_id", business.id)
+            .in("status", ["trialing", "active", "past_due"])
+            .maybeSingle(),
+        // Accès de l'équipe : membres de ce commerce et membres de niveau agence, lus sous la session (RLS).
+        canManage
+            ? supabase.from("memberships").select("id, profile_id, role, business_id").eq("agency_id", business.agency_id).eq("is_active", true).or(`business_id.eq.${business.id},business_id.is.null`)
+            : null,
+        canManage ? loadAccountStates(getAdminClient()) : null,
+    ]);
+    const issuer = quoteSettings ? readIssuer(quoteSettings) : null;
+    const notifications = reservationSettings ? readNotificationSettings(reservationSettings) : null;
+    const subscription = subscriptionRow.data;
 
-    // Abonnement : plan en cours du commerce (lecture seule, géré par l'agence).
-    const { data: subscription } = await supabase
-        .from("business_plans")
-        .select("status, price_monthly_cents, currency, current_period_end, trial_ends_at, plan:plans ( name )")
-        .eq("business_id", business.id)
-        .in("status", ["trialing", "active", "past_due"])
-        .maybeSingle();
-
-    // Messages automatiques : seulement si le commerce a le module de réservation.
-    const reservationsModule = tenant.modules.find((m) => m.slug === "reservations");
-    let notifications = null;
-    if (reservationsModule) {
-        const { data: mod } = await supabase.from("modules").select("id").eq("slug", "reservations").maybeSingle();
-        const { data: row } = mod
-            ? await supabase.from("business_module_settings").select("settings").eq("business_id", business.id).eq("module_id", mod.id).maybeSingle()
-            : { data: null };
-        notifications = readNotificationSettings(row?.settings);
-    }
-
-    // Accès de l'équipe : membres de ce commerce et membres de niveau agence, lus sous la session (RLS).
     let team: TeamMember[] = [];
-    if (canManage) {
-        const { data: memberships } = await supabase
-            .from("memberships")
-            .select("id, profile_id, role, business_id")
-            .eq("agency_id", business.agency_id)
-            .eq("is_active", true)
-            .or(`business_id.eq.${business.id},business_id.is.null`);
-        const ids = (memberships ?? []).map((m) => m.profile_id);
-        const [{ data: profiles }, states] = await Promise.all([
-            supabase.from("profiles").select("id, email, full_name").in("id", ids),
-            loadAccountStates(getAdminClient()),
-        ]);
+    const memberships = membershipRows?.data ?? [];
+    if (memberships.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("id, email, full_name").in("id", memberships.map((m) => m.profile_id));
         const byId = new Map((profiles ?? []).map((pr) => [pr.id, pr]));
-        team = (memberships ?? []).map((m) => ({
+        team = memberships.map((m) => ({
             id: m.id,
             email: byId.get(m.profile_id)?.email ?? "—",
             fullName: byId.get(m.profile_id)?.full_name ?? null,
             role: m.role,
             isSelf: m.profile_id === user.id,
-            pending: !states.get(m.profile_id)?.lastSignInAt,
+            pending: !states?.get(m.profile_id)?.lastSignInAt,
             agencyLevel: m.business_id === null,
         }));
     }

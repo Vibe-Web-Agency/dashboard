@@ -24,6 +24,8 @@ export type Business = Tables<'businesses'> & {
 export type EnabledModule = Database['public']['Functions']['enabled_modules']['Returns'][number]
 
 export type TenantContext = {
+    /** Utilisateur connecté (vérifié auprès de Supabase Auth). */
+    user: { id: string; email: string | null }
     currentBusiness: Business | null
     currentRole: Role | null
     userBusinesses: Business[]
@@ -34,44 +36,39 @@ export type TenantContext = {
 export const getTenantContext = cache(async (): Promise<TenantContext | null> => {
     const supabase = await createServerSupabase()
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
-
-    const [businesses, memberships] = await Promise.all([
-        getAccessibleBusinesses(supabase),
-        supabase
-            .from('memberships')
-            .select('role, agency_id, business_id')
-            .eq('profile_id', user.id)
-            .eq('is_active', true),
+    // Étape 1, en parallèle : l'utilisateur et ses commerces. La politique de lecture de `businesses`
+    // (accessible_business_ids) ne renvoie que les commerces accessibles, memberships directes et de niveau agence.
+    const [auth, businessRows] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('businesses').select(BUSINESS_SELECT).order('name'),
     ])
-    if (memberships.error) throw memberships.error
+    const user = auth.data.user
+    if (!user) return null
+    if (businessRows.error) throw businessRows.error
+    const businesses: Business[] = businessRows.data
 
     // Le cookie n'est qu'une préférence : on ne retient le commerce que s'il est accessible.
     const cookieStore = await cookies()
     const preferredId = cookieStore.get(CURRENT_BUSINESS_COOKIE)?.value
     const currentBusiness = businesses.find((b) => b.id === preferredId) ?? businesses[0] ?? null
 
+    // Étape 2, en parallèle : le rôle et les modules du commerce retenu.
+    const [memberships, modules] = await Promise.all([
+        supabase.from('memberships').select('role, agency_id, business_id').eq('profile_id', user.id).eq('is_active', true),
+        currentBusiness ? getEnabledModules(supabase, currentBusiness.id) : [],
+    ])
+    if (memberships.error) throw memberships.error
+
     return {
+        user: { id: user.id, email: user.email ?? null },
         currentBusiness,
         currentRole: currentBusiness ? effectiveRole(memberships.data, currentBusiness) : null,
         userBusinesses: businesses,
-        modules: currentBusiness ? await getEnabledModules(supabase, currentBusiness.id) : [],
+        modules,
     }
 })
 
 type ServerSupabase = Awaited<ReturnType<typeof createServerSupabase>>
-
-// accessible_business_ids() couvre les memberships directes et celles de niveau agence.
-export async function getAccessibleBusinesses(supabase: ServerSupabase): Promise<Business[]> {
-    const { data: ids, error: idsError } = await supabase.rpc('accessible_business_ids')
-    if (idsError) throw idsError
-    if (!ids?.length) return []
-
-    const { data, error } = await supabase.from('businesses').select(BUSINESS_SELECT).in('id', ids).order('name')
-    if (error) throw error
-    return data satisfies Business[]
-}
 
 /**
  * enabled_modules() plutôt qu'une lecture directe de business_module_settings : la fonction exige aussi que

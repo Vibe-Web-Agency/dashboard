@@ -5,6 +5,7 @@ import { createServerSupabase } from '@/lib/v2/supabase-server'
 import { getTenantContext } from '@/lib/v2/tenant'
 import { assertTouched } from '@/lib/v2/data/errors'
 import { type IssuerSettings, cleanIssuer, writeModuleSetting } from '@/lib/v2/data/module-settings'
+import { cleanClarityProjectId } from '@/lib/v2/data/web-analytics'
 import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
 import {
     type FieldErrors,
@@ -137,4 +138,12 @@ async function saveModuleSetting(slug: string, key: string, build: () => Paramet
 /** Mentions légales de l'émetteur, reprises sur les devis en PDF. */
 export async function saveQuoteIssuer(input: IssuerSettings): Promise<ActionResult> {
     return saveModuleSetting('quotes', 'issuer', () => cleanIssuer(input), '/settings')
+}
+
+/**
+ * Projet Microsoft Clarity du site (CLAUDE.md 9.8) : seul son identifiant est gardé, pour ouvrir son tableau de bord
+ * depuis la page Analyse web. Vide pour le retirer. L'installation et le suivi restent faits par l'agence.
+ */
+export async function saveClarityProject(projectId: string): Promise<ActionResult> {
+    return saveModuleSetting('analytics', 'clarity', () => ({ project_id: cleanClarityProjectId(projectId) }), '/analytics')
 }

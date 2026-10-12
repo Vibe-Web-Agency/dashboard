@@ -26,9 +26,12 @@ async function moduleId(supabase: Client, slug: string) {
 
 /** Tous les réglages du module pour ce commerce ({} si le module n'a pas de ligne). */
 export async function readModuleSettings(supabase: Client, businessId: string, slug: string): Promise<JsonObject> {
-    const id = await moduleId(supabase, slug)
-    if (!id) return {}
-    const { data, error } = await supabase.from('business_module_settings').select('settings').eq('business_id', businessId).eq('module_id', id).maybeSingle()
+    const { data, error } = await supabase
+        .from('business_module_settings')
+        .select('settings, module:modules!inner ( slug )')
+        .eq('business_id', businessId)
+        .eq('module.slug', slug)
+        .maybeSingle()
     if (error) throw error
     return asObject(data?.settings)
 }

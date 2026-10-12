@@ -491,7 +491,14 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 
 ### 9.1 Accès et navigation
 - **Sélecteur de commerce :** liste déroulante dans la Sidebar, affichée seulement si le compte a plusieurs commerces (`switchBusiness`).
-- **Blocage par module :** `components/ModuleGate.tsx`, posé par un `layout.tsx` dans chaque dossier de page à module. Une page dont le module est inactif affiche un message au lieu de son contenu, même ouverte par son adresse. `getTenantContext()` est mis en cache par requête (`cache` de React) : le layout, la garde et la page le partagent.
+- **Blocage par module :** `components/ModuleGate.tsx`, posé par un `layout.tsx` dans chaque dossier de page à module. Une page dont le module est inactif affiche un message au lieu de son contenu, même ouverte par son adresse. C'est un composant **client** : il lit les modules déjà chargés par le layout du dashboard (`useTenant().hasModule`).
+- **Temps de chargement (2026-10-13)** : la première version de la garde relisait le contexte du commerce côté serveur à chaque navigation, soit 4 allers-retours avec la base et environ 400 ms par page. Corrigé :
+  - la garde ne fait plus aucun appel au serveur : une navigation interne vers une page cliente ne coûte plus que le middleware (environ 10 ms mesurés) ;
+  - `getTenantContext()` tient en 2 étapes parallèles au lieu de 4 : (utilisateur + commerces), puis (rôle + modules). Les commerces sont lus directement dans `businesses`, que la RLS limite déjà aux commerces accessibles. Il expose aussi `user` (id, email), pour éviter un second `auth.getUser()` dans les pages ;
+  - `readModuleSettings` fait une seule requête (jointure sur `modules`) ;
+  - la page Paramètres lance toutes ses lectures en parallèle.
+  - Mesures sur le build de production, depuis le poste de dev (proxy d'entreprise) : chargement complet d'une page 420 → 300 ms, Paramètres 1 200 → 510 ms.
+  - **Règle :** pas de lecture serveur dans un `layout.tsx` de page ; ce qui dépend du commerce courant vient de `useTenant()`.
 - **Accès de l'équipe** (Paramètres, propriétaire et administrateurs) : inviter par email, changer un rôle, retirer un accès (`app/(dashboard)/settings/team-actions.ts`).
   - le commerce visé est toujours le commerce courant ; on ne peut pas attribuer un rôle supérieur au sien ;
   - rôle et retrait passent par les RPC `change_member_role` / `remove_member` sous la session de l'utilisateur : la base applique ses règles ;
@@ -540,9 +547,16 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. Pas d'email d'alerte à l'agence pour une nouvelle demande.
 
 ### 9.8 Analyse web — 2026-10-13
-- **Page `/analytics` (« Analyse web », module `analytics`)** : fréquentation du site à partir du suivi maison (`daily_session_summaries`, alimentée chaque heure par pg_cron depuis `sessions`) : visites, visiteurs, pages vues, durée moyenne, part du mobile, visites par jour, sur 7, 30 ou 90 jours. `/stats` reste la page de l'activité (réservations, devis).
-- **Microsoft Clarity (décision du 2026-10-13) :** l'agence installe et suit Clarity elle-même pour ses clients, hors du dashboard. Rien n'est stocké en base à ce sujet : ni table, ni réglage, ni jeton. Si ses chiffres doivent un jour apparaître ici, il faudra son API d'export (jeton par projet à ranger dans `business_integrations`, 10 appels par jour, 3 derniers jours).
+Page `/analytics` (« Analyse web », module `analytics`), reprise de la version en production et complétée. `/stats` reste la page de l'activité (réservations, devis).
+- **Source :** la table `sessions` (une ligne par visite : pages vues, provenance, largeur d'écran, durée), lue sous RLS, par pages de 1 000 lignes et jusqu'à 5 000 visites. Au-delà, les répartitions portent sur les visites les plus récentes et la page le dit ; le nombre de visites et sa tendance restent exacts (comptage en base).
+- **Contenu** (`lib/v2/data/web-analytics.ts`), sur 7, 30 ou 90 jours :
+  - visiteurs en ligne (activité depuis moins de 5 minutes, relu toutes les 30 secondes) ;
+  - visites et évolution par rapport à la période précédente, visiteurs et visiteurs revenus, pages vues et pages par visite, durée moyenne, part des visites d'une seule page, part des accès directs ;
+  - visites par jour, dans le fuseau du commerce, avec le meilleur jour ;
+  - pages les plus vues, pages d'arrivée, provenance des visiteurs, appareils (mobile sous 768 px, tablette sous 1 024 px, ordinateur au-delà).
+- **Microsoft Clarity :** l'agence installe et suit Clarity elle-même. Le dashboard ne garde que l'identifiant du projet (`business_module_settings.settings.clarity.project_id` du module `analytics`), saisi sur la page par un propriétaire ou un administrateur, et affiche un bouton « Ouvrir Clarity ». Pas de table, pas de jeton, pas d'import de données. Sans identifiant, le bloc n'apparaît qu'à ceux qui peuvent le renseigner.
 - **Règle :** les réglages de module (`lib/v2/data/module-settings.ts`) sont lisibles par un visiteur anonyme. Aucun secret n'y va.
+- **Vérifié :** sur FiFi, le total égale le nombre de lignes en base (216), la somme des jours égale le total, les répartitions sont cohérentes ; un viewer ne lit rien d'un autre commerce et ne peut pas changer l'identifiant Clarity.
 
 ### 9.6 Vérifications du 2026-10-12
 Données de test supprimées à chaque fois, aucun email ni SMS réellement envoyé (clés retirées des tests).
