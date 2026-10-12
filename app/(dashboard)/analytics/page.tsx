@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
-import { ExternalLink } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTenant } from "@/providers/TenantProvider";
 import { useBusinessQuery } from "@/lib/v2/hooks/useBusinessQuery";
-import { WEB_PERIODS, type WebAnalytics, type WebPeriod, clarityDashboardUrl, countActiveVisitors, loadWebAnalytics } from "@/lib/v2/data/web-analytics";
-import { saveClarityProject } from "../settings/actions";
+import { WEB_PERIODS, type WebAnalytics, type WebPeriod, countActiveVisitors, loadWebAnalytics } from "@/lib/v2/data/web-analytics";
+import { ClarityPanel } from "./_components/ClarityPanel";
 import { Empty, ErrorBanner, PageHead, field, panel } from "../_components/ui";
 
 // Analyse web (module `analytics`) : fréquentation et comportement des visiteurs du site du commerce,
-// et accès au projet Microsoft Clarity du site.
+// et chiffres de son projet Microsoft Clarity.
 
 const number = (v: number) => v.toLocaleString("fr-FR");
 const percent = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)} %`);
@@ -146,54 +145,9 @@ export default function WebAnalyticsPage() {
                             )}
                         </div>
                     )}
-                    <ClarityPanel key={`${businessId}-${data.clarityProjectId}`} projectId={data.clarityProjectId} canManage={canManage} onSaved={refresh} />
+                    <ClarityPanel key={`${businessId}-${data.clarityProjectId}-${data.clarityConnected}`} projectId={data.clarityProjectId} connected={data.clarityConnected} canManage={canManage} days={days} onSaved={refresh} />
                 </>
             )}
         </div>
-    );
-}
-
-/** Projet Microsoft Clarity du site (cartes de chaleur, enregistrements de visites). L'agence l'installe et le suit. */
-function ClarityPanel({ projectId, canManage, onSaved }: { projectId: string; canManage: boolean; onSaved: () => void }) {
-    const [value, setValue] = useState(projectId);
-    const [editing, setEditing] = useState(false);
-    const [pending, startTransition] = useTransition();
-    const [error, setError] = useState<string | null>(null);
-    if (!projectId && !canManage) return null;
-
-    return (
-        <section className="rounded-xl p-5 flex flex-col gap-3" style={panel}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>Microsoft Clarity</h2>
-                    <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                        {projectId ? "Cartes de chaleur et enregistrements des visites de votre site." : "Aucun projet Clarity n'est relié à ce site."}
-                    </p>
-                </div>
-                {projectId && (
-                    <a href={clarityDashboardUrl(projectId)} target="_blank" rel="noopener" className="btn btn-primary btn-sm no-underline shrink-0">
-                        Ouvrir Clarity <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                )}
-            </div>
-            {canManage && (editing || !projectId ? (
-                <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => {
-                    e.preventDefault();
-                    setError(null);
-                    startTransition(async () => {
-                        const result = await saveClarityProject(value);
-                        if (!result.ok) setError(result.error);
-                        else { setEditing(false); onSaved(); }
-                    });
-                }}>
-                    <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Identifiant du projet (ex. abcd1234ef)" aria-label="Identifiant du projet Clarity" className="rounded-md px-3 py-2 text-sm w-72 max-w-full" style={field} />
-                    <button type="submit" disabled={pending || value.trim().toLowerCase() === projectId} className="btn btn-ghost btn-sm">{pending ? "Enregistrement…" : "Enregistrer"}</button>
-                    {projectId && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setEditing(false); setValue(projectId); setError(null); }}>Annuler</button>}
-                    {error && <span className="text-sm" role="alert" style={{ color: "var(--danger)" }}>{error}</span>}
-                </form>
-            ) : (
-                <button type="button" className="self-start text-xs" style={{ color: "var(--text-muted)" }} onClick={() => setEditing(true)}>Projet {projectId} · modifier</button>
-            ))}
-        </section>
     );
 }

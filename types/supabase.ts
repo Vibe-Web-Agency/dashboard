@@ -1237,6 +1237,45 @@ export type Database = {
           },
         ]
       }
+      clarity_daily_metrics: {
+        Row: {
+          business_id: string
+          date: string
+          fetched_at: string
+          metrics: Json
+          raw: Json | null
+        }
+        Insert: {
+          business_id: string
+          date: string
+          fetched_at?: string
+          metrics: Json
+          raw?: Json | null
+        }
+        Update: {
+          business_id?: string
+          date?: string
+          fetched_at?: string
+          metrics?: Json
+          raw?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clarity_daily_metrics_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clarity_daily_metrics_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "v_agency_businesses_overview"
+            referencedColumns: ["business_id"]
+          },
+        ]
+      }
       communication_optouts: {
         Row: {
           address: string

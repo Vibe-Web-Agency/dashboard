@@ -121,8 +121,7 @@ export async function loadWebAnalytics(supabase: Client, businessId: string, day
     }
     const deviceTotal = devices.mobile + devices.tablet + devices.desktop
     const sessions = total.count ?? rows.length
-    const settingsClarity = settings.clarity
-    const clarity = settingsClarity && typeof settingsClarity === 'object' && !Array.isArray(settingsClarity) ? settingsClarity.project_id : null
+    const clarity = settings.clarity && typeof settings.clarity === 'object' && !Array.isArray(settings.clarity) ? settings.clarity : {}
 
     return {
         sessions,
@@ -147,7 +146,9 @@ export async function loadWebAnalytics(supabase: Client, businessId: string, day
             { label: 'Tablette', value: devices.tablet },
             { label: 'Ordinateur', value: devices.desktop },
         ] : [],
-        clarityProjectId: typeof clarity === 'string' ? clarity : '',
+        clarityProjectId: typeof clarity.project_id === 'string' ? clarity.project_id : '',
+        /** Un jeton d'API est enregistré : les chiffres de Clarity sont relevés chaque soir. */
+        clarityConnected: clarity.connected === true,
     }
 }
 export type WebAnalytics = Awaited<ReturnType<typeof loadWebAnalytics>>
@@ -168,3 +169,56 @@ export function cleanClarityProjectId(input: string) {
 }
 
 export const clarityDashboardUrl = (projectId: string) => `https://clarity.microsoft.com/projects/view/${projectId}/dashboard`
+
+// ── Chiffres Microsoft Clarity, relevés chaque soir dans `clarity_daily_metrics` (lib/v2/clarity.ts) ──
+
+type ClarityDay = { sessions: number | null; botSessions: number | null; users: number | null } & Record<string, unknown>
+const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+/** Chiffres Clarity de la période : sommes pour les volumes, moyennes pondérées par les visites pour le reste. */
+export async function loadClarityMetrics(supabase: Client, businessId: string, days: WebPeriod) {
+    const since = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10)
+    const { data, error } = await supabase.from('clarity_daily_metrics').select('date, metrics, fetched_at').eq('business_id', businessId).gte('date', since).order('date')
+    if (error) throw error
+    const rows = data.map((r) => ({ date: r.date, fetchedAt: r.fetched_at, m: (r.metrics && typeof r.metrics === 'object' && !Array.isArray(r.metrics) ? r.metrics : {}) as ClarityDay }))
+    if (rows.length === 0) return null
+
+    const sum = (key: string) => rows.reduce((total, r) => total + (n(r.m[key]) ?? 0), 0)
+    // Moyenne pondérée par le nombre de visites du jour ; les jours sans la mesure sont ignorés.
+    const average = (key: string) => {
+        let weighted = 0, weight = 0
+        for (const r of rows) {
+            const value = n(r.m[key]), w = n(r.m.sessions) ?? 0
+            if (value !== null && w > 0) { weighted += value * w; weight += w }
+        }
+        return weight > 0 ? weighted / weight : null
+    }
+    const pages = new Map<string, number>()
+    for (const r of rows) {
+        const list = Array.isArray(r.m.popularPages) ? r.m.popularPages : []
+        for (const p of list) {
+            if (p && typeof p === 'object' && typeof (p as { url?: unknown }).url === 'string') {
+                const url = pagePath((p as { url: string }).url)
+                pages.set(url, (pages.get(url) ?? 0) + (n((p as { visits?: unknown }).visits) ?? 0))
+            }
+        }
+    }
+    return {
+        days: rows.length,
+        firstDate: rows[0].date,
+        lastFetchedAt: rows[rows.length - 1].fetchedAt,
+        sessions: sum('sessions'),
+        botSessions: sum('botSessions'),
+        pagesPerSession: average('pagesPerSession'),
+        scrollDepth: average('scrollDepth'),
+        activeTimeSeconds: average('activeTimeSeconds'),
+        rageClickPct: average('rageClickPct'),
+        deadClickPct: average('deadClickPct'),
+        quickbackPct: average('quickbackPct'),
+        excessiveScrollPct: average('excessiveScrollPct'),
+        scriptErrorPct: average('scriptErrorPct'),
+        errorClickPct: average('errorClickPct'),
+        popularPages: top(pages, 6),
+    }
+}
+export type ClaritySummary = NonNullable<Awaited<ReturnType<typeof loadClarityMetrics>>>

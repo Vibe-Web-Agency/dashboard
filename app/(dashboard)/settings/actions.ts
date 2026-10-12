@@ -6,6 +6,8 @@ import { getTenantContext } from '@/lib/v2/tenant'
 import { assertTouched } from '@/lib/v2/data/errors'
 import { type IssuerSettings, cleanIssuer, writeModuleSetting } from '@/lib/v2/data/module-settings'
 import { cleanClarityProjectId } from '@/lib/v2/data/web-analytics'
+import { CLARITY_PROVIDER, ClarityError, connectClarity, disconnectClarity, fetchClarityInsights, storeClarity } from '@/lib/v2/clarity'
+import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
 import {
     type FieldErrors,
@@ -140,10 +142,47 @@ export async function saveQuoteIssuer(input: IssuerSettings): Promise<ActionResu
     return saveModuleSetting('quotes', 'issuer', () => cleanIssuer(input), '/settings')
 }
 
+export type ClarityResult = { ok: true } | { ok: false; error: string }
+
 /**
- * Projet Microsoft Clarity du site (CLAUDE.md 9.8) : seul son identifiant est gardé, pour ouvrir son tableau de bord
- * depuis la page Analyse web. Vide pour le retirer. L'installation et le suivi restent faits par l'agence.
+ * Relie le commerce à son projet Microsoft Clarity (CLAUDE.md 9.8).
+ * - L'identifiant du projet va dans les réglages du module (non secret : il sert au bouton « Ouvrir Clarity »).
+ * - Le jeton d'API va dans `business_integrations`, table réservée au serveur. Il n'est jamais renvoyé au navigateur.
+ * - Le jeton est essayé avant d'être enregistré, et ce premier relevé est conservé.
+ * Identifiant vide : le commerce est délié (les chiffres déjà relevés restent). Jeton vide : le jeton en place est gardé.
  */
-export async function saveClarityProject(projectId: string): Promise<ActionResult> {
-    return saveModuleSetting('analytics', 'clarity', () => ({ project_id: cleanClarityProjectId(projectId) }), '/analytics')
+export async function saveClarityConnection(input: { projectId: string; token: string }): Promise<ClarityResult> {
+    const guard = await requireManager()
+    if (!guard.ok) return guard
+    let projectId: string
+    try {
+        projectId = cleanClarityProjectId(input.projectId)
+    } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'Identifiant invalide.' }
+    }
+    const token = input.token.trim()
+
+    try {
+        const admin = getAdminClient()
+        const supabase = await createServerSupabase()
+        if (!projectId) {
+            await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: '', connected: false })
+            await disconnectClarity(admin, guard.businessId)
+        } else if (token) {
+            const raw = await fetchClarityInsights(token)
+            // Le réglage d'abord : c'est lui que la RLS protège (administrateur). S'il est refusé, rien n'est enregistré.
+            await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: projectId, connected: true })
+            await connectClarity(admin, guard.businessId, projectId, token)
+            await storeClarity(admin, guard.businessId, raw)
+        } else {
+            const { data: existing } = await admin.from('business_integrations').select('id').eq('business_id', guard.businessId).eq('provider', CLARITY_PROVIDER).maybeSingle()
+            await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: projectId, connected: !!existing })
+            if (existing) await admin.from('business_integrations').update({ account_id: projectId }).eq('id', existing.id)
+        }
+    } catch (e) {
+        if (e instanceof ClarityError) return { ok: false, error: e.message }
+        return failure(e)
+    }
+    revalidatePath('/analytics')
+    return { ok: true }
 }
