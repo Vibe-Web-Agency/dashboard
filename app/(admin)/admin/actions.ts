@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
 import type { AdminClient } from '@/lib/v2/supabase-admin'
+import { siteUrl } from '@/lib/v2/site-url'
 import {
     AdminInputError,
     type TenantInput,
@@ -46,16 +46,6 @@ async function run<T>(fn: (ctx: { db: AdminClient; userId: string }) => Promise<
         console.error('[admin]', e)
         return { ok: false, error: "L'enregistrement a échoué. Réessayez." }
     }
-}
-
-// Adresse du dashboard telle que l'admin la voit : les liens d'invitation pointent vers le même site.
-async function siteUrl() {
-    const h = await headers()
-    const origin = h.get('origin')
-    if (origin) return origin
-    const host = h.get('x-forwarded-host') ?? h.get('host')
-    if (host) return `${h.get('x-forwarded-proto') ?? 'https'}://${host}`
-    return process.env.NEXT_PUBLIC_SITE_URL ?? ''
 }
 
 // ── Commerces ──

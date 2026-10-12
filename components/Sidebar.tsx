@@ -108,7 +108,7 @@ export default function Sidebar() {
     const mobileOpen = mobileOpenFor === pathname;
     const setMobileOpen = (open: boolean) => setMobileOpenFor(open ? pathname : null);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const { currentBusiness, hasModule } = useTenant();
+    const { currentBusiness, hasModule, userBusinesses, switchBusiness, isSwitching } = useTenant();
     const labels = bookingLabels(currentBusiness);
     const bid = currentBusiness.id;
 
@@ -167,6 +167,22 @@ export default function Sidebar() {
                     </button>
                 )}
             </div>
+
+            {/* Changement de commerce : seulement pour un compte qui en a plusieurs */}
+            {userBusinesses.length > 1 && (!collapsed || isMobile) && (
+                <div className="shrink-0" style={{ padding: "8px 8px 0" }}>
+                    <select
+                        value={currentBusiness.id}
+                        disabled={isSwitching}
+                        onChange={(e) => switchBusiness(e.target.value)}
+                        aria-label="Commerce affiché"
+                        className="w-full rounded-md px-2 py-1.5 text-xs"
+                        style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+                    >
+                        {userBusinesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                </div>
+            )}
 
             {/* Nav */}
             <nav className="flex-1 min-h-0 overflow-y-auto space-y-3" style={{ padding: "10px 6px", scrollbarWidth: "none" }}>

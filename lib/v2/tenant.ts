@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { cookies } from 'next/headers'
 import type { Database, Tables } from '@/types/supabase'
 import { createServerSupabase } from './supabase-server'
@@ -29,8 +30,8 @@ export type TenantContext = {
     modules: EnabledModule[]
 }
 
-/** null si aucun utilisateur connecté. */
-export async function getTenantContext(): Promise<TenantContext | null> {
+/** null si aucun utilisateur connecté. Résolu une seule fois par requête. */
+export const getTenantContext = cache(async (): Promise<TenantContext | null> => {
     const supabase = await createServerSupabase()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -57,7 +58,7 @@ export async function getTenantContext(): Promise<TenantContext | null> {
         userBusinesses: businesses,
         modules: currentBusiness ? await getEnabledModules(supabase, currentBusiness.id) : [],
     }
-}
+})
 
 type ServerSupabase = Awaited<ReturnType<typeof createServerSupabase>>
 
