@@ -8,6 +8,7 @@ import { formatInZone } from "@/lib/v2/datetime";
 import { useBusinessQuery } from "@/lib/v2/hooks/useBusinessQuery";
 import { REVIEW_SOURCE_LABEL, REVIEW_STATUSES, REVIEW_STATUS_UI, type Review, type ReviewStatus, listReviews, setReviewReply, setReviewStatus } from "@/lib/v2/data/reviews";
 import { Empty, ErrorBanner, PageHead, field, panel, useAction } from "../_components/ui";
+import { GooglePanel } from "./_components/GooglePanel";
 
 // Avis des clients (module `reviews`) : modération (publier, masquer) et réponse de l'établissement.
 
@@ -22,6 +23,7 @@ function Stars({ rating }: { rating: number }) {
 export default function ReviewsPage() {
     const { currentBusiness, currentRole } = useTenant();
     const writable = canWrite(currentRole);
+    const canManage = currentRole === "owner" || currentRole === "administrator";
     const { data, loading, error, refresh, optimistic, supabase, businessId } = useBusinessQuery(listReviews, "reviews");
     const action = useAction();
     const [filter, setFilter] = useState<ReviewStatus | "all">("all");
@@ -38,6 +40,8 @@ export default function ReviewsPage() {
             <PageHead title="Avis" sub={average === null ? `${reviews.length} avis` : `${average.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} / 5 sur ${published.length} avis publiés · ${reviews.length} au total`} />
 
             {(error || action.error) && <ErrorBanner message={action.error ?? "Impossible de charger les avis."} onRetry={() => { action.clearError(); refresh(); }} />}
+
+            <GooglePanel key={currentBusiness.id} canManage={canManage} onChanged={refresh} />
 
             <div className="filter-bar">
                 {(["all", ...REVIEW_STATUSES] as const).map((s) => (
@@ -61,7 +65,9 @@ export default function ReviewsPage() {
                             <span className={`${REVIEW_STATUS_UI[r.status as ReviewStatus]?.pill ?? "pill"} ml-auto`}>{REVIEW_STATUS_UI[r.status as ReviewStatus]?.label ?? r.status}</span>
                         </div>
                         {r.content && <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--text)" }}>{r.content}</p>}
-                        {writable
+                        {r.source === "google"
+                            ? <p className="text-xs" style={{ color: "var(--text-faint)" }}>Avis publié sur Google : on y répond depuis la fiche Google.</p>
+                            : writable
                             ? <ReplyBox key={`${r.id}-${r.replied_at}`} review={r} busy={action.busy}
                                 onSave={(text) => action.run(async () => { await setReviewReply(supabase, businessId, r.id, text); refresh(); })}
                                 onStatus={(s) => changeStatus(r, s)} />

@@ -576,6 +576,16 @@ Page `/analytics` (« Analyse web », module `analytics`), reprise de la version
 - **Règle :** les réglages de module (`lib/v2/data/module-settings.ts`) sont lisibles par un visiteur anonyme. Aucun secret n'y va.
 - **Vérifié :** sur FiFi, le total égale le nombre de lignes en base (216), la somme des jours égale le total, les répartitions sont cohérentes ; un viewer ne lit rien d'un autre commerce et ne peut pas changer l'identifiant Clarity.
 
+### 9.9 Fiche Google et avis Google — 2026-10-13
+- **Où va l'identifiant :** `businesses.gbp_place_id` = identifiant de lieu Google (`ChIJ…`). `businesses.google_location_id` et la table `google_connexions` sont réservés à la connexion Google du commerce (ci-dessous), pas encore faite.
+- **Liaison** (page Avis, propriétaire et administrateurs) : recherche de la fiche par nom et ville (`places:searchText`), ou saisie directe de l'identifiant. La fiche est lue avant d'être enregistrée ; un identifiant faux n'est jamais gardé. `app/(dashboard)/reviews/actions.ts`, `lib/v2/google-places.ts` (API Places (New), clé `GOOGLE_PLACES_API_KEY`, serveur uniquement).
+- **Ce qui est relevé :** la note moyenne, le nombre d'avis et le lien vers la fiche, rangés dans `business_module_settings.settings.google` du module `reviews` (informations publiques). Relevé à la liaison, puis chaque matin par le cron `/api/cron/reminders`, qui regroupe les tâches du matin.
+- **Texte des avis — constat du 2026-10-13 :** avec la clé du projet, Places renvoie la note et le nombre d'avis mais **pas** le champ `reviews`, et l'ancienne API Places répond « You must enable Billing ». La cause la plus probable est donc la facturation non activée sur le projet Google Cloud ; ce n'est pas confirmé. Le code d'import est en place : dès que Google renvoie les avis (5 au plus), ils entrent dans `reviews` (source `google`, statut `published`, `external_id` = `places/<lieu>/reviews/<avis>`).
+- **Remplacement à chaque relevé :** les avis venus de Places ne sont pas accumulés. Chaque relevé garde ceux que Google renvoie ce jour-là et retire les autres, car les conditions de Places interdisent de conserver durablement son contenu. Les avis Google d'une autre origine (`external_id` sans le préfixe `places/`) ne sont jamais touchés.
+- **Dans la page Avis :** un avis Google est en lecture seule (ni modération ni réponse ici) ; un bouton mène à la fiche Google pour répondre.
+- **Tous les avis et la réponse depuis le dashboard : pas fait.** Il faut la connexion Google du commerce (OAuth, portée `business.manage`) et l'accès à l'API des fiches d'établissement, que Google n'accorde que sur demande. À faire quand l'agence aura un projet Google Cloud avec cet accès et un identifiant client OAuth. La table `google_connexions` (serveur uniquement) et la vue `v_google_connections_status` sont prêtes à recevoir le jeton.
+- **Vérifié sur l'API réelle :** recherche de la fiche de FiFi, lecture de sa note (4,1 sur 29 avis), identifiant inconnu ou mal formé refusé, remplacement des avis, retrait à la déliaison.
+
 ### 9.6 Vérifications du 2026-10-12
 Données de test supprimées à chaque fois, aucun email ni SMS réellement envoyé (clés retirées des tests).
 - anti-spam et messages : 21 contrôles (origines, compteur, 403, 429, confirmation journalisée une seule fois, fenêtre des rappels, envoi après la réponse) ;
