@@ -1,6 +1,8 @@
-# RLS : ce qui reste à corriger
+# RLS : état avant le durcissement du 2026-10-12
 
-Relevé du 2026-10-12 sur la base de dev (`pg_policies`, `pg_proc`). Rien de ce qui suit n'a été modifié.
+**Corrigé le 2026-10-12 par `rls-hardening.sql`** (retour arrière : `rls-hardening-rollback.sql`). Ce document décrit l'état d'avant et sert de justification.
+
+Relevé du 2026-10-12 sur la base de dev (`pg_policies`, `pg_proc`).
 Les politiques PostgreSQL permissives se cumulent : une politique large annule la restriction d'une politique stricte posée sur la même table.
 
 Déjà corrigé le même jour, pour mémoire : récursion sur `memberships`, `accessible_business_ids`, lecture anonyme de `conversation_messages`, colonnes de `businesses` en anonyme, suppression de commerce, jeton de `google_connexions`.
