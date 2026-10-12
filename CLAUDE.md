@@ -98,16 +98,17 @@ Toutes les pages du dashboard répondaient 500 : `42P17 infinite recursion detec
   - `lib/v2/data/customers.ts` lit les statistiques des clients dans `v_customer_profiles_360` (visites terminées, dernière visite, total payé, note moyenne), par lots de 100 ids.
   - `v_reservations_detail` et `v_invoices_summary` composent le nom avec `concat_ws` (l'ancien `first_name || ' ' || last_name` donnait NULL partout).
   - **Jeton Google :** `google_connexions` est fermée aux rôles `anon` et `authenticated` (plus de droits ni de politiques : serveur uniquement). `v_google_connections_status` est le seul accès côté dashboard : elle s'exécute avec les droits de son propriétaire, filtre sur `accessible_business_ids('viewer')` et n'expose pas `refresh_token` (`supabase/manual/google-connexions-hide-refresh-token.sql`).
-- **⚠️ NON CORRIGÉ — décision attendue :** 42 tables portent une politique `*_member_manage` (ALL) fondée sur `has_business_access` / `has_agency_access`, qui acceptent toute membership active de l'agence, quel que soit le rôle et le commerce de rattachement. Constaté en session réelle le 2026-10-12 :
-  - un `viewer` peut modifier une réservation (la garantie « lecture seule » de l'audit du 6 octobre ne tient plus) ;
-  - un membre rattaché à un seul commerce lit et écrit les données des autres commerces de la même agence ;
-  - tables concernées, entre autres : `reservations`, `customers`, `invoices`, `business_plans` (s'attribuer un plan), `document_sequences` (numérotation), `invitations`.
-
-  Correctif proposé : supprimer ces politiques là où les politiques d'origine (`lecture` / `ecriture`, seuils par rôle) existent, et les réécrire avec `accessible_business_ids('member')` sur les tables qui n'ont qu'elles.
-- **À revoir aussi :**
-  - les 12 politiques `INSERT` anonymes `WITH CHECK true` (`customers`, `reservations`, `orders`, `reviews`, `conversations`…) contournent l'API publique (validation, dédoublonnage, anti-spam) ;
-  - lecture anonyme sans filtre de `employee_availabilities`, `talents`, `business_hours`, `business_closures` ;
-  - `has_agency_access`, `has_business_access` et `is_platform_admin` sont `SECURITY DEFINER` sans `SET search_path`.
+- **Durcissement du 2026-10-12** (`supabase/manual/rls-hardening.sql`, retour arrière dans `rls-hardening-rollback.sql`, détail de l'état d'avant dans `RLS-A-CORRIGER.md`). À rejouer en production.
+  - **Écriture :** les 41 politiques `*_member_manage` / `*_agency_manage` (fondées sur `has_business_access` / `has_agency_access`, donc ouvertes à toute membership de l'agence) sont supprimées. Les seuils des politiques d'origine s'appliquent de nouveau. Les tables qui n'avaient qu'elles reçoivent `lecture` / `ecriture` : `agency_domains` et `agency_email_senders` (administrateur d'agence), `business_knowledge_base` (écriture administrator), `employee_absences`, `employee_availabilities`, `shifts` (écriture member), `employee_hr` (lecture et écriture administrator). `document_sequences` n'a plus ni politique ni droits de table. `invitations` ne s'écrit que par les RPC.
+  - **Lecture :** plus de lecture entre commerces d'une même agence (11 politiques). Les plans des autres agences ne sont plus visibles.
+  - **Visiteur anonyme :**
+    - insertion directe **supprimée** sur `customers`, `reservations`, `orders`, `order_items`, `conversations`, `conversation_messages`, `usage_events` : ces écritures passent par une route serveur (`/api/v1/public/*` pour les réservations et les demandes ; rien n'existe encore pour les commandes et la messagerie) ;
+    - insertion **bornée** sur `sessions`, `cookie_consents`, `review_collector_logs`, `reviews` (toujours `pending`, source `internal`) et `communication_optouts` (marketing, lien de désinscription) : le commerce doit être en service (`business_accepts_public_writes`) ;
+    - lecture : `invitations` fermée (elle exposait les emails invités et les empreintes de jeton), `employee_availabilities` et `employee_services` limitées aux employés affichés sur le site, `talents` aux profils actifs.
+  - **Fonctions :** `search_path` fixé partout ; `handle_new_user_signup` supprimée ; `purge_old_sessions` et `aggregate_daily_sessions` réservées à pg_cron ; les fonctions d'accès et les RPC de gestion ne sont plus exécutables par `anon`. `is_platform_admin`, `role_rank` et `business_is_operational` le restent, car des politiques publiques les appellent.
+  - **Règle :** ne jamais recréer de politique fondée sur `has_business_access` / `has_agency_access`. Une nouvelle table reçoit `lecture` (`accessible_business_ids('viewer')`) et `ecriture` avec le seuil voulu.
+  - **Vérifié en session réelle (51 contrôles) :** un viewer de FiFi ne voit que FiFi, ne lit rien des autres commerces de son agence, et ne peut ni modifier une réservation, ni créer un client, ni s'attribuer un plan ; l'owner lit et écrit comme avant et toutes les pages répondent ; l'anonyme lit la vitrine, ne peut plus insérer de réservation, de client ni d'événement d'usage, et ses sessions de visite sont acceptées.
+  - **Restent ouverts, par choix :** `agency_plan_modules` lisible par tous (contenu des offres) ; `talents.date_of_birth` lisible par un visiteur pour les profils actifs (à masquer par des droits de colonne si la date ne doit pas être publique) ; `profiles.lecture` interroge `memberships` directement, sous RLS.
 
 Autres fonctions disponibles : `has_feature`, `effective_rank`, `role_rank`, `is_platform_admin`, `enabled_modules`, `invite_member`, `accept_invitation`, `change_member_role`, `remove_member`, `next_document_number`.
 
@@ -443,7 +444,7 @@ Décision : ne garder que ce qui sert aux quatre premiers clients. Tout ce qui l
 - **Accueil** (`app/(dashboard)/page.tsx`) réécrit en V2 : prochaines réservations (hors annulées, compteurs du jour et en attente) et demandes au statut `request`, chacun affiché seulement si son module est actif. Raccourcis de création masqués sous le rôle member.
 - **Supprimé :** 35 pages V1 du dashboard, l'inscription V1 (`/signup`, `/api/auth/signup`), le support (`/messages`), les composants `Navbar`, `AdminNavbar`, `NotificationBell`, `OnboardingModal`, `LockedScreen`, et les fichiers V1 devenus inutiles de `lib/` (`supabase.ts`, `useUserProfile`, `useFeatureAccess`, `businessConfig`, `plans`, `formatters`, `statusConfig`, `sharedStyles`, `database.v2.types`). Sidebar : plus de verrous par plan ni de badges avis / commandes.
 - **Connexion :** `/login` envoie les admins plateforme (`is_platform_admin`) vers `/admin`, les autres vers `/`. `/auth/callback` n'écrit plus dans la table V1 `users`. Les pages mot de passe utilisent le client V2.
-- **Encore en V1, non branché à l'interface, à réécrire ou supprimer :** routes `/api/billing/*`, `/api/campaigns/send`, `/api/cron/{reminders,reports}`, `/api/invite`, `/api/orders/ship`, `/api/tickets`, `/api/unsubscribe`, `/api/webhooks/stripe`, avec `lib/supabase-admin.ts`, `lib/supabase-server.ts`, `lib/database.types.ts`, `lib/emails`, `lib/resend.ts`, `lib/stripe.ts`, `lib/twilio.ts`. `vercel.json` déclenche toujours `/api/cron/reminders` chaque jour à 8 h : la route échoue sur la base V2.
+- **Routes d'API V1 supprimées le 2026-10-12 :** facturation, campagnes, crons, invitation, commandes, tickets, désinscription, webhook Stripe, avec leurs fichiers `lib/` (`supabase-admin`, `supabase-server`, `database.types`, `emails`, `resend`, `stripe`, `twilio`…) et `vercel.json` (cron des rappels). Il ne reste dans `lib/` que `utils.ts` et `v2/`, et dans `app/api` que `v1/public/*` et `revalidate-iconik` (relais vers un site client, sans lien avec la base). Les rappels, les emails et Stripe seront réécrits en V2 quand ils seront nécessaires.
 - **Création de compte :** il n'y a plus de parcours d'inscription. Un compte se crée depuis Supabase (invitation, qui passe par `/auth/callback` puis `/set-password`), puis reçoit un accès dans `/admin/memberships`.
 
 ### Phase 4 — back-office plateforme (`/admin`) — 2026-10-12
@@ -460,7 +461,7 @@ Remplace entièrement l'espace admin V1 (9 pages, 10 routes `/api/admin`, suppri
   - `lib/v2/admin-constants.ts` porte ce qui est importé côté client (statuts, libellés).
 - **Vérifié (lecture seule, 2026-10-12) :** chargeurs sur la base de dev (4 commerces, 5 plans × 19 modules, 8 memberships) ; modules « visibles » de FiFi identiques à `enabled_modules` ; `/admin/*` redirige vers `/login` sans session et vers `/` pour un owner et un viewer ; accueil et pages V2 en 200 ; pages supprimées en 404.
 - **Non vérifié :** le rendu des écrans admin et les écritures (plan, modules, rôles, création), car `platform_admins` est vide et aucune écriture en base n'a été faite. À tester dès qu'un admin est inscrit.
-- **RLS :** la liste des politiques à corriger est dans `supabase/manual/RLS-A-CORRIGER.md`. Rien n'est corrigé tant qu'elle n'est pas validée.
+- **RLS :** corrigée le 2026-10-12, voir « Durcissement » en section 1.3.
 
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
@@ -510,5 +511,4 @@ L'application s'appuie strictement sur les variables d'environnement suivantes :
 - Réseau d'entreprise avec proxy TLS : Node doit tourner avec `--use-system-ca` (ou `NODE_OPTIONS=--use-system-ca`), sinon `SELF_SIGNED_CERT_IN_CHAIN`. Ne pas désactiver la vérification TLS.
 - La CLI Supabase 2.x n'utilise pas le magasin de certificats Windows : exporter les racines Windows en PEM, puis préfixer la commande de génération par `NODE_EXTRA_CA_CERTS=<roots.pem> SSL_CERT_FILE=<roots.pem>`.
 - `text.txt` = dump du schéma de dev (64 tables). Il n'inclut ni les vues (`campaign_stats`, `customer_stats`, `google_connexions_etat`), ni les index uniques, ni les CHECK multi-colonnes (ex. `quotes_check`), ni les triggers. Pour ces éléments, interroger `pg_indexes` / `pg_constraint` / `pg_trigger`.
-- `lib/database.types.ts` (V1) n'est plus utilisé que par `lib/supabase-server.ts` et `lib/supabase-admin.ts`, eux-mêmes réservés aux routes d'API V1 restantes (section 7).
 - Le middleware exclut `/api/*` : les routes publiques ne sont pas redirigées vers `/login`.
