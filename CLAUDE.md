@@ -485,6 +485,64 @@ Menu : Tableau de bord, Clients, Prospects, Tâches, Utilisateurs, Plans & modul
 - **Non vérifié :** l'envoi réel de l'email par Resend (la clé était retirée du test pour ne rien envoyer) et le domaine d'expédition.
 - **RLS :** corrigée le 2026-10-12, voir « Durcissement » en section 1.3.
 
+## SECTION 9 : COMPLÉMENTS DE L'INTERFACE CLIENT — 2026-10-12
+
+Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue d'ensemble, Statistiques (`analytics`) ; Réservations, Demandes & devis, Clients, Avis (`reviews`) ; Prestations, Carte ; Équipe (`team`), Actualités (`blog`) ; Support, Paramètres.
+
+### 9.1 Accès et navigation
+- **Sélecteur de commerce :** liste déroulante dans la Sidebar, affichée seulement si le compte a plusieurs commerces (`switchBusiness`).
+- **Blocage par module :** `components/ModuleGate.tsx`, posé par un `layout.tsx` dans chaque dossier de page à module. Une page dont le module est inactif affiche un message au lieu de son contenu, même ouverte par son adresse. `getTenantContext()` est mis en cache par requête (`cache` de React) : le layout, la garde et la page le partagent.
+- **Accès de l'équipe** (Paramètres, propriétaire et administrateurs) : inviter par email, changer un rôle, retirer un accès (`app/(dashboard)/settings/team-actions.ts`).
+  - le commerce visé est toujours le commerce courant ; on ne peut pas attribuer un rôle supérieur au sien ;
+  - rôle et retrait passent par les RPC `change_member_role` / `remove_member` sous la session de l'utilisateur : la base applique ses règles ;
+  - l'invitation réutilise `inviteUser` (section 7) ;
+  - les membres de niveau agence apparaissent en lecture seule.
+- **Mon abonnement** (Paramètres) : plan en cours, prix et modules actifs, en lecture seule. Pas de paiement en ligne.
+
+### 9.2 API publique : anti-spam (remplace l'avertissement de la section 2.0 bis)
+`lib/v2/public-guard.ts`, appelé par `refusePublicRequest` avant toute écriture.
+- **Origine :** les origines autorisées sont `businesses.allowed_origins` et le site du commerce (`website_url`), avec ou sans `www`. Une autre origine reçoit 403. Si rien n'est configuré, tout passe (démo, site pas encore en ligne). Une requête sans en-tête `Origin` (serveur à serveur) passe aussi : seule la limite de débit la retient. `Access-Control-Allow-Origin` reste `*` ; le refus se fait par le 403.
+- **Limite de débit :** 10 demandes par 10 minutes par adresse IP et par commerce, 120 par heure par commerce. Au-delà : 429 avec `Retry-After`. Le compteur est en base (`api_rate_limits`, RPC `rate_limit_hit`, clé de service uniquement ; `supabase/manual/api-rate-limits.sql`, à rejouer en production). Si le compteur est en panne, la requête passe.
+- **À faire pour chaque client :** renseigner `website_url` ou `allowed_origins`, sinon son API accepte toutes les origines.
+
+### 9.3 Messages automatiques
+`lib/v2/notifications.ts` (envois), `lib/v2/mailer.ts` (Resend, Twilio).
+- **Ce qui part :**
+  - confirmation par email au client, à l'arrivée d'une réservation par le site, ou sur demande à la création manuelle (case à cocher) ;
+  - avis par email au commerce (`businesses.email`) pour chaque réservation ou demande venue du site ;
+  - rappel la veille par email, et par SMS si le commerce l'active (désactivé par défaut, chaque SMS est facturé).
+- **Réglages :** quatre interrupteurs dans Paramètres → Messages automatiques, rangés dans `business_module_settings.settings.notifications` du module `reservations` (les préférences de réservation prévues en 5.2 commencent ici). Défauts : tout actif sauf le SMS.
+- **Journal et dédoublonnage :** chaque envoi est d'abord inscrit dans `outbound_messages` avec une clé d'idempotence (`reservation_confirmation:<id>`…). Un message ne part qu'une fois, et le trigger `guard_optout` écarte les destinataires désinscrits. Le statut (`sent` / `failed`) et l'erreur y sont notés.
+- **Routes publiques :** les emails partent après la réponse (`after` de Next) ; un envoi raté n'annule rien.
+- **Rappels :** `GET /api/cron/reminders`, protégé par `CRON_SECRET`, lancé chaque jour à 7 h UTC (`vercel.json`). Chaque exécution traite les réservations confirmées qui commencent entre 12 h et 36 h plus tard et pose `reminder_sent_at`. Une réservation prise moins de 12 h avant n'a pas de rappel.
+- **Expéditeur :** `<nom du commerce> <noreply@vibewebagency.fr>`, réponses vers l'email du commerce.
+
+### 9.4 Devis chiffrés
+`lib/v2/data/quote-items.ts`, `quotes/_components/QuoteBuilder.tsx`, `quotes/actions.ts`.
+- Éditeur dans le détail d'une demande : objet, lignes (désignation, quantité, prix unitaire **hors taxes**, taux de TVA), remise, date de validité, message au client.
+- Totaux : la remise s'applique au total HT, la TVA de chaque ligne est calculée sur sa part après remise.
+- Enregistrer une demande (`request`) avec un contenu la passe en brouillon (`draft`). Modifiable en `request`, `draft` et `sent` ; figé ensuite.
+- « Envoyer au client » : passe le devis à `sent` (numéro attribué par `next_document_number`) puis envoie l'email avec les lignes et les totaux. Pas de PDF ni de page d'acceptation en ligne : le client répond à l'email.
+
+### 9.5 Pages ajoutées
+- **Avis** (`/reviews`) : filtres par statut, note moyenne des avis publiés, publier / masquer, réponse de l'établissement. Pas de suppression.
+- **Équipe** (`/team`, table `employees`) : les personnes présentées sur le site. Écriture réservée aux administrateurs (RLS). Suppression refusée si la personne est liée à des réservations : on la désactive. Le planning (`shifts`) et le lien employé ↔ prestation ne sont pas faits.
+- **Actualités** (`/blog`) : brouillon, publié, archivé. L'adresse (slug) vient du titre, est rendue unique et n'est jamais recalculée. La date de première publication est conservée.
+- **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois : réservations, couverts, taux d'absence, nouveaux clients, demandes, devis acceptés, répartition par jour de la semaine et par prestation.
+- **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. Pas d'email d'alerte à l'agence pour une nouvelle demande.
+
+### 9.6 Vérifications du 2026-10-12
+Données de test supprimées à chaque fois, aucun email ni SMS réellement envoyé (clés retirées des tests).
+- anti-spam et messages : 21 contrôles (origines, compteur, 403, 429, confirmation journalisée une seule fois, fenêtre des rappels, envoi après la réponse) ;
+- devis : 10 contrôles (totaux, remplacement des lignes, refus d'un autre commerce, devis figé) ;
+- pages et accès : 35 contrôles en session réelle (pages, menu, sélecteur, garde de module, droits du viewer, avis, équipe, actualités, statistiques, support).
+- **Non vérifié :** l'envoi réel par Resend et Twilio, le déclenchement du cron par Vercel, les Server Actions de l'équipe et de l'envoi de devis (appelées seulement par un navigateur), et tout clic dans un navigateur.
+
+### 9.7 Non fait, en attente de décisions
+- **Boutique** (`products`, `orders`) : une commande ne peut plus être créée par le site (insertion anonyme fermée) et aucun paiement n'est branché.
+- **Campagnes** (`campaigns`) : envoi en masse, donc consentement, lien de désinscription et domaine d'expédition à trancher.
+- **Paiement de l'abonnement** (Stripe) : seul l'affichage du plan existe.
+
 ## FEUILLE DE ROUTE D'EXÉCUTION PAS À PAS
 Lorsque vous travaillez sur cette base de code, suivez l'ordre strict suivant :
 

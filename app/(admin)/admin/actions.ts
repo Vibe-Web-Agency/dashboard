@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import type { AdminClient } from '@/lib/v2/supabase-admin'
 import { siteUrl } from '@/lib/v2/site-url'
+import { TICKET_STATUSES, type TicketStatus, replyToTicket, setTicketStatus } from '@/lib/v2/data/tickets'
 import {
     AdminInputError,
     type TenantInput,
@@ -143,4 +144,25 @@ export async function toggleTask(id: string, done: boolean) {
 
 export async function removeTask(id: string) {
     return run(({ db }) => deleteTask(db, id))
+}
+
+// ── Support ──
+/** Réponse de l'agence : la demande passe à « répondu » (en attente du commerce). */
+export async function answerTicket(ticketId: string, body: string) {
+    return run(async ({ db, userId }) => {
+        try {
+            await replyToTicket(db, ticketId, userId, body, 'pending')
+        } catch (e) {
+            // Messages de validation (message vide, trop long) : déjà rédigés pour l'utilisateur.
+            if (e instanceof Error && e.message.startsWith('Le message')) throw new AdminInputError(e.message)
+            throw e
+        }
+    })
+}
+
+export async function changeTicketStatus(ticketId: string, status: string) {
+    return run(({ db }) => {
+        if (!(TICKET_STATUSES as readonly string[]).includes(status)) throw new AdminInputError('Statut inconnu.')
+        return setTicketStatus(db, ticketId, status as TicketStatus)
+    })
 }

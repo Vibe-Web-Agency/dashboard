@@ -23,6 +23,14 @@ export default async function SettingsPage() {
     const [profile, hours] = await Promise.all([getProfile(supabase, user.id), listBusinessHours(supabase, business.id)]);
     const canManage = tenant.currentRole === "owner" || tenant.currentRole === "administrator";
 
+    // Abonnement : plan en cours du commerce (lecture seule, géré par l'agence).
+    const { data: subscription } = await supabase
+        .from("business_plans")
+        .select("status, price_monthly_cents, currency, current_period_end, trial_ends_at, plan:plans ( name )")
+        .eq("business_id", business.id)
+        .in("status", ["trialing", "active", "past_due"])
+        .maybeSingle();
+
     // Messages automatiques : seulement si le commerce a le module de réservation.
     const reservationsModule = tenant.modules.find((m) => m.slug === "reservations");
     let notifications = null;
@@ -82,6 +90,23 @@ export default async function SettingsPage() {
             <HoursSection key={`hours-${business.id}`} initialHours={hours} canManage={canManage} />
             {notifications && <NotificationsSection key={`notif-${business.id}`} initial={notifications} canManage={canManage} bookingPlural={bookingLabels(business).plural} />}
             {canManage && tenant.currentRole && <TeamSection key={`team-${business.id}`} members={team} currentRole={tenant.currentRole} />}
+            <section className="rounded-[12px] p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
+                <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Mon abonnement</h2>
+                {subscription ? (
+                    <p className="text-sm mt-2" style={{ color: "var(--text)" }}>
+                        Plan <strong>{subscription.plan?.name ?? "—"}</strong>
+                        {subscription.price_monthly_cents != null && <> · {(subscription.price_monthly_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: subscription.currency })} par mois</>}
+                        {subscription.status === "trialing" && <> · période d&apos;essai</>}
+                        {subscription.status === "past_due" && <span style={{ color: "var(--danger)" }}> · paiement en retard</span>}
+                    </p>
+                ) : (
+                    <p className="text-sm mt-2" style={{ color: "var(--muted)" }}>Aucun plan en cours.</p>
+                )}
+                <p className="text-sm mt-2" style={{ color: "var(--muted)" }}>
+                    Modules actifs : {tenant.modules.length > 0 ? tenant.modules.map((m) => m.label).join(", ") : "aucun"}.
+                </p>
+                <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>Pour changer de plan ou ajouter un module, écrivez-nous depuis la page Support.</p>
+            </section>
             <SessionSection />
         </div>
     );

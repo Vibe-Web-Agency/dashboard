@@ -1,5 +1,6 @@
 import {
     LayoutDashboard, CalendarDays, FileText, Scissors, Contact, Settings, UtensilsCrossed,
+    Star, Users, Newspaper, BarChart3, LifeBuoy,
     type LucideIcon,
 } from 'lucide-react'
 import type { BookingLabels } from './labels'
@@ -10,7 +11,7 @@ import type { BookingLabels } from './labels'
 // le 2026-10-12 ; elles reviendront ici, avec leur module, quand elles seront réécrites.
 // `module` : slug du module V2 qui conditionne l'entrée (hasModule). null = toujours visible.
 
-export type NavGroup = 'Pilotage' | 'Activité' | 'Catalogue' | 'Compte'
+export type NavGroup = 'Pilotage' | 'Activité' | 'Catalogue' | 'Site' | 'Compte'
 
 export type NavItem = {
     href: string
@@ -25,18 +26,24 @@ export type NavItem = {
     accountOnly?: boolean
 }
 
-export const NAV_GROUPS: NavGroup[] = ['Pilotage', 'Activité', 'Catalogue']
+export const NAV_GROUPS: NavGroup[] = ['Pilotage', 'Activité', 'Catalogue', 'Site', 'Compte']
 
 export const NAV_ITEMS: NavItem[] = [
     { href: '/', icon: LayoutDashboard, group: 'Pilotage', module: null, title: "Vue d'ensemble" },
+    { href: '/stats', icon: BarChart3, group: 'Pilotage', module: 'analytics', title: 'Statistiques' },
 
     { href: '/reservations', icon: CalendarDays, group: 'Activité', module: 'reservations', title: (l) => l.title, cta: (l) => l.singularTitle },
     { href: '/quotes', icon: FileText, group: 'Activité', module: 'quotes', title: 'Demandes & devis' },
     { href: '/customers', icon: Contact, group: 'Activité', module: 'customers', title: (l) => l.customerTitle, cta: (l) => l.customerSingularTitle },
+    { href: '/reviews', icon: Star, group: 'Activité', module: 'reviews', title: 'Avis' },
 
     { href: '/services', icon: Scissors, group: 'Catalogue', module: 'services', title: (l) => l.serviceTitle, cta: (l) => l.serviceSingularTitle },
     { href: '/menu', icon: UtensilsCrossed, group: 'Catalogue', module: 'menu', title: 'Carte', cta: 'Plat' },
 
+    { href: '/team', icon: Users, group: 'Site', module: 'team', title: 'Équipe' },
+    { href: '/blog', icon: Newspaper, group: 'Site', module: 'blog', title: 'Actualités', cta: 'Article' },
+
+    { href: '/support', icon: LifeBuoy, group: 'Compte', module: null, title: 'Support' },
     { href: '/settings', icon: Settings, group: 'Compte', module: null, title: 'Paramètres', accountOnly: true },
 ]
 
