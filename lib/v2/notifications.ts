@@ -196,6 +196,56 @@ ${q.request_message ? `<p style="padding:12px 16px;background:#f5f2ec;border-rad
     })
 }
 
+// ── Devis ──
+
+const euros = (cents: number, currency: string) => (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency })
+
+/** Email du devis chiffré au client : lignes, totaux, validité. Peut être renvoyé (pas de dédoublonnage). */
+export async function sendQuoteEmail(db: AdminClient, quoteId: string): Promise<Outcome> {
+    const { data: q, error } = await db
+        .from('quotes')
+        .select(`id, business_id, number, title, valid_until, notes, subtotal_cents, discount_cents, tax_cents, total_cents, currency,
+            customer:customers ( id, first_name, last_name, email ),
+            business:businesses ( agency_id, name, email, phone ),
+            items:quote_items ( description, quantity, unit_price_cents, position )`)
+        .eq('id', quoteId)
+        .maybeSingle()
+    if (error) throw error
+    if (!q?.customer?.email) return 'skipped'
+
+    const cell = 'padding:6px 8px;border-bottom:1px solid #e5e0d6'
+    const rows = [...q.items].sort((a, b) => a.position - b.position).map((i) => `<tr>
+<td style="${cell}">${escapeHtml(i.description)}</td>
+<td style="${cell};text-align:right">${Number(i.quantity).toLocaleString('fr-FR')}</td>
+<td style="${cell};text-align:right">${euros(i.unit_price_cents, q.currency)}</td>
+<td style="${cell};text-align:right">${euros(Math.round(Number(i.quantity) * i.unit_price_cents), q.currency)}</td></tr>`).join('')
+    const total = (label: string, value: string, strong = false) => `<tr><td colspan="3" style="padding:4px 8px;text-align:right">${label}</td><td style="padding:4px 8px;text-align:right">${strong ? '<strong>' + value + '</strong>' : value}</td></tr>`
+    const name = personName(q.customer)
+    const validUntil = q.valid_until ? new Date(q.valid_until + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : null
+    const subject = `Devis${q.number ? ' ' + q.number : ''} — ${q.business.name}`
+    const to = q.customer.email
+    const html = emailLayout(`
+<p>Bonjour${name ? ' ' + escapeHtml(name) : ''},</p>
+<p>Voici notre devis${q.title ? ' pour <strong>' + escapeHtml(q.title) + '</strong>' : ''}${q.number ? ' (n° ' + escapeHtml(q.number) + ')' : ''}.</p>
+<table style="border-collapse:collapse;width:100%;font-size:14px">
+<tr><th style="${cell};text-align:left">Désignation</th><th style="${cell};text-align:right">Qté</th><th style="${cell};text-align:right">Prix HT</th><th style="${cell};text-align:right">Total HT</th></tr>
+${rows}
+${total('Total HT', euros(q.subtotal_cents, q.currency))}
+${q.discount_cents > 0 ? total('Remise', '− ' + euros(q.discount_cents, q.currency)) : ''}
+${total('TVA', euros(q.tax_cents, q.currency))}
+${total('Total TTC', euros(q.total_cents, q.currency), true)}
+</table>
+${validUntil ? '<p>Ce devis est valable jusqu\'au ' + validUntil + '.</p>' : ''}
+${q.notes ? '<p style="white-space:pre-wrap">' + escapeHtml(q.notes) + '</p>' : ''}
+<p>Pour l'accepter ou en discuter, répondez simplement à cet email${q.business.phone ? ' ou appelez-nous au ' + escapeHtml(q.business.phone) : ''}.</p>
+<p><strong>${escapeHtml(q.business.name)}</strong></p>`)
+    return deliver(db, {
+        agencyId: q.business.agency_id, businessId: q.business_id, channel: 'email', template: 'quote_sent', to, subject,
+        key: `quote_sent:${q.id}:${Date.now()}`, quoteId: q.id, customerId: q.customer.id,
+        send: () => sendEmail({ to, subject, html, fromName: q.business.name, replyTo: q.business.email }),
+    })
+}
+
 // Une exécution quotidienne couvre les réservations qui commencent entre 12 h et 36 h plus tard :
 // chaque réservation tombe dans une seule exécution. Une réservation prise moins de 12 h avant n'a pas de rappel.
 const REMINDER_FROM_HOURS = 12

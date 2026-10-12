@@ -9,6 +9,7 @@ import { QUOTE_SELECTABLE_STATUSES, QUOTE_STATUS_UI, type QuoteStatus } from "@/
 import { readRequestDetails, whatsappLink } from "@/lib/v2/contact";
 import { personName } from "@/lib/v2/names";
 import { formatDateTimeInZone } from "@/lib/v2/datetime";
+import { QuoteBuilder } from "./QuoteBuilder";
 
 function formatCalendarDate(yyyyMmDd: string) {
     // Date sans heure : affichée telle quelle, sans conversion de fuseau.
@@ -150,6 +151,9 @@ export function QuoteDetail({ quote, business, onStatusChange, onDelete, readOnl
                     {quote.request_message || <span style={{ color: "var(--muted)" }}>Aucun message.</span>}
                 </p>
             </div>
+
+            {/* Devis chiffré : lignes, montants, envoi */}
+            <QuoteBuilder key={quote.id} quote={quote} readOnly={readOnly} />
 
             {/* Statut */}
             <div className="rounded-lg p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
