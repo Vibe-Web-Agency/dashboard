@@ -7,6 +7,8 @@ import { EDITABLE_QUOTE_STATUSES, type QuoteLine, listQuoteItems, quoteTotals, s
 import { useBusinessQuery } from "@/lib/v2/hooks/useBusinessQuery";
 import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { useTenant } from "@/providers/TenantProvider";
+import { type QuoteBuyer, readBuyer } from "@/lib/v2/quote-document";
+import { personName } from "@/lib/v2/names";
 import { sendQuoteToCustomer } from "../actions";
 
 type Row = { key: number; description: string; quantity: string; unitPrice: string; taxRate: string };
@@ -40,6 +42,11 @@ function BuilderForm({ quote, initial, readOnly }: { quote: QuoteWithCustomer; i
     const [validUntil, setValidUntil] = useState(quote.valid_until ?? "");
     const [notes, setNotes] = useState(quote.notes ?? "");
     const [discount, setDiscount] = useState(quote.discount_cents ? (quote.discount_cents / 100).toString() : "");
+    const [buyer, setBuyer] = useState<QuoteBuyer>(() => {
+        const saved = readBuyer(quote.buyer);
+        // Sans destinataire saisi, on propose le contact de la demande.
+        return saved.company || saved.name ? saved : { ...saved, name: personName(quote.customer) };
+    });
     const [busy, setBusy] = useState<"save" | "send" | null>(null);
     const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
     const [dirty, setDirty] = useState(false);
@@ -56,7 +63,7 @@ function BuilderForm({ quote, initial, readOnly }: { quote: QuoteWithCustomer; i
     const touch = <T,>(setter: (v: T) => void) => (v: T) => { setDirty(true); setMessage(null); setter(v); };
 
     async function save() {
-        await saveQuoteDraft(supabase, businessId, quote.id, { title, valid_until: validUntil || null, notes, discount_cents: discountCents, items: lines });
+        await saveQuoteDraft(supabase, businessId, quote.id, { title, valid_until: validUntil || null, notes, discount_cents: discountCents, buyer, items: lines });
         setDirty(false);
     }
 
@@ -121,6 +128,16 @@ function BuilderForm({ quote, initial, readOnly }: { quote: QuoteWithCustomer; i
                     {rows.length > 0 && <p className="text-xs" style={{ color: "var(--muted)" }}>Quantité, prix unitaire hors taxes en euros, taux de TVA en %.</p>}
                 </div>
 
+                <div className="flex flex-col gap-2">
+                    <p className="text-xs" style={{ color: "var(--muted)" }}>Destinataire, tel qu&apos;il figure sur le devis</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        {([["company", "Société (facultatif)"], ["name", "Nom du contact"], ["address_line", "Adresse"], ["postal_code", "Code postal"], ["city", "Ville"], ["vat_number", "N° de TVA (facultatif)"]] as const).map(([key, label]) => (
+                            <input key={key} value={buyer[key]} placeholder={label} aria-label={`Destinataire : ${label}`} className="rounded-md px-3 py-2 text-sm" style={field}
+                                onChange={(e) => { setDirty(true); setMessage(null); setBuyer((b) => ({ ...b, [key]: e.target.value })); }} />
+                        ))}
+                    </div>
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-2">
                     <label className="flex flex-col gap-1 text-xs" style={{ color: "var(--muted)" }}>Remise (€ HT)
                         <input value={discount} onChange={(e) => touch(setDiscount)(e.target.value)} inputMode="decimal" className="rounded-md px-3 py-2 text-sm" style={field} />
@@ -141,6 +158,7 @@ function BuilderForm({ quote, initial, readOnly }: { quote: QuoteWithCustomer; i
                 <div className="flex justify-between font-semibold pt-1" style={{ borderTop: "1px solid var(--border)" }}><dt>Total TTC</dt><dd>{euros(totals.total_cents, quote.currency)}</dd></div>
             </dl>
 
+            {locked && rows.length > 0 && <a href={`/api/quotes/${quote.id}/pdf`} target="_blank" rel="noopener" className="btn btn-ghost btn-sm self-start no-underline">Télécharger le PDF</a>}
             {!locked && (
                 <div className="flex flex-wrap items-center gap-3">
                     <button type="button" onClick={onSave} disabled={busy !== null} className="btn btn-ghost btn-sm">{busy === "save" ? "Enregistrement…" : "Enregistrer"}</button>
@@ -148,6 +166,9 @@ function BuilderForm({ quote, initial, readOnly }: { quote: QuoteWithCustomer; i
                         title={quote.customer?.email ? undefined : "Ce contact n'a pas d'adresse email"}>
                         {busy === "send" ? "Envoi…" : quote.status === "sent" ? "Renvoyer au client" : "Envoyer au client"}
                     </button>
+                    {rows.length > 0 && (dirty
+                        ? <span className="btn btn-ghost btn-sm" aria-disabled="true" style={{ opacity: 0.5 }} title="Enregistrez d'abord vos modifications">Télécharger le PDF</span>
+                        : <a href={`/api/quotes/${quote.id}/pdf`} target="_blank" rel="noopener" className="btn btn-ghost btn-sm no-underline">Télécharger le PDF</a>)}
                     {dirty && !message && <span className="text-xs" style={{ color: "var(--muted)" }}>Modifications non enregistrées</span>}
                 </div>
             )}

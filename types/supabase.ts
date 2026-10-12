@@ -3645,6 +3645,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           business_id: string
+          buyer: Json | null
           created_at: string
           created_by: string | null
           currency: string
@@ -3656,6 +3657,7 @@ export type Database = {
           number: string | null
           request_details: Json
           request_message: string | null
+          seller: Json | null
           sent_at: string | null
           status: string
           subtotal_cents: number
@@ -3669,6 +3671,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           business_id: string
+          buyer?: Json | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3680,6 +3683,7 @@ export type Database = {
           number?: string | null
           request_details?: Json
           request_message?: string | null
+          seller?: Json | null
           sent_at?: string | null
           status?: string
           subtotal_cents?: number
@@ -3693,6 +3697,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           business_id?: string
+          buyer?: Json | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -3704,6 +3709,7 @@ export type Database = {
           number?: string | null
           request_details?: Json
           request_message?: string | null
+          seller?: Json | null
           sent_at?: string | null
           status?: string
           subtotal_cents?: number

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 import { assertTouched } from './errors'
+import { type QuoteBuyer, cleanBuyer } from '../quote-document'
 
 // Lignes et montants d'un devis (CLAUDE.md 4.3). Les prix unitaires sont hors taxes, en centimes.
 
@@ -12,6 +13,8 @@ export type QuoteDraft = {
     valid_until: string | null
     notes: string | null
     discount_cents: number
+    /** Destinataire du devis (société, adresse…). Absent : inchangé. */
+    buyer?: QuoteBuyer
     items: QuoteLine[]
 }
 
@@ -80,6 +83,7 @@ export async function saveQuoteDraft(supabase: Client, businessId: string, quote
             discount_cents: totals.discount_cents,
             tax_cents: totals.tax_cents,
             total_cents: totals.total_cents,
+            ...(draft.buyer ? { buyer: cleanBuyer(draft.buyer) } : {}),
             ...(quote!.status === 'request' ? { status: 'draft' } : {}),
         })
         .eq('business_id', businessId)

@@ -10,7 +10,7 @@ type Client = SupabaseClient<Database>
 const QUOTE_SELECT = `
     id, business_id, number, status, title, request_message, request_details, valid_until,
     subtotal_cents, discount_cents, tax_cents, total_cents, currency, notes,
-    sent_at, viewed_at, accepted_at, declined_at, created_at, updated_at,
+    sent_at, viewed_at, accepted_at, declined_at, created_at, updated_at, buyer,
     customer:customers ( id, first_name, last_name, email, phone )
 ` as const
 

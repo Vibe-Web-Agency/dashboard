@@ -522,7 +522,15 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - Éditeur dans le détail d'une demande : objet, lignes (désignation, quantité, prix unitaire **hors taxes**, taux de TVA), remise, date de validité, message au client.
 - Totaux : la remise s'applique au total HT, la TVA de chaque ligne est calculée sur sa part après remise.
 - Enregistrer une demande (`request`) avec un contenu la passe en brouillon (`draft`). Modifiable en `request`, `draft` et `sent` ; figé ensuite.
-- « Envoyer au client » : passe le devis à `sent` (numéro attribué par `next_document_number`) puis envoie l'email avec les lignes et les totaux. Pas de PDF ni de page d'acceptation en ligne : le client répond à l'email.
+- « Envoyer au client » : passe le devis à `sent` (numéro attribué par `next_document_number`) puis envoie l'email avec les lignes et les totaux. Pas de page d'acceptation en ligne : le client répond à l'email.
+- **PDF (2026-10-13)** : `lib/v2/quote-pdf.tsx` (`@react-pdf/renderer`, rendu serveur), `lib/v2/quote-document.ts`, route `GET /api/quotes/[id]/pdf`.
+  - La route vérifie elle-même la session (le middleware ne couvre pas `/api`) et lit le devis sous RLS : sans session 401, devis hors de portée 404.
+  - **Émetteur :** nom, adresse, téléphone et email viennent de « Mon établissement » ; raison sociale, SIREN/SIRET, n° de TVA et autres mentions viennent de Paramètres → « Mentions légales des devis » (`business_module_settings.settings.issuer` du module `quotes`). À l'envoi, l'émetteur est copié dans `quotes.seller` : un devis envoyé ne change plus si le commerce modifie ses coordonnées.
+  - **Destinataire :** société, contact, adresse, n° de TVA, saisis dans l'éditeur et rangés dans `quotes.buyer`. Sans saisie, le contact de la demande est repris.
+  - Colonnes `quotes.buyer` et `quotes.seller` ajoutées par `supabase/manual/quotes-seller-buyer.sql` (à rejouer en production).
+  - Le PDF se télécharge depuis l'éditeur (après enregistrement) et part en pièce jointe de l'email. S'il ne peut pas être produit, l'email part quand même avec le détail dans le texte.
+  - Les polices PDF de base ne connaissent pas les espaces insécables du format français : les montants passent par `plain()`.
+  - Un devis sans numéro (jamais envoyé) porte la mention « Brouillon ».
 
 ### 9.5 Pages ajoutées
 - **Avis** (`/reviews`) : filtres par statut, note moyenne des avis publiés, publier / masquer, réponse de l'établissement. Pas de suppression.
@@ -531,11 +539,21 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois : réservations, couverts, taux d'absence, nouveaux clients, demandes, devis acceptés, répartition par jour de la semaine et par prestation.
 - **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. Pas d'email d'alerte à l'agence pour une nouvelle demande.
 
+### 9.8 Analyse web et Microsoft Clarity — 2026-10-13
+- **Page `/analytics` (« Analyse web », module `analytics`)** : rétablit la fréquentation du site à partir du suivi maison (`daily_session_summaries`, alimentée chaque heure par pg_cron depuis `sessions`) : visites, visiteurs, pages vues, durée moyenne, part du mobile, visites par jour, sur 7, 30 ou 90 jours. `/stats` reste la page de l'activité (réservations, devis).
+- **Clarity, terrain préparé :**
+  - l'identifiant du projet Clarity du site est saisi sur la page (propriétaire, administrateur) et rangé dans `business_module_settings.settings.clarity.project_id` du module `analytics` ;
+  - la page donne alors le lien vers le tableau de bord Clarity et le script à placer dans le `<head>` du site ;
+  - le site du commerce peut lire cet identifiant sans session (réglages des modules activés, politique `bms_public_widget_select`) et charger Clarity tout seul.
+- **Règle :** les réglages de module sont publics (`lib/v2/data/module-settings.ts`). Aucun secret n'y va.
+- **Pas encore fait :** afficher les chiffres de Clarity dans le dashboard. Cela passe par son API d'export, qui demande un jeton par projet (à ranger dans `business_integrations`, provider `clarity`, serveur uniquement) et se limite à 10 appels par jour et aux 3 derniers jours : il faudra donc une récupération quotidienne par cron et une table de cache. Reste aussi à décider si le suivi maison (`sessions`) est conservé une fois Clarity en place.
+
 ### 9.6 Vérifications du 2026-10-12
 Données de test supprimées à chaque fois, aucun email ni SMS réellement envoyé (clés retirées des tests).
 - anti-spam et messages : 21 contrôles (origines, compteur, 403, 429, confirmation journalisée une seule fois, fenêtre des rappels, envoi après la réponse) ;
 - devis : 10 contrôles (totaux, remplacement des lignes, refus d'un autre commerce, devis figé) ;
 - pages et accès : 35 contrôles en session réelle (pages, menu, sélecteur, garde de module, droits du viewer, avis, équipe, actualités, statistiques, support).
+- devis en PDF, mentions légales, Clarity et analyse web (2026-10-13) : 16 contrôles en session réelle, et le PDF produit a été relu (mise en page, accents, montants).
 - **Non vérifié :** l'envoi réel par Resend et Twilio, le déclenchement du cron par Vercel, les Server Actions de l'équipe et de l'envoi de devis (appelées seulement par un navigateur), et tout clic dans un navigateur.
 
 ### 9.7 Non fait, en attente de décisions

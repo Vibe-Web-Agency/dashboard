@@ -1,6 +1,6 @@
 import {
     LayoutDashboard, CalendarDays, FileText, Scissors, Contact, Settings, UtensilsCrossed,
-    Star, Users, Newspaper, BarChart3, LifeBuoy,
+    Star, Users, Newspaper, BarChart3, LifeBuoy, MousePointerClick,
     type LucideIcon,
 } from 'lucide-react'
 import type { BookingLabels } from './labels'
@@ -31,6 +31,7 @@ export const NAV_GROUPS: NavGroup[] = ['Pilotage', 'Activité', 'Catalogue', 'Si
 export const NAV_ITEMS: NavItem[] = [
     { href: '/', icon: LayoutDashboard, group: 'Pilotage', module: null, title: "Vue d'ensemble" },
     { href: '/stats', icon: BarChart3, group: 'Pilotage', module: 'analytics', title: 'Statistiques' },
+    { href: '/analytics', icon: MousePointerClick, group: 'Pilotage', module: 'analytics', title: 'Analyse web' },
 
     { href: '/reservations', icon: CalendarDays, group: 'Activité', module: 'reservations', title: (l) => l.title, cta: (l) => l.singularTitle },
     { href: '/quotes', icon: FileText, group: 'Activité', module: 'quotes', title: 'Demandes & devis' },

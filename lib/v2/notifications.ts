@@ -3,6 +3,8 @@ import type { AdminClient } from './supabase-admin'
 import { formatDateTimeInZone } from './datetime'
 import { type SendResult, emailLayout, escapeHtml, sendEmail, sendSms, toE164 } from './mailer'
 import { personName } from './names'
+import { loadQuoteDocument, quotePdfFilename } from './quote-document'
+import { renderQuotePdf } from './quote-pdf'
 
 // Messages envoyés aux clients finaux et au commerce (CLAUDE.md 9) : confirmation et rappel de réservation,
 // avis de nouvelle réservation ou demande. Exécuté côté serveur avec la clé de service.
@@ -200,7 +202,7 @@ ${q.request_message ? `<p style="padding:12px 16px;background:#f5f2ec;border-rad
 
 const euros = (cents: number, currency: string) => (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency })
 
-/** Email du devis chiffré au client : lignes, totaux, validité. Peut être renvoyé (pas de dédoublonnage). */
+/** Email du devis chiffré au client : lignes, totaux, validité, et le PDF en pièce jointe. Peut être renvoyé. */
 export async function sendQuoteEmail(db: AdminClient, quoteId: string): Promise<Outcome> {
     const { data: q, error } = await db
         .from('quotes')
@@ -242,7 +244,12 @@ ${q.notes ? '<p style="white-space:pre-wrap">' + escapeHtml(q.notes) + '</p>' : 
     return deliver(db, {
         agencyId: q.business.agency_id, businessId: q.business_id, channel: 'email', template: 'quote_sent', to, subject,
         key: `quote_sent:${q.id}:${Date.now()}`, quoteId: q.id, customerId: q.customer.id,
-        send: () => sendEmail({ to, subject, html, fromName: q.business.name, replyTo: q.business.email }),
+        send: async () => {
+            // Le PDF est joint ; s'il ne peut pas être produit, l'email part quand même avec le détail dans le texte.
+            const doc = await loadQuoteDocument(db, q.id).catch(() => null)
+            const pdf = doc ? await renderQuotePdf(doc).catch((e) => { console.error('[notifications] pdf', e); return null }) : null
+            return sendEmail({ to, subject, html, fromName: q.business.name, replyTo: q.business.email, attachments: doc && pdf ? [{ filename: quotePdfFilename(doc), content: pdf }] : undefined })
+        },
     })
 }
 

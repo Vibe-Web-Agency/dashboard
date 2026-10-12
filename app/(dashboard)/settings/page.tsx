@@ -7,6 +7,8 @@ import { bookingLabels } from "@/lib/v2/labels";
 import { readNotificationSettings } from "@/lib/v2/notifications";
 import { getAdminClient } from "@/lib/v2/supabase-admin";
 import { AccountSection, BusinessSection, HoursSection, SessionSection } from "./_components/SettingsSections";
+import { readIssuer, readModuleSettings } from "@/lib/v2/data/module-settings";
+import { IssuerSection } from "./_components/IssuerSection";
 import { NotificationsSection } from "./_components/NotificationsSection";
 import { type TeamMember, TeamSection } from "./_components/TeamSection";
 
@@ -22,6 +24,9 @@ export default async function SettingsPage() {
     const business = tenant.currentBusiness;
     const [profile, hours] = await Promise.all([getProfile(supabase, user.id), listBusinessHours(supabase, business.id)]);
     const canManage = tenant.currentRole === "owner" || tenant.currentRole === "administrator";
+
+    // Mentions légales des devis : seulement si le commerce a le module des demandes et devis.
+    const issuer = tenant.modules.some((m) => m.slug === "quotes") ? readIssuer(await readModuleSettings(supabase, business.id, "quotes")) : null;
 
     // Abonnement : plan en cours du commerce (lecture seule, géré par l'agence).
     const { data: subscription } = await supabase
@@ -88,6 +93,7 @@ export default async function SettingsPage() {
             <AccountSection profile={profile} email={user.email ?? profile?.email ?? ""} />
             <BusinessSection key={`info-${business.id}`} business={business} canManage={canManage} />
             <HoursSection key={`hours-${business.id}`} initialHours={hours} canManage={canManage} />
+            {issuer && <IssuerSection key={`issuer-${business.id}`} initial={issuer} canManage={canManage} />}
             {notifications && <NotificationsSection key={`notif-${business.id}`} initial={notifications} canManage={canManage} bookingPlural={bookingLabels(business).plural} />}
             {canManage && tenant.currentRole && <TeamSection key={`team-${business.id}`} members={team} currentRole={tenant.currentRole} />}
             <section className="rounded-[12px] p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>

@@ -15,7 +15,9 @@ export function emailLayout(body: string) {
 export type SendResult = { ok: true; id: string | null } | { ok: false; error: string }
 
 /** `fromName` : nom affiché de l'expéditeur (le commerce). `replyTo` : où arrivent les réponses. */
-export async function sendEmail(opts: { to: string; subject: string; html: string; fromName?: string; replyTo?: string | null }): Promise<SendResult> {
+export type Attachment = { filename: string; content: Buffer }
+
+export async function sendEmail(opts: { to: string; subject: string; html: string; fromName?: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<SendResult> {
     const key = process.env.RESEND_API_KEY
     if (!key) return { ok: false, error: "RESEND_API_KEY n'est pas configurée" }
     const fromName = (opts.fromName ?? 'Vibe Web Agency').replace(/[<>"\r\n]/g, ' ').trim()
@@ -29,6 +31,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
                 subject: opts.subject,
                 html: opts.html,
                 ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+                ...(opts.attachments?.length ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: a.content.toString('base64') })) } : {}),
             }),
         })
         if (!res.ok) {

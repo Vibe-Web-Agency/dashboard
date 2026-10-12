@@ -4,6 +4,7 @@ import { NotAllowedError } from '@/lib/v2/data/errors'
 import { listQuoteItems } from '@/lib/v2/data/quote-items'
 import { updateQuoteStatus } from '@/lib/v2/data/quotes'
 import { sendQuoteEmail } from '@/lib/v2/notifications'
+import { currentSeller } from '@/lib/v2/quote-document'
 import { canWrite } from '@/lib/v2/roles'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { createServerSupabase } from '@/lib/v2/supabase-server'
@@ -28,6 +29,9 @@ export async function sendQuoteToCustomer(quoteId: string): Promise<SendQuoteRes
         if (quote.status !== 'draft' && quote.status !== 'sent') return { ok: false, error: 'Enregistrez le devis avant de l\'envoyer.' }
         if ((await listQuoteItems(supabase, business.id, quoteId)).length === 0) return { ok: false, error: 'Ajoutez au moins une ligne au devis.' }
 
+        // L'émetteur est figé à l'envoi : le devis envoyé ne change plus si le commerce modifie ses coordonnées.
+        const seller = await currentSeller(supabase, business.id)
+        if (seller) await supabase.from('quotes').update({ seller }).eq('business_id', business.id).eq('id', quoteId)
         await updateQuoteStatus(supabase, business.id, quoteId, 'sent')
         const outcome = await sendQuoteEmail(getAdminClient(), quoteId)
         return { ok: true, emailSent: outcome === 'sent' }
