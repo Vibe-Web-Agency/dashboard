@@ -3,6 +3,7 @@ import type { Database, TablesUpdate } from '@/types/supabase'
 import type { ReservationStatus } from '../statuses'
 import { type CustomerInput, resolveCustomer } from './customers'
 import { assertTouched } from './errors'
+import { personName } from '../names'
 
 // Accès aux réservations d'un commerce. Chaque requête filtre sur business_id, en plus de la RLS.
 
@@ -11,7 +12,7 @@ type Client = SupabaseClient<Database>
 const RESERVATION_SELECT = `
     id, business_id, starts_at, ends_at, party_size, status, source, guest_name,
     customer_message, internal_note, service_id, employee_id, cancelled_at, created_at, updated_at,
-    customer:customers ( id, full_name, email, phone ),
+    customer:customers ( id, first_name, last_name, email, phone ),
     service:services ( id, name )
 ` as const
 
@@ -97,7 +98,7 @@ export async function createManualReservation(
         .insert({
             business_id: businessId,
             customer_id: customerId,
-            guest_name: input.customer.full_name,
+            guest_name: personName(input.customer) || null,
             starts_at: input.starts_at,
             party_size: input.party_size,
             service_id: input.service_id ?? null,

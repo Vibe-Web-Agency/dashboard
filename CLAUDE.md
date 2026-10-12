@@ -44,6 +44,7 @@ Derrière le proxy d'entreprise, voir « Notes d'environnement » plus bas.
 - `business_id` NULL = membre au niveau agence, qui accède à tous les commerces de l'agence.
 
 **CRM Ingestion :** `customers`.
+- **Nom (décision du 2026-10-12) :** on écrit `first_name` et `last_name`, plus `full_name`. Cette colonne n'est plus lue ni écrite par le code et peut être supprimée. Affichage : `personName()` (`lib/v2/names.ts`). Les clients existants ont été repris (`supabase/manual/customers-first-last-name.sql`).
 - Index unique **partiel** : `customers_business_id_email_idx ON (business_id, email) WHERE email IS NOT NULL`. Pas d'unicité sur le téléphone.
 - `email` doit être en minuscules (CHECK `email = lower(email)`).
 - `source` : `reservation | order | quote | review | form | manual | import | instagram | whatsapp`.
@@ -93,7 +94,10 @@ Toutes les pages du dashboard répondaient 500 : `42P17 infinite recursion detec
     - le rôle `anon` ne lit plus que les colonnes de vitrine de `businesses` (droits par colonne). `billing_email`, `billing_address`, `siren`, `stripe_customer_id`, `allowed_origins`, `byok_override`, `agency_id` ne sont plus lisibles, et un `select *` anonyme échoue (42501) ;
     - suppression de `businesses_member_write` (ALL), qui permettait de supprimer un commerce.
   - `business-operational-statuses.sql` : `business_is_operational(status)` = `active | active_client | lead_demo`, utilisée par `granted_module_ids` et par la politique de vitrine publique. Côté code : `OPERATIONAL_BUSINESS_STATUSES` (`lib/v2/statuses.ts`), utilisée par l'API publique. `suspended`, `churned` et `agency` restent hors service.
-- **Vues disparues :** `customer_stats`, `campaign_stats` et `google_connexions_etat` n'existent plus (remplacées par des vues `v_*`, sans équivalent pour les statistiques clients). `lib/v2/data/customers.ts` recalcule le nombre de visites et la dernière visite depuis les réservations `completed`, par lots de 100 ids.
+- **Vues :** `customer_stats`, `campaign_stats` et `google_connexions_etat` n'existent plus. Les 7 vues `v_*` sont décrites dans `db.md` (section « Views »).
+  - `lib/v2/data/customers.ts` lit les statistiques des clients dans `v_customer_profiles_360` (visites terminées, dernière visite, total payé, note moyenne), par lots de 100 ids.
+  - `v_reservations_detail` et `v_invoices_summary` composent le nom avec `concat_ws` (l'ancien `first_name || ' ' || last_name` donnait NULL partout).
+  - **Jeton Google :** `google_connexions` est fermée aux rôles `anon` et `authenticated` (plus de droits ni de politiques : serveur uniquement). `v_google_connections_status` est le seul accès côté dashboard : elle s'exécute avec les droits de son propriétaire, filtre sur `accessible_business_ids('viewer')` et n'expose pas `refresh_token` (`supabase/manual/google-connexions-hide-refresh-token.sql`).
 - **⚠️ NON CORRIGÉ — décision attendue :** 42 tables portent une politique `*_member_manage` (ALL) fondée sur `has_business_access` / `has_agency_access`, qui acceptent toute membership active de l'agence, quel que soit le rôle et le commerce de rattachement. Constaté en session réelle le 2026-10-12 :
   - un `viewer` peut modifier une réservation (la garantie « lecture seule » de l'audit du 6 octobre ne tient plus) ;
   - un membre rattaché à un seul commerce lit et écrit les données des autres commerces de la même agence ;
@@ -120,7 +124,7 @@ Les sites web clients envoient des requêtes POST publiques (cross-origin, CORS 
 - Le commerce doit exister et avoir `status = 'active'`, sinon 404.
 - Email normalisé : `email.toLowerCase().trim()`.
 - **Résolution du client (au lieu d'un upsert `onConflict`) :** l'index unique est partiel, et PostgREST ne sait pas transmettre le prédicat `WHERE email IS NOT NULL` dans `ON CONFLICT`. Un `upsert({ onConflict: 'business_id,email' })` échoue donc avec l'erreur 42P10. La route fait : SELECT par `(business_id, email)` → INSERT si absent → en cas de conflit concurrent (23505), nouveau SELECT.
-- Un client existant n'est jamais écrasé par un formulaire public : on complète seulement `full_name` et `phone` s'ils sont vides.
+- Un client existant n'est jamais écrasé par un formulaire public : on complète seulement le nom (si la fiche n'en a aucun) et `phone` s'ils sont vides.
 - Si `service_id` est fourni, le service doit appartenir au commerce et être actif. Il est vérifié **avant** la résolution du client, pour ne pas créer de fiche sur une demande refusée.
 - Réponses : 201 succès, 400 payload invalide (`{ success: false, error, details }`), 404 commerce inconnu ou inactif, 500 erreur serveur (message générique, détail dans les logs).
 
@@ -137,7 +141,8 @@ Payload JSON entrant (contrat strict) :
 {
   "business_id": "UUID",
   "customer": {
-    "full_name": "string",
+    "first_name": "string",
+    "last_name": "string",
     "email": "string",
     "phone": "string (optionnel)"
   },
@@ -149,7 +154,9 @@ Payload JSON entrant (contrat strict) :
   }
 }
 ```
-Insertion dans `reservations` : `business_id`, `customer_id`, `guest_name` (= `full_name`), `service_id`, `starts_at`, `party_size`, `customer_message` (= `notes`), `status: 'confirmed'`, `source: 'website'`.
+Au moins un des deux champs `first_name` / `last_name` est requis. L'ancien champ `full_name` reste accepté : il est découpé au premier espace.
+
+Insertion dans `reservations` : `business_id`, `customer_id`, `guest_name` (= prénom et nom), `service_id`, `starts_at`, `party_size`, `customer_message` (= `notes`), `status: 'confirmed'`, `source: 'website'`.
 
 Retour : `{ "success": true, "reservation_id": "UUID" }`, HTTP 201.
 
@@ -161,7 +168,8 @@ Payload JSON entrant (contrat strict) :
 {
   "business_id": "UUID",
   "customer": {
-    "full_name": "string",
+    "first_name": "string",
+    "last_name": "string",
     "email": "string",
     "phone": "string (optionnel)"
   },
@@ -300,7 +308,7 @@ La section « Devis » couvre **toutes les demandes entrantes** : privatisations
 Remplace l'ancienne page `/clients`, qui reconstituait les clients à partir des devis, réservations, avis et commandes. `/clients` redirige désormais vers `/customers`, et les liens de navigation pointent vers `/customers`.
 
 - **Données** (`lib/v2/data/customers.ts`, hooks `useCustomers` / `useCustomer`) :
-  - `listCustomers` : pagination côté serveur (25 par page), recherche sur nom, email et téléphone, filtre par `source`. Exclut les clients anonymisés (`anonymized_at`). Les statistiques viennent de la vue `customer_stats`. Les caractères qui structurent un filtre PostgREST sont retirés du terme recherché.
+  - `listCustomers` : pagination côté serveur (25 par page), recherche sur prénom, nom, email et téléphone (chaque mot saisi doit se retrouver dans l'un de ces champs), filtre par `source`. Exclut les clients anonymisés (`anonymized_at`). Les statistiques viennent de la vue `v_customer_profiles_360`. Les caractères qui structurent un filtre PostgREST sont retirés du terme recherché.
   - `getCustomerDetail` : fiche, statistiques, réservations et demandes du client, ou `null` si le client est absent ou appartient à un autre commerce.
   - `createCustomer` : création manuelle (`source: 'manual'`). Si un doublon existe (même email, ou même téléphone quand il n'y a pas d'email), rien n'est créé et la fonction renvoie `{ created: false, id, matchedBy }`.
   - `updateCustomer` : modification de la fiche. Un email déjà porté par un autre client lève `DuplicateCustomerError` avec l'id de l'autre fiche.

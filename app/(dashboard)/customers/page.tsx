@@ -15,10 +15,11 @@ import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { CUSTOMER_SOURCES, CUSTOMER_SOURCE_LABEL, type CustomerSource } from "@/lib/v2/statuses";
 import { formatInZone } from "@/lib/v2/datetime";
 import { bookingLabels } from "@/lib/v2/labels";
+import { personName } from "@/lib/v2/names";
 
 // Base clients du commerce (CLAUDE.md 5.1).
 
-const EMPTY_FORM = { full_name: "", email: "", phone: "" };
+const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "" };
 
 export default function CustomersPage() { return <Suspense><CustomersPageInner /></Suspense>; }
 
@@ -67,7 +68,7 @@ function CustomersPageInner() {
         setCreateError(null);
         setDuplicate(null);
         try {
-            const result = await create({ full_name: form.full_name, email: form.email || null, phone: form.phone || null });
+            const result = await create({ first_name: form.first_name, last_name: form.last_name, email: form.email || null, phone: form.phone || null });
             if (result.created) {
                 setForm(EMPTY_FORM);
                 router.push(`/customers/${result.id}`);
@@ -86,9 +87,9 @@ function CustomersPageInner() {
         setExporting(true);
         try {
             const { rows } = await listCustomers(getBrowserSupabase(), currentBusiness.id, { search, source, page: 0, pageSize: 10000 });
-            const headers = ["Nom", "Email", "Téléphone", "Source", "Visites", "Dernière visite", "Créé le"];
+            const headers = ["Prénom", "Nom", "Email", "Téléphone", "Source", "Visites", "Dernière visite", "Créé le"];
             const lines = rows.map((c) => [
-                c.full_name ?? "", c.email ?? "", c.phone ?? "",
+                c.first_name ?? "", c.last_name ?? "", c.email ?? "", c.phone ?? "",
                 CUSTOMER_SOURCE_LABEL[c.source as CustomerSource] ?? c.source,
                 String(c.stats?.visit_count ?? 0),
                 c.stats?.last_visit_at ? formatInZone(c.stats.last_visit_at, tz, { dateStyle: "short" }) : "",
@@ -189,7 +190,7 @@ function CustomersPageInner() {
                                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                                     <td className="px-4 py-3">
                                         <Link href={`/customers/${c.id}`} className="font-medium no-underline" style={{ color: "var(--text)" }} onClick={(e) => e.stopPropagation()}>
-                                            {c.full_name || "Sans nom"}
+                                            {personName(c) || "Sans nom"}
                                         </Link>
                                         {c.is_blocked && <span className="pill pill-red ml-2">Bloqué</span>}
                                     </td>
@@ -236,9 +237,15 @@ function CustomersPageInner() {
                                     <Link href={`/customers/${duplicate.id}`} style={{ color: 'var(--accent)' }}>Ouvrir sa fiche</Link>
                                 </div>
                             )}
-                            <div>
-                                <label className="vos-label">Nom *</label>
-                                <Input value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} required placeholder="Jean Dupont" />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="vos-label">Prénom</label>
+                                    <Input value={form.first_name} onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))} required={!form.last_name.trim()} placeholder="Jean" />
+                                </div>
+                                <div>
+                                    <label className="vos-label">Nom</label>
+                                    <Input value={form.last_name} onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))} required={!form.first_name.trim()} placeholder="Dupont" />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>

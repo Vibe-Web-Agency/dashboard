@@ -1356,7 +1356,340 @@ Connexion OAuth à Google Business Profile. Contient un secret : aucune politiqu
 | `status` | `text` |  Nullable |
 | `created_at` | `timestamptz` |  Nullable |
 
+## Views
+
+État au 2026-10-12. Les anciennes vues `customer_stats`, `campaign_stats` et `google_connexions_etat` n'existent plus.
+
+Toutes les vues sont en `security_invoker = true` (elles appliquent la RLS de l'utilisateur sur les tables sous-jacentes), **sauf** `v_google_connections_status`, qui s'exécute avec les droits de son propriétaire et filtre elle-même sur `accessible_business_ids('viewer')`.
+
+Le nom d'une personne se compose avec `concat_ws(' ', first_name, last_name)` : `customers.full_name` n'est plus écrit.
+
+### View `v_agency_businesses_overview`
+
+Commerces d'une agence avec leur type, leur verticale et l'abonnement de l'agence.
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `business_id` | `uuid` |
+| `agency_id` | `uuid` |
+| `business_name` | `text` |
+| `slug` | `text` |
+| `is_active` | `boolean` |
+| `created_at` | `timestamp with time zone` |
+| `business_type_label` | `text` |
+| `vertical_label` | `text` |
+| `subscription_status` | `text` |
+| `plan_name` | `text` |
+
+```sql
+SELECT b.id AS business_id,
+    b.agency_id,
+    b.name AS business_name,
+    b.slug,
+    b.is_active,
+    b.created_at,
+    bt.label AS business_type_label,
+    v.label AS vertical_label,
+    sub.status AS subscription_status,
+    p.name AS plan_name
+   FROM businesses b
+     LEFT JOIN business_types bt ON b.business_type_id = bt.id
+     LEFT JOIN verticals v ON bt.vertical_id = v.id
+     LEFT JOIN agency_subscriptions sub ON b.agency_id = sub.agency_id
+     LEFT JOIN agency_plans p ON sub.agency_plan_id = p.id;
+```
+
+### View `v_customer_profiles_360`
+
+Statistiques par client : visites terminées, dernière visite, total payé sur ses factures, note moyenne de ses avis. Lue par la page Clients (`lib/v2/data/customers.ts`).
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `customer_id` | `uuid` |
+| `business_id` | `uuid` |
+| `first_name` | `text` |
+| `last_name` | `text` |
+| `email` | `text` |
+| `phone` | `text` |
+| `created_at` | `timestamp with time zone` |
+| `total_reservations` | `bigint` |
+| `last_visit_at` | `timestamp with time zone` |
+| `total_spent_cents` | `bigint` |
+| `average_review_rating` | `numeric(3,2)` |
+
+```sql
+SELECT c.id AS customer_id,
+    c.business_id,
+    c.first_name,
+    c.last_name,
+    c.email,
+    c.phone,
+    c.created_at,
+    COALESCE(r.total_reservations, 0::bigint) AS total_reservations,
+    r.last_visit_at,
+    COALESCE(inv.total_spent_cents, 0::bigint) AS total_spent_cents,
+    rev.average_review_rating
+   FROM customers c
+     LEFT JOIN ( SELECT reservations.customer_id,
+            reservations.business_id,
+            count(reservations.id) AS total_reservations,
+            max(reservations.starts_at) AS last_visit_at
+           FROM reservations
+          WHERE reservations.status = 'completed'::text
+          GROUP BY reservations.customer_id, reservations.business_id) r ON c.id = r.customer_id AND c.business_id = r.business_id
+     LEFT JOIN ( SELECT invoices.customer_id,
+            invoices.business_id,
+            sum(invoices.amount_paid_cents) AS total_spent_cents
+           FROM invoices
+          WHERE invoices.status = ANY (ARRAY['paid'::text, 'partially_paid'::text])
+          GROUP BY invoices.customer_id, invoices.business_id) inv ON c.id = inv.customer_id AND c.business_id = inv.business_id
+     LEFT JOIN ( SELECT reviews.customer_id,
+            reviews.business_id,
+            avg(reviews.rating)::numeric(3,2) AS average_review_rating
+           FROM reviews
+          GROUP BY reviews.customer_id, reviews.business_id) rev ON c.id = rev.customer_id AND c.business_id = rev.business_id;
+```
+
+### View `v_employee_public_directory`
+
+Annuaire des employés actifs, limité aux champs de présentation.
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `employee_id` | `uuid` |
+| `business_id` | `uuid` |
+| `first_name` | `text` |
+| `last_name` | `text` |
+| `avatar_url` | `text` |
+| `bio` | `text` |
+| `is_active` | `boolean` |
+
+```sql
+SELECT id AS employee_id,
+    business_id,
+    first_name,
+    last_name,
+    avatar_url,
+    bio,
+    is_active
+   FROM employees e
+  WHERE is_active = true;
+```
+
+### View `v_google_connections_status`
+
+État de la connexion Google Business Profile d'un commerce, **sans** `refresh_token`. Seul accès côté dashboard : la table `google_connexions` est fermée aux rôles `anon` et `authenticated`.
+
+- Sécurité : `security_invoker=false`
+- Lecture : `authenticated`
+
+| Name | Type |
+|------|------|
+| `business_id` | `uuid` |
+| `agency_id` | `uuid` |
+| `account_id` | `text` |
+| `location_id` | `text` |
+| `scopes` | `text[]` |
+| `connecte_par` | `uuid` |
+| `connecte_le` | `timestamp with time zone` |
+| `derniere_synchro` | `timestamp with time zone` |
+| `derniere_erreur` | `text` |
+| `created_at` | `timestamp with time zone` |
+| `updated_at` | `timestamp with time zone` |
+| `is_connected` | `boolean` |
+| `sync_status` | `text` |
+
+```sql
+SELECT business_id,
+    agency_id,
+    account_id,
+    location_id,
+    scopes,
+    connecte_par,
+    connecte_le,
+    derniere_synchro,
+    derniere_erreur,
+    created_at,
+    updated_at,
+    refresh_token IS NOT NULL AS is_connected,
+        CASE
+            WHEN refresh_token IS NULL THEN 'disconnected'::text
+            WHEN derniere_erreur IS NOT NULL THEN 'error'::text
+            ELSE 'active'::text
+        END AS sync_status
+   FROM google_connexions gc
+  WHERE (business_id IN ( SELECT accessible_business_ids('viewer'::text) AS accessible_business_ids));
+```
+
+### View `v_invoices_summary`
+
+Factures avec le client, le reste à payer et l'indicateur de retard.
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `invoice_id` | `uuid` |
+| `business_id` | `uuid` |
+| `invoice_number` | `text` |
+| `kind` | `text` |
+| `status` | `text` |
+| `issued_at` | `timestamp with time zone` |
+| `due_date` | `date` |
+| `subtotal_cents` | `integer` |
+| `discount_cents` | `integer` |
+| `total_ht_net_cents` | `integer` |
+| `tax_cents` | `integer` |
+| `total_ttc_cents` | `integer` |
+| `amount_paid_cents` | `integer` |
+| `remaining_balance_cents` | `integer` |
+| `currency` | `text` |
+| `customer_id` | `uuid` |
+| `customer_name` | `text` |
+| `customer_email` | `text` |
+| `is_overdue` | `boolean` |
+
+```sql
+SELECT inv.id AS invoice_id,
+    inv.business_id,
+    inv.number AS invoice_number,
+    inv.kind,
+    inv.status,
+    inv.issued_at,
+    inv.due_date,
+    inv.subtotal_cents,
+    inv.discount_cents,
+    inv.subtotal_cents - inv.discount_cents AS total_ht_net_cents,
+    inv.tax_cents,
+    inv.total_cents AS total_ttc_cents,
+    inv.amount_paid_cents,
+    inv.total_cents - inv.amount_paid_cents AS remaining_balance_cents,
+    inv.currency,
+    c.id AS customer_id,
+    NULLIF(concat_ws(' '::text, c.first_name, c.last_name), ''::text) AS customer_name,
+    c.email AS customer_email,
+    (inv.status = ANY (ARRAY['issued'::text, 'partially_paid'::text])) AND inv.due_date < CURRENT_DATE AS is_overdue
+   FROM invoices inv
+     LEFT JOIN customers c ON inv.customer_id = c.id;
+```
+
+### View `v_reservations_detail`
+
+Réservations avec le client, la prestation et l'employé.
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `reservation_id` | `uuid` |
+| `business_id` | `uuid` |
+| `starts_at` | `timestamp with time zone` |
+| `ends_at` | `timestamp with time zone` |
+| `status` | `text` |
+| `customer_id` | `uuid` |
+| `customer_first_name` | `text` |
+| `customer_last_name` | `text` |
+| `customer_full_name` | `text` |
+| `customer_phone` | `text` |
+| `customer_email` | `text` |
+| `service_id` | `uuid` |
+| `service_name` | `text` |
+| `service_duration` | `integer` |
+| `service_price_cents` | `integer` |
+| `employee_id` | `uuid` |
+| `employee_first_name` | `text` |
+| `employee_last_name` | `text` |
+
+```sql
+SELECT r.id AS reservation_id,
+    r.business_id,
+    r.starts_at,
+    r.ends_at,
+    r.status,
+    c.id AS customer_id,
+    c.first_name AS customer_first_name,
+    c.last_name AS customer_last_name,
+    NULLIF(concat_ws(' '::text, c.first_name, c.last_name), ''::text) AS customer_full_name,
+    c.phone AS customer_phone,
+    c.email AS customer_email,
+    s.id AS service_id,
+    s.name AS service_name,
+    s.duration_min AS service_duration,
+    s.price_cents AS service_price_cents,
+    e.id AS employee_id,
+    e.first_name AS employee_first_name,
+    e.last_name AS employee_last_name
+   FROM reservations r
+     LEFT JOIN customers c ON r.customer_id = c.id
+     LEFT JOIN services s ON r.service_id = s.id
+     LEFT JOIN employees e ON r.employee_id = e.id;
+```
+
+### View `v_shifts_overview`
+
+Créneaux de planning avec l'employé et son contrat.
+
+- Sécurité : `security_invoker=true`
+- Lecture : `authenticated`, `anon`
+
+| Name | Type |
+|------|------|
+| `shift_id` | `uuid` |
+| `business_id` | `uuid` |
+| `starts_at` | `timestamp with time zone` |
+| `ends_at` | `timestamp with time zone` |
+| `break_minutes` | `integer` |
+| `role_label` | `text` |
+| `status` | `text` |
+| `published_at` | `timestamp with time zone` |
+| `is_ai_generated` | `boolean` |
+| `employee_id` | `uuid` |
+| `employee_first_name` | `text` |
+| `employee_last_name` | `text` |
+| `employment_type` | `text` |
+| `contract_hours_per_week` | `numeric(5,2)` |
+
+```sql
+SELECT sh.id AS shift_id,
+    sh.business_id,
+    sh.starts_at,
+    sh.ends_at,
+    sh.break_minutes,
+    sh.role_label,
+    sh.status,
+    sh.published_at,
+    sh.is_ai_generated,
+    e.id AS employee_id,
+    e.first_name AS employee_first_name,
+    e.last_name AS employee_last_name,
+    hr.employment_type,
+    hr.contract_hours_per_week
+   FROM shifts sh
+     JOIN employees e ON sh.employee_id = e.id
+     LEFT JOIN employee_hr hr ON e.id = hr.employee_id;
+```
+
 ## RLS Policies
+
+> Relevé antérieur aux correctifs du 2026-10-12. Depuis :
+> - `memberships_agency_manage` (récursive) et `businesses_member_write` sont supprimées ;
+> - `conv_messages_public_widget_select` (lecture anonyme des messages) est supprimée ;
+> - `businesses_public_widget_select` utilise `business_is_operational(status)`, et le rôle `anon` ne lit que les colonnes de vitrine de `businesses` ;
+> - `google_connexions` n'a plus aucune politique ni aucun droit pour `anon` et `authenticated`.
+>
+> Scripts : `supabase/manual/fix-rls-*.sql`, `business-operational-statuses.sql`, `google-connexions-hide-refresh-token.sql`.
+
 
 ### `google_connexions`
 
@@ -1472,9 +1805,8 @@ Connexion OAuth à Google Business Profile. Contient un secret : aucune politiqu
 | Policy | Command | Roles | Action | USING | WITH CHECK |
 |--------|---------|-------|--------|-------|------------|
 | `businesses_member_select` | SELECT | authenticated | PERMISSIVE | `has_business_access(id)` | — |
-| `businesses_member_write` | ALL | authenticated | PERMISSIVE | `(EXISTS ( SELECT 1    FROM memberships m   WHERE ((m.profile_id = auth.uid()) AND (m.is_active = true) AND (m.role = ANY (ARRAY['owner'::text, 'administrator'::text])) AND ((m.agency_id = businesses.agency_id) OR (m.business_id = businesses.id)))))` | — |
 | `businesses_platform_admin_all` | ALL | authenticated | PERMISSIVE | `is_platform_admin()` | — |
-| `businesses_public_widget_select` | SELECT | anon | PERMISSIVE | `(status = 'active'::text)` | — |
+| `businesses_public_widget_select` | SELECT | anon | PERMISSIVE | `business_is_operational(status)` | — |
 | `creation` | INSERT | authenticated | PERMISSIVE | — | `(agency_id IN ( SELECT accessible_agency_ids('administrator'::text) AS accessible_agency_ids))` |
 | `lecture` | SELECT | authenticated | PERMISSIVE | `(id IN ( SELECT accessible_business_ids('viewer'::text) AS accessible_business_ids))` | — |
 | `modification` | UPDATE | authenticated | PERMISSIVE | `(id IN ( SELECT accessible_business_ids('administrator'::text) AS accessible_business_ids))` | `(id IN ( SELECT accessible_business_ids('administrator'::text) AS accessible_business_ids))` |
@@ -1527,7 +1859,6 @@ Connexion OAuth à Google Business Profile. Contient un secret : aucune politiqu
 | Policy | Command | Roles | Action | USING | WITH CHECK |
 |--------|---------|-------|--------|-------|------------|
 | `lecture` | SELECT | authenticated | PERMISSIVE | `((agency_id IN ( SELECT visible_agency_ids() AS visible_agency_ids)) AND ((business_id IS NULL) OR (business_id IN ( SELECT accessible_business_ids('viewer'::text) AS accessible_business_ids))))` | — |
-| `memberships_agency_manage` | ALL | authenticated | PERMISSIVE | `(EXISTS ( SELECT 1    FROM memberships memberships_1   WHERE ((memberships_1.profile_id = auth.uid()) AND (memberships_1.agency_id = memberships_1.agency_id) AND (memberships_1.role = ANY (ARRAY['owner'::text, 'administrator'::text])) AND (memberships_1.is_active = true))))` | — |
 | `memberships_agency_select` | SELECT | authenticated | PERMISSIVE | `((profile_id = auth.uid()) OR has_agency_access(agency_id))` | — |
 | `memberships_platform_admin_all` | ALL | authenticated | PERMISSIVE | `is_platform_admin()` | — |
 
@@ -1858,7 +2189,6 @@ Connexion OAuth à Google Business Profile. Contient un secret : aucune politiqu
 |--------|---------|-------|--------|-------|------------|
 | `conv_messages_member_manage` | ALL | authenticated | PERMISSIVE | `has_business_access(business_id)` | — |
 | `conv_messages_public_widget_insert` | INSERT | anon | PERMISSIVE | — | `true` |
-| `conv_messages_public_widget_select` | SELECT | anon | PERMISSIVE | `true` | — |
 | `ecriture` | ALL | authenticated | PERMISSIVE | `(business_id IN ( SELECT accessible_business_ids('member'::text) AS accessible_business_ids))` | `(business_id IN ( SELECT accessible_business_ids('member'::text) AS accessible_business_ids))` |
 | `lecture` | SELECT | authenticated | PERMISSIVE | `(business_id IN ( SELECT accessible_business_ids('viewer'::text) AS accessible_business_ids))` | — |
 

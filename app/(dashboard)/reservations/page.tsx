@@ -17,6 +17,7 @@ import {
     type ReservationStatus,
 } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { personName } from "@/lib/v2/names";
 import { canWrite } from "@/lib/v2/roles";
 import {
     calendarDayKey,
@@ -31,10 +32,10 @@ type Tab = "upcoming" | "history" | "calendar";
 
 const PAGE_SIZE = 20;
 
-const EMPTY_FORM = { full_name: "", email: "", phone: "", date: "", time: "", party_size: 2, note: "" };
+const EMPTY_FORM = { first_name: "", last_name: "", email: "", phone: "", date: "", time: "", party_size: 2, note: "" };
 
 function displayName(r: ReservationWithCustomer) {
-    return r.customer?.full_name || r.guest_name || "Client inconnu";
+    return personName(r.customer) || r.guest_name || "Client inconnu";
 }
 
 function StatusControls({ reservation, onChange, readOnly }: {
@@ -163,7 +164,7 @@ function ReservationsPageInner() {
         setCreateError(null);
         try {
             await create({
-                customer: { full_name: form.full_name.trim(), email: form.email.trim() || null, phone: form.phone.trim() || null },
+                customer: { first_name: form.first_name, last_name: form.last_name, email: form.email.trim() || null, phone: form.phone.trim() || null },
                 starts_at: zonedToUtcIso(form.date, form.time, tz),
                 party_size: labels.showParty ? form.party_size : 1,
                 internal_note: form.note.trim() || null,
@@ -359,9 +360,15 @@ function ReservationsPageInner() {
                                     {createError}
                                 </div>
                             )}
-                            <div>
-                                <label className="vos-label">Nom du client *</label>
-                                <Input value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} required placeholder="Jean Dupont" />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="vos-label">Prénom</label>
+                                    <Input value={form.first_name} onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))} required={!form.last_name.trim()} placeholder="Jean" />
+                                </div>
+                                <div>
+                                    <label className="vos-label">Nom</label>
+                                    <Input value={form.last_name} onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))} required={!form.first_name.trim()} placeholder="Dupont" />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>

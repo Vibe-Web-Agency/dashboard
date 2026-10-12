@@ -11,13 +11,14 @@ import { useQuotes } from "@/lib/v2/hooks/useQuotes";
 import type { QuoteWithCustomer } from "@/lib/v2/data/quotes";
 import { QUOTE_STATUSES, QUOTE_STATUS_UI, type QuoteStatus } from "@/lib/v2/statuses";
 import { readRequestDetails } from "@/lib/v2/contact";
+import { personName } from "@/lib/v2/names";
 import { formatInZone } from "@/lib/v2/datetime";
 import { QuoteDetail } from "./_components/QuoteDetail";
 
 // Demandes entrantes & devis (CLAUDE.md 4.2) : liste à gauche, détail de la demande sélectionnée à droite.
 
 function contactName(q: QuoteWithCustomer) {
-    return q.customer?.full_name || "Contact inconnu";
+    return personName(q.customer) || "Contact inconnu";
 }
 
 // En dessous de lg, pas de colonne de détail : un clic ouvre /quotes/[id].

@@ -19,6 +19,7 @@ import {
     type ReservationStatus,
 } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { personName } from "@/lib/v2/names";
 import { canWrite } from "@/lib/v2/roles";
 import { readRequestDetails, whatsappLink } from "@/lib/v2/contact";
 import { formatDateTimeInZone, formatInZone } from "@/lib/v2/datetime";
@@ -42,7 +43,7 @@ export default function CustomerDetailPage() {
     const { detail, loading, error, update } = useCustomer(id);
 
     const [editing, setEditing] = useState(false);
-    const [form, setForm] = useState({ full_name: "", email: "", phone: "" });
+    const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "" });
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<{ message: string; otherId?: string | null } | null>(null);
 
@@ -66,11 +67,11 @@ export default function CustomerDetailPage() {
     }
 
     const { customer, stats, reservations, quotes } = detail;
-    const name = customer.full_name || "Sans nom";
+    const name = personName(customer) || "Sans nom";
     const whatsapp = customer.phone ? whatsappLink(customer.phone, currentBusiness.country) : null;
 
     const startEdit = () => {
-        setForm({ full_name: customer.full_name ?? "", email: customer.email ?? "", phone: customer.phone ?? "" });
+        setForm({ first_name: customer.first_name ?? "", last_name: customer.last_name ?? "", email: customer.email ?? "", phone: customer.phone ?? "" });
         setSaveError(null);
         setEditing(true);
     };
@@ -80,7 +81,7 @@ export default function CustomerDetailPage() {
         setSaving(true);
         setSaveError(null);
         try {
-            await update({ full_name: form.full_name, email: form.email || null, phone: form.phone || null });
+            await update({ first_name: form.first_name, last_name: form.last_name, email: form.email || null, phone: form.phone || null });
             setEditing(false);
         } catch (err) {
             if (err instanceof DuplicateCustomerError) setSaveError({ message: err.message, otherId: err.existingId });
@@ -126,10 +127,14 @@ export default function CustomerDetailPage() {
                                 {saveError.otherId && <Link href={`/customers/${saveError.otherId}`} style={{ color: 'var(--accent)' }}>Voir l&apos;autre fiche</Link>}
                             </div>
                         )}
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
                             <div>
-                                <label className="vos-label">Nom *</label>
-                                <Input value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))} required />
+                                <label className="vos-label">Prénom</label>
+                                <Input value={form.first_name} onChange={(e) => setForm(f => ({ ...f, first_name: e.target.value }))} required={!form.last_name.trim()} />
+                            </div>
+                            <div>
+                                <label className="vos-label">Nom</label>
+                                <Input value={form.last_name} onChange={(e) => setForm(f => ({ ...f, last_name: e.target.value }))} required={!form.first_name.trim()} />
                             </div>
                             <div>
                                 <label className="vos-label">Email</label>

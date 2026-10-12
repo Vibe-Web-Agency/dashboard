@@ -7,6 +7,7 @@ import type { Business } from "@/lib/v2/tenant";
 import type { QuoteWithCustomer } from "@/lib/v2/data/quotes";
 import { QUOTE_SELECTABLE_STATUSES, QUOTE_STATUS_UI, type QuoteStatus } from "@/lib/v2/statuses";
 import { readRequestDetails, whatsappLink } from "@/lib/v2/contact";
+import { personName } from "@/lib/v2/names";
 import { formatDateTimeInZone } from "@/lib/v2/datetime";
 
 function formatCalendarDate(yyyyMmDd: string) {
@@ -51,7 +52,7 @@ export function QuoteDetail({ quote, business, onStatusChange, onDelete, readOnl
 
     const tz = business.timezone;
     const customer = quote.customer;
-    const name = customer?.full_name || "Contact inconnu";
+    const name = personName(customer) || "Contact inconnu";
     const details = readRequestDetails(quote.request_details);
     const whatsapp = customer?.phone ? whatsappLink(customer.phone, business.country) : null;
     const status = quote.status as QuoteStatus;

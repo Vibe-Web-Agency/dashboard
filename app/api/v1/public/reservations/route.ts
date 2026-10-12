@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/v2/supabase-admin'
+import { personName } from '@/lib/v2/names'
 import {
     type FieldErrors,
     invalid,
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
             .insert({
                 business_id: businessId,
                 customer_id: customerId,
-                guest_name: customer.full_name,
+                guest_name: personName(customer),
                 service_id: serviceId,
                 starts_at: startsAt,
                 party_size: partySize,

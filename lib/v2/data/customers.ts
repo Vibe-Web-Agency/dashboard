@@ -1,15 +1,25 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TablesInsert } from '@/types/supabase'
 import { assertTouched } from './errors'
+import { personName } from '../names'
 
 // Clients (customers) : résolution partagée par l'ingestion publique et le dashboard, puis base clients (5.1).
 
 type Client = SupabaseClient<Database>
 
+// Le nom s'écrit dans first_name et last_name (décision du 2026-10-12) ; full_name n'est plus lu ni écrit.
 export type CustomerInput = {
-    full_name: string
+    first_name: string | null
+    last_name: string | null
     email: string | null
     phone: string | null
+}
+
+function cleanName(input: Pick<CustomerInput, 'first_name' | 'last_name'>) {
+    const first_name = input.first_name?.trim() || null
+    const last_name = input.last_name?.trim() || null
+    if (!first_name && !last_name) throw new Error('Le prénom ou le nom est obligatoire.')
+    return { first_name, last_name }
 }
 
 type CustomerSource = TablesInsert<'customers'>['source']
@@ -62,7 +72,7 @@ export async function resolveCustomer(
 
     const { data, error } = await supabase
         .from('customers')
-        .insert({ business_id: businessId, email, full_name: input.full_name, phone, source })
+        .insert({ business_id: businessId, email, ...cleanName(input), phone, source })
         .select('id')
         .single()
 
@@ -79,7 +89,7 @@ export async function resolveCustomer(
 async function findByEmail(supabase: Client, businessId: string, email: string) {
     const { data, error } = await supabase
         .from('customers')
-        .select('id, full_name, phone')
+        .select('id, first_name, last_name, phone')
         .eq('business_id', businessId)
         .eq('email', email)
         .maybeSingle()
@@ -90,7 +100,7 @@ async function findByEmail(supabase: Client, businessId: string, email: string) 
 async function findByPhone(supabase: Client, businessId: string, phone: string) {
     const { data, error } = await supabase
         .from('customers')
-        .select('id, full_name, phone')
+        .select('id, first_name, last_name, phone')
         .eq('business_id', businessId)
         .eq('phone', phone)
         .order('created_at', { ascending: true })
@@ -102,11 +112,12 @@ async function findByPhone(supabase: Client, businessId: string, phone: string) 
 
 async function fillMissingFields(
     supabase: Client,
-    existing: { id: string; full_name: string | null; phone: string | null },
+    existing: { id: string; first_name: string | null; last_name: string | null; phone: string | null },
     input: CustomerInput,
 ) {
-    const patch: { full_name?: string; phone?: string } = {}
-    if (!existing.full_name) patch.full_name = input.full_name
+    const patch: { first_name?: string | null; last_name?: string | null; phone?: string } = {}
+    // Le nom n'est complété que si la fiche n'en a aucun : on ne mélange pas deux identités.
+    if (!personName(existing) && personName(input)) Object.assign(patch, cleanName(input))
     if (!existing.phone && input.phone) patch.phone = input.phone
     if (Object.keys(patch).length === 0) return
 
@@ -116,7 +127,7 @@ async function fillMissingFields(
 
 // ─── Base clients du dashboard (CLAUDE.md 5.1) ───────────────────────────────
 
-const CUSTOMER_LIST_SELECT = 'id, full_name, email, phone, source, tags, is_blocked, created_at' as const
+const CUSTOMER_LIST_SELECT = 'id, first_name, last_name, email, phone, source, tags, is_blocked, created_at' as const
 
 export const CUSTOMER_PAGE_SIZE = 25
 
@@ -125,7 +136,7 @@ function sanitizeSearch(term: string) {
     return term.replace(/[,()"\*%:]/g, ' ').trim()
 }
 
-/** Liste paginée côté serveur, recherche sur nom / email / téléphone, filtre de source. Clients anonymisés exclus. */
+/** Liste paginée côté serveur, recherche sur prénom / nom / email / téléphone, filtre de source. Clients anonymisés exclus. */
 export async function listCustomers(
     supabase: Client,
     businessId: string,
@@ -140,8 +151,12 @@ export async function listCustomers(
         .eq('business_id', businessId)
         .is('anonymized_at', null)
     if (opts.source) query = query.eq('source', opts.source)
-    const term = opts.search ? sanitizeSearch(opts.search) : ''
-    if (term) query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+    // Chaque mot doit se retrouver dans le prénom, le nom, l'email ou le téléphone : « sofiane berger »
+    // trouve la fiche même si prénom et nom sont dans deux colonnes.
+    const words = opts.search ? sanitizeSearch(opts.search).split(/\s+/).filter(Boolean).slice(0, 4) : []
+    for (const w of words) {
+        query = query.or(`first_name.ilike.%${w}%,last_name.ilike.%${w}%,email.ilike.%${w}%,phone.ilike.%${w}%`)
+    }
 
     const { data, count, error } = await query
         .order('created_at', { ascending: false })
@@ -158,31 +173,39 @@ export async function listCustomers(
 
 export type CustomerListRow = Awaited<ReturnType<typeof listCustomers>>['rows'][number]
 
-type CustomerStats = { visit_count: number; last_visit_at: string | null }
+const STATS_SELECT = 'customer_id, total_reservations, last_visit_at, total_spent_cents, average_review_rating' as const
+
+type CustomerStats = {
+    /** Réservations terminées (le client est venu). */
+    visit_count: number
+    last_visit_at: string | null
+    /** Montant payé sur ses factures, en centimes. */
+    total_spent_cents: number
+    /** Note moyenne de ses avis, null s'il n'en a laissé aucun. */
+    average_review_rating: number | null
+}
 
 // Les ids partent dans l'URL de la requête : on les envoie par lots pour ne pas la rendre trop longue.
 const STATS_BATCH = 100
 
-/**
- * Visites par client : réservations au statut `completed` (le client est venu).
- * Calculé ici depuis que la vue `customer_stats` a été retirée de la base (constat du 2026-10-12).
- */
+/** Statistiques par client, lues dans la vue v_customer_profiles_360 (elle suit la RLS de l'utilisateur). */
 async function getStats(supabase: Client, businessId: string, customerIds: string[]): Promise<Map<string, CustomerStats>> {
     const stats = new Map<string, CustomerStats>()
     for (let i = 0; i < customerIds.length; i += STATS_BATCH) {
         const { data, error } = await supabase
-            .from('reservations')
-            .select('customer_id, starts_at')
+            .from('v_customer_profiles_360')
+            .select(STATS_SELECT)
             .eq('business_id', businessId)
-            .eq('status', 'completed')
             .in('customer_id', customerIds.slice(i, i + STATS_BATCH))
         if (error) throw error
-        for (const r of data) {
-            if (!r.customer_id) continue
-            const s = stats.get(r.customer_id) ?? { visit_count: 0, last_visit_at: null }
-            s.visit_count++
-            if (!s.last_visit_at || r.starts_at > s.last_visit_at) s.last_visit_at = r.starts_at
-            stats.set(r.customer_id, s)
+        for (const row of data) {
+            if (!row.customer_id) continue
+            stats.set(row.customer_id, {
+                visit_count: row.total_reservations ?? 0,
+                last_visit_at: row.last_visit_at,
+                total_spent_cents: row.total_spent_cents ?? 0,
+                average_review_rating: row.average_review_rating,
+            })
         }
     }
     return stats
@@ -230,7 +253,7 @@ export class DuplicateCustomerError extends Error {
 
 function cleanInput(input: CustomerInput) {
     return {
-        full_name: input.full_name.trim(),
+        ...cleanName(input),
         email: input.email ? normalizeEmail(input.email) || null : null,
         phone: input.phone?.trim() || null,
     }

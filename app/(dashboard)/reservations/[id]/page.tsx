@@ -10,6 +10,7 @@ import { useTenant } from "@/providers/TenantProvider";
 import { useReservation } from "@/lib/v2/hooks/useReservations";
 import { RESERVATION_QUICK_ACTIONS, RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
+import { personName } from "@/lib/v2/names";
 import { canWrite } from "@/lib/v2/roles";
 import { formatDateTimeInZone } from "@/lib/v2/datetime";
 
@@ -115,7 +116,7 @@ export default function ReservationDetailPage() {
         );
     }
 
-    const name = reservation.customer?.full_name || reservation.guest_name || "Client inconnu";
+    const name = personName(reservation.customer) || reservation.guest_name || "Client inconnu";
     const status = reservation.status as ReservationStatus;
     const statusUI = RESERVATION_STATUS_UI[status];
 

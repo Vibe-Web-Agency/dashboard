@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { AdminClient } from './supabase-admin'
 import { OPERATIONAL_BUSINESS_STATUSES } from './statuses'
+import { splitFullName } from './names'
 import { type CustomerInput, normalizeEmail } from './data/customers'
 
 export { resolveCustomer } from './data/customers'
@@ -123,15 +124,22 @@ export function readCustomer(v: unknown, errors: FieldErrors): (CustomerInput & 
         errors.customer = 'objet requis'
         return null
     }
-    const full_name = readText(v.full_name, 'customer.full_name', errors, { max: 200 })
+    // Contrat : first_name et/ou last_name. full_name (ancien contrat) reste accepté et est découpé.
+    let first_name = readText(v.first_name, 'customer.first_name', errors, { optional: true, max: 100 })
+    let last_name = readText(v.last_name, 'customer.last_name', errors, { optional: true, max: 100 })
+    if (!first_name && !last_name) {
+        const full_name = readText(v.full_name, 'customer.full_name', errors, { optional: true, max: 200 })
+        if (full_name) ({ first_name, last_name } = splitFullName(full_name))
+        else errors['customer.first_name'] = 'prénom ou nom requis (first_name, last_name)'
+    }
     const rawEmail = readText(v.email, 'customer.email', errors, { max: 254 })
     const phone = readText(v.phone, 'customer.phone', errors, { optional: true, max: 40 })
 
     const email = rawEmail ? normalizeEmail(rawEmail) : null
     if (email && !EMAIL_RE.test(email)) errors['customer.email'] = 'email invalide'
 
-    if (!full_name || !email || errors['customer.email'] || errors['customer.phone']) return null
-    return { full_name, email, phone }
+    if ((!first_name && !last_name) || !email || errors['customer.email'] || errors['customer.phone']) return null
+    return { first_name, last_name, email, phone }
 }
 
 /** Le commerce existe et est en service (voir OPERATIONAL_BUSINESS_STATUSES). */
