@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { AdminClient } from './supabase-admin'
+import { OPERATIONAL_BUSINESS_STATUSES } from './statuses'
 import { type CustomerInput, normalizeEmail } from './data/customers'
 
 export { resolveCustomer } from './data/customers'
@@ -133,12 +134,13 @@ export function readCustomer(v: unknown, errors: FieldErrors): (CustomerInput & 
     return { full_name, email, phone }
 }
 
+/** Le commerce existe et est en service (voir OPERATIONAL_BUSINESS_STATUSES). */
 export async function isActiveBusiness(admin: AdminClient, businessId: string) {
     const { data, error } = await admin
         .from('businesses')
         .select('id')
         .eq('id', businessId)
-        .eq('status', 'active')
+        .in('status', OPERATIONAL_BUSINESS_STATUSES)
         .maybeSingle()
     if (error) throw error
     return data !== null

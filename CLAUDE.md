@@ -81,6 +81,30 @@ FOR ALL USING (
 - **Écritures refusées en silence :** un UPDATE ou DELETE refusé par la RLS ne lève pas d'erreur (0 ligne). Toutes les écritures de `lib/v2/data/*` vérifient le nombre de lignes touchées et lèvent `NotAllowedError` (`lib/v2/data/errors.ts`). L'interface masque les actions d'écriture aux rôles sous member (`canWrite` dans `lib/v2/roles.ts`).
 - **`next_document_number` — corrigé le 2026-10-06 (base de dev) :** le passe-droit de la clé de service testait `current_setting('request.jwt.claim.role')`, que PostgREST ne renseigne plus. Aucun appel serveur (crons, routes d'API) ne pouvait numéroter. La condition utilise maintenant `auth.role()`, qui lit les deux formats. Vérifié : la clé de service obtient `DEV-2026-0001`, l'anonyme est refusé, et un devis passé à `sent` reçoit son numéro. Script à rejouer sur chaque base V2, dont la production : `supabase/manual/next-document-number-service-role.sql`.
 
+#### Incident RLS du 2026-10-12 (base de dev)
+Toutes les pages du dashboard répondaient 500 : `42P17 infinite recursion detected in policy for relation "memberships"`. Entre le 6 et le 12 octobre, un script a ajouté 126 politiques (noms en anglais : `…_member_select`, `…_platform_admin_all`, `…_public_widget_…`) par-dessus les 107 politiques d'origine (`lecture`, `ecriture`, `modification`…), et réécrit `accessible_business_ids`.
+- **Corrigé** (`supabase/manual/fix-rls-recursion-and-access-function.sql`, qui garde les définitions remplacées) :
+  - suppression de `memberships_agency_manage`, une politique posée sur `memberships` qui relisait `memberships`. Elle contenait aussi une comparaison toujours vraie (`memberships_1.agency_id = memberships_1.agency_id`). Les écritures sur `memberships` repassent par les RPC ;
+  - rétablissement de la définition auditée de `accessible_business_ids`. La version réécrite ignorait les membres de niveau agence et attendait `'admin'`, alors que 16 politiques et `guard_business_columns` passent `'administrator'`.
+- **Règle :** une politique ne doit jamais interroger sa propre table, ni `memberships` directement. Passer par les fonctions `SECURITY DEFINER` (`accessible_business_ids`, `accessible_agency_ids`). Le rôle s'écrit `administrator`, jamais `admin`.
+- **Corrigé ensuite le même jour** (les politiques permissives se cumulent : les nouvelles élargissaient les anciennes) :
+  - `fix-rls-public-exposure.sql` :
+    - suppression de la lecture anonyme de `conversation_messages` (`USING true`). Un widget de discussion public doit passer par une route serveur ;
+    - le rôle `anon` ne lit plus que les colonnes de vitrine de `businesses` (droits par colonne). `billing_email`, `billing_address`, `siren`, `stripe_customer_id`, `allowed_origins`, `byok_override`, `agency_id` ne sont plus lisibles, et un `select *` anonyme échoue (42501) ;
+    - suppression de `businesses_member_write` (ALL), qui permettait de supprimer un commerce.
+  - `business-operational-statuses.sql` : `business_is_operational(status)` = `active | active_client | lead_demo`, utilisée par `granted_module_ids` et par la politique de vitrine publique. Côté code : `OPERATIONAL_BUSINESS_STATUSES` (`lib/v2/statuses.ts`), utilisée par l'API publique. `suspended`, `churned` et `agency` restent hors service.
+- **Vues disparues :** `customer_stats`, `campaign_stats` et `google_connexions_etat` n'existent plus (remplacées par des vues `v_*`, sans équivalent pour les statistiques clients). `lib/v2/data/customers.ts` recalcule le nombre de visites et la dernière visite depuis les réservations `completed`, par lots de 100 ids.
+- **⚠️ NON CORRIGÉ — décision attendue :** 42 tables portent une politique `*_member_manage` (ALL) fondée sur `has_business_access` / `has_agency_access`, qui acceptent toute membership active de l'agence, quel que soit le rôle et le commerce de rattachement. Constaté en session réelle le 2026-10-12 :
+  - un `viewer` peut modifier une réservation (la garantie « lecture seule » de l'audit du 6 octobre ne tient plus) ;
+  - un membre rattaché à un seul commerce lit et écrit les données des autres commerces de la même agence ;
+  - tables concernées, entre autres : `reservations`, `customers`, `invoices`, `business_plans` (s'attribuer un plan), `document_sequences` (numérotation), `invitations`.
+
+  Correctif proposé : supprimer ces politiques là où les politiques d'origine (`lecture` / `ecriture`, seuils par rôle) existent, et les réécrire avec `accessible_business_ids('member')` sur les tables qui n'ont qu'elles.
+- **À revoir aussi :**
+  - les 12 politiques `INSERT` anonymes `WITH CHECK true` (`customers`, `reservations`, `orders`, `reviews`, `conversations`…) contournent l'API publique (validation, dédoublonnage, anti-spam) ;
+  - lecture anonyme sans filtre de `employee_availabilities`, `talents`, `business_hours`, `business_closures` ;
+  - `has_agency_access`, `has_business_access` et `is_platform_admin` sont `SECURITY DEFINER` sans `SET search_path`.
+
 Autres fonctions disponibles : `has_feature`, `effective_rank`, `role_rank`, `is_platform_admin`, `enabled_modules`, `invite_member`, `accept_invitation`, `change_member_role`, `remove_member`, `next_document_number`.
 
 ---
@@ -367,6 +391,7 @@ Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp
 - ✅ **Démo :** l'agence de `client-demo` n'avait aucun membre. `test-auth@vwa.local` y est rattaché comme owner (base de dev uniquement : `supabase/manual/dev-demo-agency-member.sql`). Modules synchronisés depuis son type (`supabase/manual/sync-business-modules-from-type.sql`) : 11 modules. Vérifié en session : Sidebar « Rendez-vous », « Clients », sans Commandes, Produits, Profils ni Projets ; `/reservations` titré « Rendez-vous », sans champ « Couverts ». FiFi garde « Réservations ».
 
 ### 6.4 Carte & prestations — 2026-10-06 ✅
+- **Décision du 2026-10-12 : plus de module `services` pour les restaurants.** Pour `restaurant`, `pizzeria` et `bar-pub`, le module est retiré de `business_type_modules` et éteint pour les commerces existants (`supabase/manual/restaurants-without-services.sql`). FiFi n'a plus d'entrée « Formules » ; ses 4 lignes de `services` sont conservées en base, masquées. Le libellé « Formules » ne concerne plus que `caterer` et `food-truck`. Les mentions de « Formules » chez FiFi ci-dessous décrivent l'état du 6 octobre.
 - **Libellés :** `bookingLabels` expose `serviceTitle` / `serviceSingularTitle` / `servicePlural` (depuis `service_noun`). `/services` s'affiche « Formules » (restaurant), « Prestations » (barbier) ou « Soins ».
 - **Page `/services` migrée en V2** (`lib/v2/data/services.ts`, hook `useServices`) :
   - titre et boutons au vocabulaire du métier ;

@@ -1,5 +1,10 @@
 // Statuts V2 (contraintes CHECK en base, absentes des enums générés dans types/supabase.ts).
 
+// Statuts de businesses.status pour lesquels un commerce est « en service » : modules accessibles,
+// vitrine publique, ingestion. Même liste que la fonction SQL business_is_operational().
+// suspended et churned sont coupés ; « agency » n'est porté par aucun commerce aujourd'hui.
+export const OPERATIONAL_BUSINESS_STATUSES = ['active', 'active_client', 'lead_demo'] as const
+
 export const RESERVATION_STATUSES = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'] as const
 export type ReservationStatus = (typeof RESERVATION_STATUSES)[number]
 
