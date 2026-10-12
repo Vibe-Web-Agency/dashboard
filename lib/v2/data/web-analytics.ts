@@ -26,11 +26,14 @@ const bump = (counts: Map<string, number>, key: string) => counts.set(key, (coun
 
 /** Chemin d'une page vue (« /carte »), sans le domaine ni les paramètres. */
 function pagePath(url: string) {
+    let path: string
     try {
-        return new URL(url, 'https://site.invalid').pathname || '/'
+        path = new URL(url, 'https://site.invalid').pathname || '/'
     } catch {
         return url
     }
+    // « /reserver/ca837311-… » et « /reserver/dd001add-… » sont la même page vue par deux visiteurs.
+    return path.replace(/\/(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{4,})(?=\/|$)/gi, '/…')
 }
 
 /** Site d'où vient le visiteur (« google.com »), ou null pour un accès direct. */
@@ -172,53 +175,105 @@ export const clarityDashboardUrl = (projectId: string) => `https://clarity.micro
 
 // ── Chiffres Microsoft Clarity, relevés chaque soir dans `clarity_daily_metrics` (lib/v2/clarity.ts) ──
 
-type ClarityDay = { sessions: number | null; botSessions: number | null; users: number | null } & Record<string, unknown>
+type Bag = Record<string, unknown>
 const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+const bag = (v: unknown): Bag => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Bag) : {})
 
-/** Chiffres Clarity de la période : sommes pour les volumes, moyennes pondérées par les visites pour le reste. */
+/** Mesures données en moyenne (pondérée par les visites) ; les volumes, eux, s'additionnent. */
+const AVERAGED = ['scrollDepth', 'activeTimeSeconds', 'rageClickPct', 'deadClickPct', 'quickbackPct', 'excessiveScrollPct', 'scriptErrorPct', 'errorClickPct'] as const
+type Averaged = (typeof AVERAGED)[number]
+export type ClarityLine = { label: string; sessions: number } & Record<Averaged, number | null>
+
+/** Cumule des mesures jour après jour : visites additionnées, autres mesures pondérées par les visites du jour. */
+class Accumulator {
+    sessions = 0
+    private weighted = new Map<string, { sum: number; weight: number }>()
+    add(m: Bag) {
+        const w = n(m.sessions) ?? 0
+        this.sessions += w
+        for (const key of AVERAGED) {
+            const value = n(m[key])
+            // Un jour sans la mesure, ou sans visite, ne pèse pas dans la moyenne.
+            if (value === null || w <= 0) continue
+            const acc = this.weighted.get(key) ?? { sum: 0, weight: 0 }
+            acc.sum += value * w
+            acc.weight += w
+            this.weighted.set(key, acc)
+        }
+    }
+    line(label: string): ClarityLine {
+        const average = (key: Averaged) => { const a = this.weighted.get(key); return a && a.weight > 0 ? a.sum / a.weight : null }
+        return { label, sessions: this.sessions, ...(Object.fromEntries(AVERAGED.map((k) => [k, average(k)])) as Record<Averaged, number | null>) }
+    }
+}
+
+const BREAKDOWN_KEYS = ['pages', 'devices', 'sources'] as const
+
+/** Chiffres Clarity de la période, pour tout le site puis par page, appareil et provenance. null si aucun relevé. */
 export async function loadClarityMetrics(supabase: Client, businessId: string, days: WebPeriod) {
     const since = new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10)
     const { data, error } = await supabase.from('clarity_daily_metrics').select('date, metrics, fetched_at').eq('business_id', businessId).gte('date', since).order('date')
     if (error) throw error
-    const rows = data.map((r) => ({ date: r.date, fetchedAt: r.fetched_at, m: (r.metrics && typeof r.metrics === 'object' && !Array.isArray(r.metrics) ? r.metrics : {}) as ClarityDay }))
-    if (rows.length === 0) return null
+    if (data.length === 0) return null
 
-    const sum = (key: string) => rows.reduce((total, r) => total + (n(r.m[key]) ?? 0), 0)
-    // Moyenne pondérée par le nombre de visites du jour ; les jours sans la mesure sont ignorés.
-    const average = (key: string) => {
-        let weighted = 0, weight = 0
-        for (const r of rows) {
-            const value = n(r.m[key]), w = n(r.m.sessions) ?? 0
-            if (value !== null && w > 0) { weighted += value * w; weight += w }
+    const overall = new Accumulator()
+    const groups = { pages: new Map<string, Accumulator>(), devices: new Map<string, Accumulator>(), sources: new Map<string, Accumulator>() }
+    const distributions = { browsers: new Map<string, number>(), systems: new Map<string, number>(), countries: new Map<string, number>(), referrers: new Map<string, number>() }
+    let botSessions = 0, pagesWeighted = 0, pagesWeight = 0
+    const daily: { date: string; sessions: number }[] = []
+
+    for (const row of data) {
+        const m = bag(row.metrics)
+        overall.add(m)
+        const sessions = n(m.sessions) ?? 0
+        daily.push({ date: row.date, sessions })
+        botSessions += n(m.botSessions) ?? 0
+        const perSession = n(m.pagesPerSession)
+        if (perSession !== null && sessions > 0) { pagesWeighted += perSession * sessions; pagesWeight += sessions }
+
+        const stored = bag(m.distributions)
+        for (const key of Object.keys(distributions) as (keyof typeof distributions)[]) {
+            for (const item of Array.isArray(stored[key]) ? (stored[key] as unknown[]) : []) {
+                const line = bag(item)
+                if (typeof line.label === 'string' && line.label) distributions[key].set(line.label, (distributions[key].get(line.label) ?? 0) + (n(line.sessions) ?? 0))
+            }
         }
-        return weight > 0 ? weighted / weight : null
-    }
-    const pages = new Map<string, number>()
-    for (const r of rows) {
-        const list = Array.isArray(r.m.popularPages) ? r.m.popularPages : []
-        for (const p of list) {
-            if (p && typeof p === 'object' && typeof (p as { url?: unknown }).url === 'string') {
-                const url = pagePath((p as { url: string }).url)
-                pages.set(url, (pages.get(url) ?? 0) + (n((p as { visits?: unknown }).visits) ?? 0))
+
+        const breakdowns = bag(m.breakdowns)
+        for (const key of BREAKDOWN_KEYS) {
+            const list = Array.isArray(breakdowns[key]) ? (breakdowns[key] as unknown[]) : []
+            for (const item of list) {
+                const line = bag(item)
+                if (typeof line.label !== 'string' || !line.label) continue
+                // Les pages sont regroupées par chemin : « https://site.fr/carte?x=1 » et « /carte » sont la même page.
+                const label = key === 'pages' ? pagePath(line.label) : line.label
+                if (!groups[key].has(label)) groups[key].set(label, new Accumulator())
+                groups[key].get(label)!.add(line)
             }
         }
     }
+    const lines = (key: (typeof BREAKDOWN_KEYS)[number], limit: number) =>
+        [...groups[key]].map(([label, acc]) => acc.line(label)).filter((l) => l.sessions > 0).sort((a, b) => b.sessions - a.sessions).slice(0, limit)
+
     return {
-        days: rows.length,
-        firstDate: rows[0].date,
-        lastFetchedAt: rows[rows.length - 1].fetchedAt,
-        sessions: sum('sessions'),
-        botSessions: sum('botSessions'),
-        pagesPerSession: average('pagesPerSession'),
-        scrollDepth: average('scrollDepth'),
-        activeTimeSeconds: average('activeTimeSeconds'),
-        rageClickPct: average('rageClickPct'),
-        deadClickPct: average('deadClickPct'),
-        quickbackPct: average('quickbackPct'),
-        excessiveScrollPct: average('excessiveScrollPct'),
-        scriptErrorPct: average('scriptErrorPct'),
-        errorClickPct: average('errorClickPct'),
-        popularPages: top(pages, 6),
+        days: data.length,
+        firstDate: data[0].date,
+        lastFetchedAt: data[data.length - 1].fetched_at,
+        ...overall.line('Tout le site'),
+        botSessions,
+        pagesPerSession: pagesWeight > 0 ? pagesWeighted / pagesWeight : null,
+        daily,
+        pages: lines('pages', 15),
+        devices: lines('devices', 6),
+        sources: lines('sources', 8),
+        browsers: top(distributions.browsers, 6),
+        systems: top(distributions.systems, 6),
+        countries: top(distributions.countries, 6),
+        referrers: top(distributions.referrers, 8),
     }
 }
 export type ClaritySummary = NonNullable<Awaited<ReturnType<typeof loadClarityMetrics>>>
+
+/** Sections de Clarity qui n'existent pas dans l'API (heatmaps, enregistrements) : on y renvoie. */
+export const clarityHeatmapsUrl = (projectId: string) => `https://clarity.microsoft.com/projects/view/${projectId}/heatmaps`
+export const clarityRecordingsUrl = (projectId: string) => `https://clarity.microsoft.com/projects/view/${projectId}/impressions`

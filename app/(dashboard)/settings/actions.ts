@@ -6,7 +6,7 @@ import { getTenantContext } from '@/lib/v2/tenant'
 import { assertTouched } from '@/lib/v2/data/errors'
 import { type IssuerSettings, cleanIssuer, writeModuleSetting } from '@/lib/v2/data/module-settings'
 import { cleanClarityProjectId } from '@/lib/v2/data/web-analytics'
-import { CLARITY_PROVIDER, ClarityError, connectClarity, disconnectClarity, fetchClarityInsights, storeClarity } from '@/lib/v2/clarity'
+import { CLARITY_PROVIDER, ClarityError, collectClarity, connectClarity, disconnectClarity, storeClarity } from '@/lib/v2/clarity'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
 import {
@@ -169,11 +169,12 @@ export async function saveClarityConnection(input: { projectId: string; token: s
             await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: '', connected: false })
             await disconnectClarity(admin, guard.businessId)
         } else if (token) {
-            const raw = await fetchClarityInsights(token)
+            // Premier relevé : il valide le jeton (un refus lève ClarityError) et sera conservé.
+            const collected = await collectClarity(token)
             // Le réglage d'abord : c'est lui que la RLS protège (administrateur). S'il est refusé, rien n'est enregistré.
             await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: projectId, connected: true })
             await connectClarity(admin, guard.businessId, projectId, token)
-            await storeClarity(admin, guard.businessId, raw)
+            await storeClarity(admin, guard.businessId, collected)
         } else {
             const { data: existing } = await admin.from('business_integrations').select('id').eq('business_id', guard.businessId).eq('provider', CLARITY_PROVIDER).maybeSingle()
             await writeModuleSetting(supabase, guard.businessId, 'analytics', 'clarity', { project_id: projectId, connected: !!existing })
