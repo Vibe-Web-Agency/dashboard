@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getPlatformAdmin, loadMemberships } from "@/lib/v2/admin";
-import { loadAccountStates } from "@/lib/v2/admin-invite";
 import { panelStyle } from "@/lib/v2/admin-constants";
 import { InviteForm } from "../_components/InviteForm";
 import { MembershipManager } from "./_components/MembershipManager";
@@ -10,9 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function MembershipsPage() {
     const admin = await getPlatformAdmin();
     if (!admin) redirect("/");
-    const [data, states] = await Promise.all([loadMemberships(admin.db), loadAccountStates(admin.db)]);
-    // Jamais connecté : l'invitation est encore en attente.
-    const memberships = data.memberships.map((m) => ({ ...m, pending: !states.get(m.profile_id)?.lastSignInAt }));
+    const data = await loadMemberships(admin.db);
+    const memberships = data.memberships;
 
     return (
         <div className="flex flex-col gap-6 max-w-5xl">

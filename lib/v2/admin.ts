@@ -3,6 +3,8 @@ import { type AdminClient, getAdminClient } from './supabase-admin'
 import { createServerSupabase } from './supabase-server'
 import { ROLES, type Role } from './roles'
 import { BUSINESS_STATUSES } from './admin-constants'
+import { personName } from './names'
+import { isPendingProfile } from './statuses'
 
 // Back-office plateforme (CLAUDE.md 8). Réservé aux profils listés dans `platform_admins`.
 // Les lectures et écritures passent par la clé de service : chaque point d'entrée (layout, Server Action)
@@ -197,7 +199,7 @@ export async function setPlanModule(db: AdminClient, planId: string, moduleId: s
 export async function loadMemberships(db: AdminClient) {
     const [memberships, profiles, agencies, businesses] = await Promise.all([
         db.from('memberships').select('id, profile_id, agency_id, business_id, role, is_active, created_at').order('created_at'),
-        db.from('profiles').select('id, email, full_name'),
+        db.from('profiles').select('id, email, first_name, last_name, status, last_sign_in_at'),
         db.from('agencies').select('id, name').order('name'),
         db.from('businesses').select('id, name, agency_id').order('name'),
     ])
@@ -210,7 +212,11 @@ export async function loadMemberships(db: AdminClient) {
         memberships: unwrap(memberships).map((m) => ({
             ...m,
             email: profile.get(m.profile_id)?.email ?? '—',
-            fullName: profile.get(m.profile_id)?.full_name ?? null,
+            fullName: personName(profile.get(m.profile_id)) || null,
+            /** État du compte : invited, pending ou active (profiles.status). */
+            status: profile.get(m.profile_id)?.status ?? 'active',
+            lastSignInAt: profile.get(m.profile_id)?.last_sign_in_at ?? null,
+            pending: isPendingProfile(profile.get(m.profile_id)?.status),
             agencyName: agencyName.get(m.agency_id) ?? '—',
             businessName: m.business_id ? (businessName.get(m.business_id) ?? '—') : null,
         })),

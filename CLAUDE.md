@@ -42,6 +42,10 @@ Derrière le proxy d'entreprise, voir « Notes d'environnement » plus bas.
 - `memberships` relie `profile_id` à `agency_id` (obligatoire) et `business_id` (nullable).
 - Rôles : `owner | administrator | member | viewer`.
 - `business_id` NULL = membre au niveau agence, qui accède à tous les commerces de l'agence.
+- **`profiles` (2026-10-13, `supabase/manual/profiles-names-status.sql`, à rejouer en production) :**
+  - `first_name` et `last_name`, comme `customers` et `employees` ; `full_name` n'est plus lu ni écrit. Affichage par `personName()`. Le trigger `handle_new_user` ne fabrique plus de nom à partir de l'adresse email : un profil sans nom s'affiche par son email.
+  - `status` : `invited` (créé par invitation, jamais connecté), `pending` (inscription libre, jamais connecté), `active` (connecté au moins une fois). `last_sign_in_at` : copie de la dernière connexion. Les deux sont tenus par des triggers sur `auth.users` (`handle_new_user`, `handle_user_sign_in`) ; personne ne les écrit à la main. Côté code : `PROFILE_STATUS_UI` et `isPendingProfile` (`lib/v2/statuses.ts`). L'état des comptes se lit donc dans `profiles`, sous RLS, sans passer par l'API d'administration.
+  - **Droits de colonne :** un utilisateur ne modifie que `first_name`, `last_name`, `full_name`, `phone`, `avatar_url` et `locale` de son profil. Avant, il pouvait changer son `email`, donc usurper l'adresse d'un autre et recevoir à sa place un accès donné par email.
 
 **CRM Ingestion :** `customers`.
 - **Nom (décision du 2026-10-12) :** on écrit `first_name` et `last_name`, plus `full_name`. Cette colonne n'est plus lue ni écrite par le code et peut être supprimée. Affichage : `personName()` (`lib/v2/names.ts`). Les clients existants ont été repris (`supabase/manual/customers-first-last-name.sql`).
@@ -471,7 +475,7 @@ Menu : Tableau de bord, Clients, Prospects, Tâches, Utilisateurs, Plans & modul
   - si la membership ne peut pas être créée, le compte créé est supprimé ;
   - le lien pointe vers `/auth/confirm?token_hash=…&type=invite|recovery` (`app/auth/confirm/route.ts`), qui ouvre la session côté serveur puis redirige vers `/set-password`. Le middleware laisse passer cette route, même si une autre session est ouverte ;
   - « Renvoyer l'invitation » / « Envoyer un lien » produit un lien `recovery` ;
-  - un compte jamais connecté est affiché « Invitation en attente » (`auth.users.last_sign_in_at`).
+  - un compte jamais connecté est affiché « Invitation en attente » (`profiles.status = 'invited'`, voir 1.2).
 - **Trigger `handle_new_user`** (`supabase/manual/handle-new-user-invited.sql`, à rejouer en production) : un compte invité porte `vwa_invited = true` dans ses métadonnées et ne reçoit **pas** d'établissement de démonstration. L'agence par défaut des inscriptions libres est maintenant l'agence interne, et non plus une agence prise au hasard (`LIMIT 1` sans ordre).
 - **Nouveau client** (`/admin/tenants/new`) : commerce, plan, email du propriétaire, en un seul envoi. Le commerce créé n'est pas annulé si le plan ou l'invitation échoue : l'étape est signalée et se refait depuis la fiche. `?prospect=<id>` préremplit depuis un prospect et le passe à « signé ».
 - **Fiche client** : en plus du plan et des modules, section « Accès » (membres directs et membres de niveau agence, invitation verrouillée sur ce commerce) et section « Suivi » (tâches du client).

@@ -3,6 +3,17 @@
 // Statuts de businesses.status pour lesquels un commerce est « en service » : modules accessibles,
 // vitrine publique, ingestion. Même liste que la fonction SQL business_is_operational().
 // suspended et churned sont coupés ; « agency » n'est porté par aucun commerce aujourd'hui.
+// État d'un compte (profiles.status, tenu à jour par les triggers sur auth.users).
+export const PROFILE_STATUSES = ['invited', 'pending', 'active'] as const
+export type ProfileStatus = (typeof PROFILE_STATUSES)[number]
+export const PROFILE_STATUS_UI: Record<ProfileStatus, { label: string; pill: string }> = {
+    invited: { label: 'Invitation en attente', pill: 'pill pill-amber' },
+    pending: { label: 'Jamais connecté', pill: 'pill pill-muted' },
+    active: { label: 'Actif', pill: 'pill pill-green' },
+}
+/** Le compte ne s'est encore jamais connecté. */
+export const isPendingProfile = (status: string | null | undefined) => status === 'invited' || status === 'pending'
+
 export const OPERATIONAL_BUSINESS_STATUSES = ['active', 'active_client', 'lead_demo'] as const
 
 export const RESERVATION_STATUSES = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'] as const

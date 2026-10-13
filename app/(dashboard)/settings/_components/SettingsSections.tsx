@@ -54,23 +54,25 @@ function Feedback({ result }: { result: ActionResult | null }) {
 // ─── Mon compte ──────────────────────────────────────────────────────────────
 
 export function AccountSection({ profile, email }: { profile: Awaited<ReturnType<typeof getProfile>>; email: string }) {
-    const [fullName, setFullName] = useState(profile?.full_name ?? "");
+    const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+    const [lastName, setLastName] = useState(profile?.last_name ?? "");
     const [phone, setPhone] = useState(profile?.phone ?? "");
     const [result, setResult] = useState<ActionResult | null>(null);
     const [pending, startTransition] = useTransition();
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        startTransition(async () => setResult(await saveProfile({ full_name: fullName, phone })));
+        startTransition(async () => setResult(await saveProfile({ first_name: firstName, last_name: lastName, phone })));
     };
 
     return (
         <Section icon={User} title="Mon compte" subtitle="Vos informations personnelles">
             <form onSubmit={submit} className="flex flex-col gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Nom complet"><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></Field>
-                    <Field label="Téléphone"><Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} /></Field>
-                    <Field label="Email de connexion" wide>
+                    <Field label="Prénom"><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" /></Field>
+                    <Field label="Nom"><Input value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" /></Field>
+                    <Field label="Téléphone"><Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" /></Field>
+                    <Field label="Email de connexion">
                         <Input value={email} disabled />
                     </Field>
                 </div>

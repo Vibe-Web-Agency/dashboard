@@ -148,15 +148,15 @@ export async function replaceBusinessHours(supabase: Client, businessId: string,
 // ─── Profil de l'utilisateur connecté ────────────────────────────────────────
 
 export async function getProfile(supabase: Client, profileId: string) {
-    const { data, error } = await supabase.from('profiles').select('id, full_name, email, phone').eq('id', profileId).maybeSingle()
+    const { data, error } = await supabase.from('profiles').select('id, first_name, last_name, email, phone').eq('id', profileId).maybeSingle()
     if (error) throw error
     return data
 }
 
-export async function updateProfile(supabase: Client, profileId: string, input: { full_name: string | null; phone: string | null }) {
+export async function updateProfile(supabase: Client, profileId: string, input: { first_name: string | null; last_name: string | null; phone: string | null }) {
     const { data, error } = await supabase
         .from('profiles')
-        .update({ full_name: input.full_name?.trim() || null, phone: input.phone?.trim() || null })
+        .update({ first_name: input.first_name?.trim() || null, last_name: input.last_name?.trim() || null, phone: input.phone?.trim() || null })
         .eq('id', profileId)
         .select('id')
     if (error) throw error

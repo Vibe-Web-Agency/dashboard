@@ -75,7 +75,7 @@ export async function saveBusinessHours(slots: unknown): Promise<ActionResult> {
 }
 
 // Chaque utilisateur modifie son propre profil, quel que soit son rôle.
-export async function saveProfile(input: { full_name: string | null; phone: string | null }): Promise<ActionResult> {
+export async function saveProfile(input: { first_name: string | null; last_name: string | null; phone: string | null }): Promise<ActionResult> {
     const supabase = await createServerSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { ok: false, error: 'Session expirée, reconnectez-vous.' }

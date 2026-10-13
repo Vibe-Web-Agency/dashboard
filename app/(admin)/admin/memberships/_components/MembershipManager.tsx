@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import type { loadMemberships } from "@/lib/v2/admin";
-import { ROLE_LABEL, fieldStyle, panelStyle } from "@/lib/v2/admin-constants";
+import { ROLE_LABEL, fieldStyle, formatAdminDate, panelStyle } from "@/lib/v2/admin-constants";
+import { PROFILE_STATUS_UI, type ProfileStatus } from "@/lib/v2/statuses";
 import { resendAccessLink, saveMembershipActive, saveMembershipRole } from "../../actions";
 import { AccessOutcome, ROLE_CHOICES } from "../../_components/InviteForm";
 import { ErrorLine, Toggle, useAdminAction } from "../../_components/ui";
 
-export type MembershipRow = Awaited<ReturnType<typeof loadMemberships>>["memberships"][number] & { pending: boolean };
+export type MembershipRow = Awaited<ReturnType<typeof loadMemberships>>["memberships"][number];
 
 /** Accès existants : rôle, activation, renvoi du lien de connexion. `showScope` masque l'agence et le périmètre sur la fiche d'un commerce. */
 export function MembershipManager({ memberships, showScope = true }: { memberships: MembershipRow[]; showScope?: boolean }) {
@@ -41,8 +42,10 @@ export function MembershipManager({ memberships, showScope = true }: { membershi
                         {memberships.map((m) => (
                             <tr key={m.id} style={{ borderBottom: "1px solid var(--border)", color: "var(--text)", opacity: m.is_active ? 1 : 0.55 }}>
                                 <td className="px-4 py-3">
-                                    {m.email} {m.pending && <span className="pill pill-amber ml-1">Invitation en attente</span>}
-                                    {m.fullName && <span className="block text-xs" style={{ color: "var(--text-faint)" }}>{m.fullName}</span>}
+                                    {m.email} {m.pending && <span className={`${PROFILE_STATUS_UI[m.status as ProfileStatus]?.pill ?? "pill pill-muted"} ml-1`}>{PROFILE_STATUS_UI[m.status as ProfileStatus]?.label ?? m.status}</span>}
+                                    <span className="block text-xs" style={{ color: "var(--text-faint)" }}>
+                                        {[m.fullName, m.lastSignInAt ? `dernière connexion le ${formatAdminDate(m.lastSignInAt)}` : null].filter(Boolean).join(" · ")}
+                                    </span>
                                 </td>
                                 {showScope && <td className="px-4 py-3">{m.agencyName}</td>}
                                 <td className="px-4 py-3">{m.businessName ?? <span style={{ color: "var(--text-muted)" }}>Toute l&apos;agence</span>}</td>

@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/v2/supabase-server";
 import { getTenantContext } from "@/lib/v2/tenant";
 import { getProfile, listBusinessHours } from "@/lib/v2/data/businesses";
-import { loadAccountStates } from "@/lib/v2/admin-invite";
 import { bookingLabels } from "@/lib/v2/labels";
 import { readNotificationSettings } from "@/lib/v2/notifications";
-import { getAdminClient } from "@/lib/v2/supabase-admin";
+import { personName } from "@/lib/v2/names";
+import { isPendingProfile } from "@/lib/v2/statuses";
 import { AccountSection, BusinessSection, HoursSection, SessionSection } from "./_components/SettingsSections";
 import { readIssuer, readModuleSettings } from "@/lib/v2/data/module-settings";
 import { IssuerSection } from "./_components/IssuerSection";
@@ -24,7 +24,7 @@ export default async function SettingsPage() {
     const hasModule = (slug: string) => tenant.modules.some((m) => m.slug === slug);
 
     // Toutes les lectures partent ensemble : la page ne coûte qu'un aller-retour avec la base, plus un pour l'équipe.
-    const [profile, hours, quoteSettings, reservationSettings, subscriptionRow, membershipRows, states] = await Promise.all([
+    const [profile, hours, quoteSettings, reservationSettings, subscriptionRow, membershipRows] = await Promise.all([
         getProfile(supabase, user.id),
         listBusinessHours(supabase, business.id),
         // Mentions légales des devis : seulement si le commerce a le module des demandes et devis.
@@ -42,7 +42,6 @@ export default async function SettingsPage() {
         canManage
             ? supabase.from("memberships").select("id, profile_id, role, business_id").eq("agency_id", business.agency_id).eq("is_active", true).or(`business_id.eq.${business.id},business_id.is.null`)
             : null,
-        canManage ? loadAccountStates(getAdminClient()) : null,
     ]);
     const issuer = quoteSettings ? readIssuer(quoteSettings) : null;
     const notifications = reservationSettings ? readNotificationSettings(reservationSettings) : null;
@@ -51,15 +50,15 @@ export default async function SettingsPage() {
     let team: TeamMember[] = [];
     const memberships = membershipRows?.data ?? [];
     if (memberships.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("id, email, full_name").in("id", memberships.map((m) => m.profile_id));
+        const { data: profiles } = await supabase.from("profiles").select("id, email, first_name, last_name, status").in("id", memberships.map((m) => m.profile_id));
         const byId = new Map((profiles ?? []).map((pr) => [pr.id, pr]));
         team = memberships.map((m) => ({
             id: m.id,
             email: byId.get(m.profile_id)?.email ?? "—",
-            fullName: byId.get(m.profile_id)?.full_name ?? null,
+            fullName: personName(byId.get(m.profile_id)) || null,
             role: m.role,
             isSelf: m.profile_id === user.id,
-            pending: !states?.get(m.profile_id)?.lastSignInAt,
+            pending: isPendingProfile(byId.get(m.profile_id)?.status),
             agencyLevel: m.business_id === null,
         }));
     }

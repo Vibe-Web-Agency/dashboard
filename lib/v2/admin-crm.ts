@@ -1,7 +1,6 @@
 import type { TablesInsert, TablesUpdate } from '@/types/supabase'
 import type { AdminClient } from './supabase-admin'
 import { AdminInputError, CURRENT_PLAN_STATUSES, unwrap, unwrapMaybe } from './admin'
-import { loadAccountStates } from './admin-invite'
 import {
     ACTIVITY_KINDS,
     OPEN_PROSPECT_STATUSES,
@@ -229,7 +228,7 @@ export async function loadDashboard(db: AdminClient) {
         db.from('businesses').select('status'),
         db.from('prospects').select('id, business_name, status, estimated_value_cents, next_action_at').eq('agency_id', agencyId).in('status', [...OPEN_PROSPECT_STATUSES]),
         loadTasks(db),
-        loadAccountStates(db),
+        db.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'invited'),
     ])
     const open = unwrap(prospects)
     const openTasks = tasks.filter((t) => t.status !== 'done')
@@ -246,6 +245,6 @@ export async function loadDashboard(db: AdminClient) {
             .sort((a, b) => a.next_action_at!.localeCompare(b.next_action_at!)),
         dueTasks: openTasks.filter((t) => t.due_at && new Date(t.due_at) <= endOfToday),
         openTaskCount: openTasks.length,
-        pendingInvitations: [...accounts.values()].filter((a) => a.invitedAt && !a.lastSignInAt).length,
+        pendingInvitations: accounts.count ?? 0,
     }
 }

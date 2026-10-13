@@ -85,10 +85,3 @@ export async function resendAccess(db: AdminClient, profileId: string, siteUrl: 
     const emailError = await sendEmail(profile.email, 'Votre lien de connexion', accessEmail(link, 'votre espace', 'Voici un nouveau lien pour accéder à'))
     return { link, emailSent: emailError === null, emailError }
 }
-
-/** État des comptes côté authentification : jamais connecté = invitation en attente. */
-export async function loadAccountStates(db: AdminClient) {
-    const { data, error } = await db.auth.admin.listUsers({ perPage: 1000 })
-    if (error) throw new Error(error.message)
-    return new Map(data.users.map((u) => [u.id, { lastSignInAt: u.last_sign_in_at ?? null, invitedAt: u.invited_at ?? null }]))
-}
