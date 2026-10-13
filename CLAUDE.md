@@ -43,12 +43,12 @@ Derrière le proxy d'entreprise, voir « Notes d'environnement » plus bas.
 - Rôles : `owner | administrator | member | viewer`.
 - `business_id` NULL = membre au niveau agence, qui accède à tous les commerces de l'agence.
 - **`profiles` (2026-10-13, `supabase/manual/profiles-names-status.sql`, à rejouer en production) :**
-  - `first_name` et `last_name`, comme `customers` et `employees` ; `full_name` n'est plus lu ni écrit. Affichage par `personName()`. Le trigger `handle_new_user` ne fabrique plus de nom à partir de l'adresse email : un profil sans nom s'affiche par son email.
+  - `first_name` et `last_name`, comme `customers` et `employees` ; la colonne `full_name` a été supprimée (`drop-full-name-columns.sql`). Affichage par `personName()`. Le trigger `handle_new_user` ne fabrique plus de nom à partir de l'adresse email : un profil sans nom s'affiche par son email.
   - `status` : `invited` (créé par invitation, jamais connecté), `pending` (inscription libre, jamais connecté), `active` (connecté au moins une fois). `last_sign_in_at` : copie de la dernière connexion. Les deux sont tenus par des triggers sur `auth.users` (`handle_new_user`, `handle_user_sign_in`) ; personne ne les écrit à la main. Côté code : `PROFILE_STATUS_UI` et `isPendingProfile` (`lib/v2/statuses.ts`). L'état des comptes se lit donc dans `profiles`, sous RLS, sans passer par l'API d'administration.
-  - **Droits de colonne :** un utilisateur ne modifie que `first_name`, `last_name`, `full_name`, `phone`, `avatar_url` et `locale` de son profil. Avant, il pouvait changer son `email`, donc usurper l'adresse d'un autre et recevoir à sa place un accès donné par email.
+  - **Droits de colonne :** un utilisateur ne modifie que `first_name`, `last_name`, `phone`, `avatar_url` et `locale` de son profil. Avant, il pouvait changer son `email`, donc usurper l'adresse d'un autre et recevoir à sa place un accès donné par email.
 
 **CRM Ingestion :** `customers`.
-- **Nom (décision du 2026-10-12) :** on écrit `first_name` et `last_name`, plus `full_name`. Cette colonne n'est plus lue ni écrite par le code et peut être supprimée. Affichage : `personName()` (`lib/v2/names.ts`). Les clients existants ont été repris (`supabase/manual/customers-first-last-name.sql`).
+- **Nom (décision du 2026-10-12) :** on écrit `first_name` et `last_name`. La colonne `full_name` a été supprimée le 2026-10-13 (`supabase/manual/drop-full-name-columns.sql`, à rejouer en production en dernier). Affichage : `personName()` (`lib/v2/names.ts`). Les clients existants ont été repris (`supabase/manual/customers-first-last-name.sql`).
 - Index unique **partiel** : `customers_business_id_email_idx ON (business_id, email) WHERE email IS NOT NULL`. Pas d'unicité sur le téléphone.
 - `email` doit être en minuscules (CHECK `email = lower(email)`).
 - `source` : `reservation | order | quote | review | form | manual | import | instagram | whatsapp`.

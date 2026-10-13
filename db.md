@@ -150,13 +150,16 @@
 | Name | Type | Constraints |
 |------|------|-------------|
 | `id` | `uuid` | Primary |
-| `full_name` | `text` |  Nullable |
+| `first_name` | `text` |  Nullable |
+| `last_name` | `text` |  Nullable |
 | `avatar_url` | `text` |  Nullable |
 | `email` | `text` |  |
 | `phone` | `text` |  Nullable |
 | `locale` | `text` |  |
 | `created_at` | `timestamptz` |  |
 | `updated_at` | `timestamptz` |  |
+| `status` | `text` |  |
+| `last_sign_in_at` | `timestamptz` |  Nullable |
 
 ## Table `platform_admins`
 
@@ -624,7 +627,6 @@
 | `profile_id` | `uuid` |  Nullable |
 | `first_name` | `text` |  Nullable |
 | `last_name` | `text` |  Nullable |
-| `full_name` | `text` |  Nullable |
 | `email` | `text` |  Nullable |
 | `phone` | `text` |  Nullable |
 | `source` | `text` |  |
@@ -757,6 +759,8 @@
 | `created_by` | `uuid` |  Nullable |
 | `created_at` | `timestamptz` |  |
 | `updated_at` | `timestamptz` |  |
+| `buyer` | `jsonb` |  Nullable |
+| `seller` | `jsonb` |  Nullable |
 
 ## Table `quote_items`
 
@@ -1362,7 +1366,7 @@ Connexion OAuth à Google Business Profile. Contient un secret : aucune politiqu
 
 Toutes les vues sont en `security_invoker = true` (elles appliquent la RLS de l'utilisateur sur les tables sous-jacentes), **sauf** `v_google_connections_status`, qui s'exécute avec les droits de son propriétaire et filtre elle-même sur `accessible_business_ids('viewer')`.
 
-Le nom d'une personne se compose avec `concat_ws(' ', first_name, last_name)` : `customers.full_name` n'est plus écrit.
+Le nom d'une personne se compose avec `concat_ws(' ', first_name, last_name)` : la colonne `full_name` a été supprimée de `customers` et de `profiles`.
 
 ### View `v_agency_businesses_overview`
 
@@ -2288,10 +2292,10 @@ Ce qui précède décrit la base telle qu'elle était avant ces dates. En partic
 
 | Table | Colonnes | Rôle | Script |
 |---|---|---|---|
-| `profiles` | `first_name`, `last_name` | Remplacent `full_name`, qui n'est plus lu ni écrit | `profiles-names-status.sql` |
+| `profiles` | `first_name`, `last_name` | Remplacent `full_name`, supprimée par `drop-full-name-columns.sql` | `profiles-names-status.sql` |
 | `profiles` | `status` (`invited`, `pending`, `active`), `last_sign_in_at` | État du compte, tenu par les triggers sur `auth.users` | `profiles-names-status.sql` |
 | `quotes` | `buyer`, `seller` (jsonb) | Destinataire saisi sur le devis ; émetteur figé à l'envoi | `quotes-seller-buyer.sql` |
-| `customers` | `first_name`, `last_name` | Remplacent `full_name` | `customers-first-last-name.sql` |
+| `customers` | `first_name`, `last_name` | Remplacent `full_name`, supprimée par `drop-full-name-columns.sql` | `customers-first-last-name.sql` |
 | `business_types` | `customer_noun`, `service_noun` | Vocabulaire du métier | `business-types-*.sql` |
 
 ### Fonctions et triggers ajoutés ou modifiés
@@ -2311,4 +2315,4 @@ Ce qui précède décrit la base telle qu'elle était avant ces dates. En partic
 - `business_module_settings.settings` (public pour les modules activés, aucun secret) : `reservations.notifications`, `quotes.issuer`, `analytics.clarity`, `reviews.google`.
 - `plan_quotas`, `business_addons` (`meter = 'sms'`) et `usage_events` : droit mensuel aux SMS et consommation.
 - `outbound_messages` : journal de tous les emails et SMS envoyés, avec une clé d'idempotence.
-- `profiles` : un utilisateur ne peut modifier que `first_name`, `last_name`, `full_name`, `phone`, `avatar_url`, `locale` (droits de colonne).
+- `profiles` : un utilisateur ne peut modifier que `first_name`, `last_name`, `phone`, `avatar_url`, `locale` (droits de colonne).

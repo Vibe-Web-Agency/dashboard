@@ -1587,7 +1587,6 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string | null
-          full_name: string | null
           id: string
           is_blocked: boolean
           last_name: string | null
@@ -1605,7 +1604,6 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
-          full_name?: string | null
           id?: string
           is_blocked?: boolean
           last_name?: string | null
@@ -1623,7 +1621,6 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
-          full_name?: string | null
           id?: string
           is_blocked?: boolean
           last_name?: string | null
@@ -3342,7 +3339,6 @@ export type Database = {
           created_at: string
           email: string
           first_name: string | null
-          full_name: string | null
           id: string
           last_name: string | null
           last_sign_in_at: string | null
@@ -3356,7 +3352,6 @@ export type Database = {
           created_at?: string
           email: string
           first_name?: string | null
-          full_name?: string | null
           id: string
           last_name?: string | null
           last_sign_in_at?: string | null
@@ -3370,7 +3365,6 @@ export type Database = {
           created_at?: string
           email?: string
           first_name?: string | null
-          full_name?: string | null
           id?: string
           last_name?: string | null
           last_sign_in_at?: string | null

@@ -12,7 +12,7 @@ Le détail technique de chaque sujet est dans `CLAUDE.md` (sections indiquées).
 
 | # | Quoi | Pourquoi | Qui | Effort |
 |---|---|---|---|---|
-| 1 | **Pousser `develop`.** Les commits depuis `77aa43a` ne sont que sur ce poste. | Rien n'est sauvegardé ailleurs. | Vous ou Code | S |
+| 1 | ~~Pousser `develop`.~~ **Fait le 2026-10-13.** | — | — | — |
 | 2 | **Vous inscrire dans `platform_admins`** (une ligne avec votre `profile_id`). | L'espace `/admin` n'a jamais été ouvert : clients, invitations, prospects, tâches, support et plans ne sont testés que côté données. | Vous | S |
 | 3 | **Clé Google Places** : la restreindre à « Places API (New) », poser un plafond de quota, puis la mettre dans `.env.local` et Vercel (`GOOGLE_PLACES_API_KEY`). | Le texte des avis Google arrive avec cette clé (vérifié). Elle a été collée dans une conversation : à restreindre, idéalement à régénérer. | Vous | S |
 | 4 bis | **Renseigner l'email de contact de l'agence** (`agencies.contact_email` de Vibe Web Agency). | C'est là qu'arrivent les alertes de nouvelle demande de support. | Vous | S |
@@ -24,7 +24,7 @@ Le détail technique de chaque sujet est dans `CLAUDE.md` (sections indiquées).
 |---|---|---|---|---|
 | 5 | **Cliquer dans le dashboard, sur ordinateur et sur téléphone.** L'affichage est vérifié (2026-10-13) : 20 pages à 375, 768 et 1 280 px dans un vrai navigateur, sans débordement, avec les corrections faites sur les réservations, les demandes, la carte, la fiche client et les en-têtes. Restent à essayer à la main : le menu mobile, les formulaires, les boutons, et tout l'espace `/admin` (non vérifié, faute d'accès admin). | Les interactions n'ont jamais été essayées en vrai. | Vous, puis Code pour corriger | M |
 | 6 | **Premier envoi réel d'email** : une invitation, une confirmation de réservation, un devis avec son PDF. | Aucun email n'est parti pendant les tests. À confirmer : la clé Resend et le domaine d'expédition `vibewebagency.fr`. | Vous | S |
-| 7 | **Rejouer les scripts SQL sur la base de production** (`supabase/manual/`, sauf les `dev-*.sql`). Les plus récents : `rls-hardening`, `handle-new-user-invited`, `api-rate-limits`, `quotes-seller-buyer`, `clarity-daily-metrics`, `profiles-names-status` (à jouer après `handle-new-user-invited`, dont il reprend le trigger). | La production n'a reçu aucune des corrections. L'état de sa base n'a pas été relevé : à comparer avant de rejouer. | Vous, avec Code | M |
+| 7 | **Rejouer les scripts SQL sur la base de production** (`supabase/manual/`, sauf les `dev-*.sql`). Les plus récents : `rls-hardening`, `handle-new-user-invited`, `api-rate-limits`, `quotes-seller-buyer`, `clarity-daily-metrics`, `profiles-names-status` (à jouer après `handle-new-user-invited`, dont il reprend le trigger), puis `drop-full-name-columns` **en tout dernier** (irréversible). | La production n'a reçu aucune des corrections. L'état de sa base n'a pas été relevé : à comparer avant de rejouer. | Vous, avec Code | M |
 | 8 | **Variables d'environnement sur Vercel** : `CRON_SECRET`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL` ; `TWILIO_*` seulement si les SMS servent. | Sans `CRON_SECRET`, ni rappels ni relevés ne tournent. | Vous | S |
 | 9 | **Vérifier les deux tâches planifiées sur Vercel** (`vercel.json` : 7 h et 23 h UTC). | Jamais déclenchées en vrai. Le nombre de tâches autorisé dépend de votre offre Vercel. | Vous | S |
 | 10 | **Vérifier que les sites clients passent par `/api/v1/public/*`.** | Depuis le durcissement RLS, un site qui écrit directement dans `reservations`, `customers`, `orders` ou la messagerie avec la clé publique est refusé (section 1.3). | Vous | S |
@@ -71,9 +71,7 @@ Aucune ne bloque aujourd'hui, mais chacune conditionne un chantier.
 
 Fait le 2026-10-13 : dépendances inutilisées retirées (`stripe`, `twilio`, `resend`, `recharts`, `googleapis`), route `/api/revalidate-iconik` supprimée, erreurs de lint corrigées, `db.md` complété, sections 6.2 et 6.3 de `CLAUDE.md` marquées comme historiques.
 
-Reste, parce que c'est irréversible et qu'il faut votre accord :
-
-- Supprimer les colonnes `customers.full_name` et `profiles.full_name`, qui ne sont plus lues ni écrites.
+Les colonnes `customers.full_name` et `profiles.full_name` ont été supprimées de la base de dev (`drop-full-name-columns.sql`).
 
 ---
 

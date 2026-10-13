@@ -7,7 +7,7 @@ import { personName } from '../names'
 
 type Client = SupabaseClient<Database>
 
-// Le nom s'écrit dans first_name et last_name (décision du 2026-10-12) ; full_name n'est plus lu ni écrit.
+// Le nom s'écrit dans first_name et last_name (décision du 2026-10-12) ; la colonne full_name a été supprimée.
 export type CustomerInput = {
     first_name: string | null
     last_name: string | null

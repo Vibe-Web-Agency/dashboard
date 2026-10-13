@@ -1,4 +1,4 @@
-// Nom des personnes : la base stocke first_name et last_name (décision du 2026-10-12), plus full_name.
+// Nom des personnes : la base stocke first_name et last_name (customers, profiles, employees).
 
 type Named = { first_name: string | null; last_name: string | null }
 
