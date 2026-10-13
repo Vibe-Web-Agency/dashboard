@@ -75,7 +75,7 @@ Aucune ne bloque aujourd'hui, mais chacune conditionne un chantier.
 
 ## 6. Ménage
 
-Fait le 2026-10-13 : dépendances inutilisées retirées (`stripe`, `twilio`, `resend`, `recharts`, `googleapis`), route `/api/revalidate-iconik` supprimée, erreurs de lint corrigées, `db.md` complété, sections 6.2 et 6.3 de `CLAUDE.md` marquées comme historiques.
+Fait le 2026-10-13 : dépendances inutilisées retirées (`stripe`, `twilio`, `resend`, `recharts`, `googleapis`), route `/api/revalidate-iconik` supprimée, erreurs de lint corrigées, `db_dev.md` complété, sections 6.2 et 6.3 de `CLAUDE.md` marquées comme historiques.
 
 Les colonnes `customers.full_name` et `profiles.full_name` ont été supprimées de la base de dev (`drop-full-name-columns.sql`).
 
