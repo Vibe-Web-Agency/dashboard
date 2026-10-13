@@ -1,10 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Node.js runtime pour respecter les certificats système derrière le proxy d'entreprise.
-export const runtime = 'nodejs'
-
-export async function middleware(request: NextRequest) {
+// Contrôle d'accès exécuté avant chaque page (fichier `proxy`, nom du `middleware` depuis Next 16).
+// Il tourne toujours sur le runtime Node.js, qui respecte les certificats système derrière un proxy d'entreprise.
+export async function proxy(request: NextRequest) {
     const response = NextResponse.next()
 
     const supabase = createServerClient(

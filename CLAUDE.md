@@ -669,4 +669,4 @@ L'application s'appuie strictement sur les variables d'environnement suivantes :
 - Réseau d'entreprise avec proxy TLS : Node doit tourner avec `--use-system-ca` (ou `NODE_OPTIONS=--use-system-ca`), sinon `SELF_SIGNED_CERT_IN_CHAIN`. Ne pas désactiver la vérification TLS.
 - La CLI Supabase 2.x n'utilise pas le magasin de certificats Windows : exporter les racines Windows en PEM, puis préfixer la commande de génération par `NODE_EXTRA_CA_CERTS=<roots.pem> SSL_CERT_FILE=<roots.pem>`.
 - `text.txt` = dump du schéma de dev (64 tables). Il n'inclut ni les vues (`campaign_stats`, `customer_stats`, `google_connexions_etat`), ni les index uniques, ni les CHECK multi-colonnes (ex. `quotes_check`), ni les triggers. Pour ces éléments, interroger `pg_indexes` / `pg_constraint` / `pg_trigger`.
-- Le middleware exclut `/api/*` : les routes publiques ne sont pas redirigées vers `/login`.
+- Le contrôle d'accès avant chaque page est dans `proxy.ts` (nom du `middleware` depuis Next 16 ; le texte de ce document dit encore « middleware »). Il exclut `/api/*` : les routes publiques ne sont pas redirigées vers `/login`.
