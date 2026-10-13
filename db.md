@@ -471,6 +471,7 @@
 | `planning_color` | `text` |  Nullable |
 | `first_name` | `text` |  Nullable |
 | `last_name` | `text` |  Nullable |
+| `email` | `text` |  Nullable |
 
 ## Table `talents`
 

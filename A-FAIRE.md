@@ -24,9 +24,10 @@ Le détail technique de chaque sujet est dans `CLAUDE.md` (sections indiquées).
 |---|---|---|---|---|
 | 5 | **Cliquer dans le dashboard, sur ordinateur et sur téléphone.** L'affichage est vérifié (2026-10-13) : 20 pages à 375, 768 et 1 280 px dans un vrai navigateur, sans débordement, avec les corrections faites sur les réservations, les demandes, la carte, la fiche client et les en-têtes. Restent à essayer à la main : le menu mobile, les formulaires, les boutons, et tout l'espace `/admin` (non vérifié, faute d'accès admin). | Les interactions n'ont jamais été essayées en vrai. | Vous, puis Code pour corriger | M |
 | 6 | **Premier envoi réel d'email** : une invitation, une confirmation de réservation, un devis avec son PDF. | Aucun email n'est parti pendant les tests. À confirmer : la clé Resend et le domaine d'expédition `vibewebagency.fr`. | Vous | S |
-| 7 | **Rejouer les scripts SQL sur la base de production** (`supabase/manual/`, sauf les `dev-*.sql`). Les plus récents : `rls-hardening`, `handle-new-user-invited`, `api-rate-limits`, `quotes-seller-buyer`, `clarity-daily-metrics`, `businesses-freeze-google-listing`, `profiles-names-status` (à jouer après `handle-new-user-invited`, dont il reprend le trigger), puis `drop-full-name-columns` **en tout dernier** (irréversible). | La production n'a reçu aucune des corrections. L'état de sa base n'a pas été relevé : à comparer avant de rejouer. | Vous, avec Code | M |
+| 7 | **Rejouer les scripts SQL sur la base de production** (`supabase/manual/`, sauf les `dev-*.sql`). Les plus récents : `rls-hardening`, `handle-new-user-invited`, `api-rate-limits`, `quotes-seller-buyer`, `clarity-daily-metrics`, `businesses-freeze-google-listing`, `employees-email`, `profiles-names-status` (à jouer après `handle-new-user-invited`, dont il reprend le trigger), puis `drop-full-name-columns` **en tout dernier** (irréversible). | La production n'a reçu aucune des corrections. L'état de sa base n'a pas été relevé : à comparer avant de rejouer. | Vous, avec Code | M |
 | 8 | **Variables d'environnement sur Vercel** : `CRON_SECRET`, `RESEND_API_KEY`, `GOOGLE_PLACES_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL` ; `TWILIO_*` seulement si les SMS servent. | Sans `CRON_SECRET`, ni rappels ni relevés ne tournent. | Vous | S |
 | 9 | **Vérifier les deux tâches planifiées sur Vercel** (`vercel.json` : 7 h et 23 h UTC). | Jamais déclenchées en vrai. Le nombre de tâches autorisé dépend de votre offre Vercel. | Vous | S |
+| 10 bis | **Vérifier que les sites clients ne font pas `select *` sur `employees`.** | Un visiteur ne lit plus que les colonnes de vitrine (l'email de l'équipe est fermé) : un `select *` anonyme est refusé (9.12). | Vous | S |
 | 10 | **Vérifier que les sites clients passent par `/api/v1/public/*`.** | Depuis le durcissement RLS, un site qui écrit directement dans `reservations`, `customers`, `orders` ou la messagerie avec la clé publique est refusé (section 1.3). | Vous | S |
 
 ## 3. À régler pour chaque client, à sa mise en route
@@ -35,6 +36,7 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 
 - **Site ou origines autorisées** (`businesses.website_url` / `allowed_origins`) : tant que c'est vide, son API publique accepte toutes les origines (9.2).
 - **Email de l'établissement** : c'est là qu'arrivent les avis de nouvelle réservation ou demande (9.3).
+- **Emails de son équipe** dans Équipe, s'il veut envoyer le planning (9.12).
 - **Mentions légales des devis** dans Paramètres : SIRET, TVA, forme juridique (9.4).
 - **Clarity** : identifiant du projet et jeton sur la page Analyse web (9.8).
 - **Fiche Google** depuis la page Avis (9.9). Le choix est **définitif** pour le client : pour la changer, vous la déliez depuis `/admin` → sa fiche → « Fiche Google ».
@@ -50,8 +52,9 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 | 13 | ~~Libellés de statut accordés.~~ **Fait le 2026-10-13** : « Confirmé », « Annulé » pour un rendez-vous ; « Confirmée », « Annulée » pour une réservation. | — | — |
 | 14 | ~~Page d'acceptation du devis en ligne.~~ **Fait le 2026-10-13** : le client ouvre son devis par un lien, l'accepte ou le refuse, et le commerce est prévenu. | — | — |
 | 15 | **Connexion Google du commerce** (tous les avis, réponse depuis le dashboard). | Bloqué tant que Google n'a pas accordé l'accès : activer les deux API « My Business », envoyer le formulaire d'accès, créer l'identifiant OAuth (9.9). | L |
-| 16 | **Planning de l'équipe** et lien employé ↔ prestation. | Permet de réserver « avec telle personne ». Utile surtout aux coiffeurs et instituts. | L |
-| 17 | ~~Tests automatiques.~~ **Fait le 2026-10-13** : `npm test`, 40 tests (`tests/README.md`). | — | — |
+| 16 | ~~Planning de l'équipe.~~ **Fait le 2026-10-13** (CLAUDE.md 9.12) : grille de la semaine, copie de la semaine précédente, PDF, envoi par email à l'équipe. | — | — |
+| 16 bis | **Lien employé ↔ prestation**, puis absences et disponibilités. | Permet de réserver « avec telle personne » et d'éviter de planifier quelqu'un en congé. Utile surtout aux coiffeurs et instituts. | L |
+| 17 | ~~Tests automatiques.~~ **Fait le 2026-10-13** : `npm test`, 49 tests (`tests/README.md`). | — | — |
 | 18 | ~~Statistiques et fiche client enrichies.~~ **Fait le 2026-10-13** (CLAUDE.md 9.11) : couverts, moyenne par réservation, midi / soir, heures, tailles de groupe, provenance, évolution ; sur la fiche : habitudes, notes internes, étiquettes, prochaine réservation. Les blocs suivent le secteur du commerce. | — | — |
 | 19 | **Découpages propres à d'autres secteurs** (`lib/v2/verticals.ts`). | Aujourd'hui seule la restauration a le sien (midi / soir) ; les autres ont matin / après-midi / soir. À affiner quand un client d'un autre secteur arrive (ex. chiffre d'affaires par prestation pour un coiffeur, quand les prix seront rattachés aux réservations). | S |
 

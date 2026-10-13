@@ -1,7 +1,8 @@
 import type { Json } from '@/types/supabase'
 import type { AdminClient } from './supabase-admin'
 import { formatDateTimeInZone } from './datetime'
-import { type SendResult, emailLayout, escapeHtml, sendEmail, sendSms, toE164 } from './mailer'
+import { type SendResult, emailLayout, escapeHtml, sendEmail, sendSms, toE164, type Attachment } from './mailer'
+import { type Schedule, formatHours } from './schedule'
 import { personName } from './names'
 import { type Allowance, getAllowance, recordUsage } from './usage'
 import { loadQuoteDocument, quotePdfFilename } from './quote-document'
@@ -222,6 +223,45 @@ export async function notifyAgencyOfTicket(db: AdminClient, ticketId: string, da
 ${first?.body ? `<p style="padding:12px 16px;background:#f5f2ec;border-radius:8px;white-space:pre-wrap">${escapeHtml(first.body)}</p>` : ''}
 <p><a href="${escapeHtml(dashboardUrl)}/admin/support?ticket=${t.id}">Répondre depuis le back-office</a></p>`) }),
     })
+}
+
+// ── Planning de l'équipe ──
+
+/**
+ * Envoie à chaque personne active qui a une adresse email ses créneaux de la semaine, avec le planning complet en PDF.
+ * Peut être renvoyé (planning modifié) : la clé d'idempotence porte l'instant de l'envoi.
+ */
+export async function sendScheduleEmails(
+    db: AdminClient,
+    business: { id: string; agency_id: string; name: string; email: string | null },
+    schedule: Schedule,
+    pdf: Attachment | null,
+) {
+    const stamp = Date.now()
+    const subject = `Planning de la semaine ${schedule.label}`
+    const outcome = { sent: 0, failed: 0, withoutEmail: [] as string[] }
+    for (const row of schedule.rows) {
+        if (!row.employee.is_active) continue
+        const to = row.employee.email
+        if (!to) { outcome.withoutEmail.push(row.name); continue }
+        const lines = schedule.days.flatMap((day, i) => row.cells[i].map((c) =>
+            `<strong>${escapeHtml(day.label)} ${escapeHtml(day.short)}</strong> · ${escapeHtml(c.start)} – ${escapeHtml(c.end)}${c.role_label ? ' · ' + escapeHtml(c.role_label) : ''}${c.break_minutes ? ` · pause ${c.break_minutes} min` : ''}${c.note ? '<br><span style="color:#666">' + escapeHtml(c.note) + '</span>' : ''}`))
+        const html = emailLayout(`
+<p>Bonjour${row.employee.first_name ? ' ' + escapeHtml(row.employee.first_name) : ''},</p>
+<p>Voici votre planning pour la semaine ${escapeHtml(schedule.label)}.</p>
+<p style="padding:12px 16px;background:#f5f2ec;border-radius:8px">${lines.length ? lines.join('<br>') : 'Aucun créneau prévu pour vous cette semaine.'}</p>
+${lines.length ? `<p>Total : <strong>${escapeHtml(formatHours(row.minutes))}</strong>, pauses déduites.</p>` : ''}
+<p style="color:#666;font-size:13px">${pdf ? "Le planning complet de l'équipe est en pièce jointe. " : ''}Ce planning remplace les précédents pour cette semaine.</p>
+<p><strong>${escapeHtml(business.name)}</strong></p>`)
+        const result = await deliver(db, {
+            agencyId: business.agency_id, businessId: business.id, channel: 'email', template: 'team_schedule', to, subject,
+            key: `team_schedule:${schedule.start}:${row.employee.id}:${stamp}`,
+            send: () => sendEmail({ to, subject, html, fromName: business.name, replyTo: business.email, attachments: pdf ? [pdf] : undefined }),
+        })
+        if (result === 'sent') outcome.sent++
+        else outcome.failed++
+    }
+    return outcome
 }
 
 // ── Devis ──

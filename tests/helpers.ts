@@ -56,8 +56,13 @@ export async function signIn(email: string) {
 /** Adresse du serveur local pour les tests HTTP (`next start` ou `next dev`). */
 export const BASE = process.env.TEST_BASE_URL ?? 'http://localhost:3000'
 let reachable: boolean | null = null
-/** Les tests HTTP sont ignorés si aucun serveur ne répond : `npm test` reste utilisable sans rien lancer. */
+/**
+ * Les tests HTTP ne tournent que sur un serveur désigné exprès par TEST_BASE_URL, lancé sans clés d'envoi.
+ * Sans cette variable ils sont ignorés, même si un serveur répond sur le port 3000 : ce serait le serveur de
+ * développement, qui a les vraies clés Resend et Twilio, et une réservation de test y ferait partir un vrai email.
+ */
 export async function serverUp() {
+    if (!process.env.TEST_BASE_URL) return false
     if (reachable === null) {
         try {
             reachable = (await fetch(`${BASE}/login`, { signal: AbortSignal.timeout(3000) })).ok

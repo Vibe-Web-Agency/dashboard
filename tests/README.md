@@ -9,12 +9,12 @@ Ils tournent avec le lanceur de tests de Node, sans dépendance de test à part 
 npm test
 ```
 
-Les tests qui interrogent le serveur (page publique d'un devis, API publique) sont **ignorés** si aucun serveur ne répond.
+Les tests qui interrogent le serveur (page publique d'un devis, API publique) sont **ignorés** tant que `TEST_BASE_URL` n'est pas renseignée.
 Pour les inclure, lancer l'application dans un autre terminal, sans clé d'envoi :
 
 ```bash
-RESEND_API_KEY= TWILIO_AUTH_TOKEN= npm run dev          # ou : npx next start
-TEST_BASE_URL=http://localhost:3000 npm test
+RESEND_API_KEY= TWILIO_AUTH_TOKEN= npx next start -p 3124   # après npx next build
+TEST_BASE_URL=http://localhost:3124 npm test
 ```
 
 ## Ce qu'il faut savoir
@@ -37,3 +37,17 @@ TEST_BASE_URL=http://localhost:3000 npm test
 | `quotes.test.ts` | Contenu chiffré, PDF, email, réponse du client, page publique |
 | `messages.test.ts` | Confirmation, rappels de la veille, SMS réservés aux offres qui en incluent |
 | `public-api.test.ts` | Création par l'API publique, dédoublonnage du client, 400, 404, 403, 429 |
+
+## Tests HTTP : jamais sur le serveur de développement
+
+Les tests qui appellent le serveur (API publique, page publique du devis, PDF) ne tournent que si `TEST_BASE_URL` est renseignée.
+Le serveur visé doit être lancé **sans clés d'envoi**, sur un autre port que celui de `npm run dev` :
+
+```bash
+npx next build
+RESEND_API_KEY= TWILIO_AUTH_TOKEN= NODE_OPTIONS=--use-system-ca npx next start -p 3124
+TEST_BASE_URL=http://localhost:3124 npm test
+```
+
+Le 2026-10-13, ces tests visaient par défaut le port 3000 : lancés pendant que `npm run dev` tournait, ils ont fait partir
+un email de confirmation réel vers une adresse de test (`autotest-…@vwa.local`, domaine inexistant). D'où cette règle.

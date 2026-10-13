@@ -1989,6 +1989,7 @@ export type Database = {
           bio: string | null
           business_id: string
           created_at: string
+          email: string | null
           first_name: string | null
           id: string
           is_active: boolean
@@ -2005,6 +2006,7 @@ export type Database = {
           bio?: string | null
           business_id: string
           created_at?: string
+          email?: string | null
           first_name?: string | null
           id?: string
           is_active?: boolean
@@ -2021,6 +2023,7 @@ export type Database = {
           bio?: string | null
           business_id?: string
           created_at?: string
+          email?: string | null
           first_name?: string | null
           id?: string
           is_active?: boolean

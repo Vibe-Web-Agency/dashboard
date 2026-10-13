@@ -11,7 +11,7 @@ type Client = SupabaseClient<Database>
 export async function listEmployees(supabase: Client, businessId: string) {
     const { data, error } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, job_title, bio, avatar_url, show_on_site, is_active, position')
+        .select('id, first_name, last_name, job_title, bio, avatar_url, email, show_on_site, is_active, position')
         .eq('business_id', businessId)
         .order('position')
         .order('first_name')
@@ -20,13 +20,16 @@ export async function listEmployees(supabase: Client, businessId: string) {
 }
 export type Employee = Awaited<ReturnType<typeof listEmployees>>[number]
 
-export type EmployeeInput = { first_name: string; last_name: string; job_title: string; bio: string; avatar_url: string }
+/** `email` : pour envoyer le planning à la personne. Jamais montré sur le site (colonne fermée aux visiteurs). */
+export type EmployeeInput = { first_name: string; last_name: string; job_title: string; bio: string; avatar_url: string; email: string }
 
 function clean(input: EmployeeInput) {
     const first_name = input.first_name.trim()
     const last_name = input.last_name.trim()
     if (!first_name && !last_name) throw new Error('Le prénom ou le nom est obligatoire.')
-    return { first_name: first_name || null, last_name: last_name || null, job_title: input.job_title.trim() || null, bio: input.bio.trim() || null, avatar_url: input.avatar_url.trim() || null }
+    const email = input.email.trim().toLowerCase()
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("L'adresse email n'est pas valide.")
+    return { first_name: first_name || null, last_name: last_name || null, job_title: input.job_title.trim() || null, bio: input.bio.trim() || null, avatar_url: input.avatar_url.trim() || null, email: email || null }
 }
 
 export async function createEmployee(supabase: Client, businessId: string, input: EmployeeInput) {
