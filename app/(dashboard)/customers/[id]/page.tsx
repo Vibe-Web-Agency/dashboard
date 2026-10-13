@@ -13,7 +13,7 @@ import { DuplicateCustomerError } from "@/lib/v2/data/customers";
 import {
     CUSTOMER_SOURCE_LABEL,
     QUOTE_STATUS_UI,
-    RESERVATION_STATUS_UI,
+    reservationStatusUI,
     type CustomerSource,
     type QuoteStatus,
     type ReservationStatus,
@@ -178,7 +178,7 @@ export default function CustomerDetailPage() {
                     ) : (
                         <ul className="flex flex-col">
                             {reservations.map((r) => {
-                                const ui = RESERVATION_STATUS_UI[r.status as ReservationStatus];
+                                const ui = reservationStatusUI(labels.booking.feminine)[r.status as ReservationStatus];
                                 return (
                                     <li key={r.id}>
                                         <Link href={`/reservations/${r.id}`} className="flex items-center gap-3 py-2.5 no-underline" style={{ borderBottom: '1px solid var(--border)' }}>

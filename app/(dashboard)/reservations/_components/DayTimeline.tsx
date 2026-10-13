@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { BookingLabels } from "@/lib/v2/labels";
 import type { ReservationWithCustomer } from "@/lib/v2/data/reservations";
-import { RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
+import { reservationStatusUI, type ReservationStatus } from "@/lib/v2/statuses";
 import { personName } from "@/lib/v2/names";
 import { daySlots } from "@/lib/v2/slots";
 import { formatTimeInZone, zonedToUtcIso } from "@/lib/v2/datetime";
@@ -63,7 +63,7 @@ export function DayTimeline({ dateKey, reservations, hours, timeZone, labels, wr
                         </div>
                         <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5 px-2 py-1.5">
                             {items.map((r) => {
-                                const ui = RESERVATION_STATUS_UI[r.status as ReservationStatus];
+                                const ui = reservationStatusUI(labels.booking.feminine)[r.status as ReservationStatus];
                                 return (
                                     <Link key={r.id} href={`/reservations/${r.id}`} className="no-underline flex items-center gap-2 rounded-md px-2 py-1"
                                         style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent-glow)', opacity: r.status === "cancelled" ? 0.5 : 1 }}>

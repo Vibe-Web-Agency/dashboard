@@ -15,6 +15,7 @@ Le détail technique de chaque sujet est dans `CLAUDE.md` (sections indiquées).
 | 1 | **Pousser `develop`.** Les commits depuis `77aa43a` ne sont que sur ce poste. | Rien n'est sauvegardé ailleurs. | Vous ou Code | S |
 | 2 | **Vous inscrire dans `platform_admins`** (une ligne avec votre `profile_id`). | L'espace `/admin` n'a jamais été ouvert : clients, invitations, prospects, tâches, support et plans ne sont testés que côté données. | Vous | S |
 | 3 | **Clé Google Places** : la restreindre à « Places API (New) », poser un plafond de quota, puis la mettre dans `.env.local` et Vercel (`GOOGLE_PLACES_API_KEY`). | Le texte des avis Google arrive avec cette clé (vérifié). Elle a été collée dans une conversation : à restreindre, idéalement à régénérer. | Vous | S |
+| 4 bis | **Renseigner l'email de contact de l'agence** (`agencies.contact_email` de Vibe Web Agency). | C'est là qu'arrivent les alertes de nouvelle demande de support. | Vous | S |
 | 4 | **Relier FiFi à sa fiche Google** depuis la page Avis (recherche par nom). | Note et avis Google visibles aussitôt. | Vous | S |
 
 ## 2. Avant d'ouvrir à un vrai client
@@ -44,8 +45,8 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 | # | Quoi | Ce que ça apporte | Effort |
 |---|---|---|---|
 | 11 | **Corrections issues du passage en navigateur** (point 5). | Probablement le plus rentable : ce sont les défauts que vos clients verraient. | M |
-| 12 | **Email à l'agence pour chaque nouvelle demande de support.** | Aujourd'hui une demande n'apparaît que dans `/admin/support` : il faut penser à y aller. | S |
-| 13 | **Libellés de statut accordés** (« Confirmé » pour « rendez-vous », « Confirmée » pour « réservation »). | Faute visible sur tous les commerces qui n'ont pas des « réservations ». | S |
+| 12 | ~~Email à l'agence pour chaque nouvelle demande de support.~~ **Fait le 2026-10-13.** L'email part vers `agencies.contact_email`, qui est **vide** pour Vibe Web Agency : à renseigner, sinon rien n'est envoyé. | — | — |
+| 13 | ~~Libellés de statut accordés.~~ **Fait le 2026-10-13** : « Confirmé », « Annulé » pour un rendez-vous ; « Confirmée », « Annulée » pour une réservation. | — | — |
 | 14 | **Page d'acceptation du devis en ligne** (lien dans l'email, bouton « J'accepte »). | Le client accepte en un clic au lieu de répondre à l'email ; le statut se met à jour seul. | M |
 | 15 | **Connexion Google du commerce** (tous les avis, réponse depuis le dashboard). | Bloqué tant que Google n'a pas accordé l'accès : activer les deux API « My Business », envoyer le formulaire d'accès, créer l'identifiant OAuth (9.9). | L |
 | 16 | **Planning de l'équipe** et lien employé ↔ prestation. | Permet de réserver « avec telle personne ». Utile surtout aux coiffeurs et instituts. | L |

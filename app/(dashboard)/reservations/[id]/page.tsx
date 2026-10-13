@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTenant } from "@/providers/TenantProvider";
 import { useReservation } from "@/lib/v2/hooks/useReservations";
-import { RESERVATION_QUICK_ACTIONS, RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
+import { RESERVATION_QUICK_ACTIONS, reservationStatusUI, type ReservationStatus } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
 import { personName } from "@/lib/v2/names";
 import { canWrite } from "@/lib/v2/roles";
@@ -118,7 +118,7 @@ export default function ReservationDetailPage() {
 
     const name = personName(reservation.customer) || reservation.guest_name || "Client inconnu";
     const status = reservation.status as ReservationStatus;
-    const statusUI = RESERVATION_STATUS_UI[status];
+    const statusUI = reservationStatusUI(labels.booking.feminine)[status];
 
     return (
         <div className="flex flex-col gap-6 max-w-3xl mx-auto">

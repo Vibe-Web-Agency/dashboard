@@ -9,7 +9,7 @@ import { bookingLabels, type BookingLabels } from "@/lib/v2/labels";
 import { formatDayHeaderInZone, formatInZone, formatTimeInZone, zonedDayKey } from "@/lib/v2/datetime";
 import { personName } from "@/lib/v2/names";
 import { canWrite } from "@/lib/v2/roles";
-import { RESERVATION_STATUS_UI, type ReservationStatus } from "@/lib/v2/statuses";
+import { reservationStatusUI, type ReservationStatus } from "@/lib/v2/statuses";
 
 // Vue d'ensemble (CLAUDE.md 7) : ce qui arrive et ce qui attend une réponse, pour les modules du commerce.
 
@@ -76,7 +76,7 @@ function UpcomingBookings({ labels, tz }: { labels: BookingLabels; tz: string })
                     : loading && active.length === 0 ? <Empty>Chargement…</Empty>
                     : active.length === 0 ? <Empty>{labels.booking.none} à venir</Empty>
                     : active.slice(0, MAX_ROWS).map((r) => {
-                        const ui = RESERVATION_STATUS_UI[r.status as ReservationStatus];
+                        const ui = reservationStatusUI(labels.booking.feminine)[r.status as ReservationStatus];
                         return (
                             <Row key={r.id} href={`/reservations/${r.id}`}
                                 left={<><p className="text-xs font-medium" style={{ color: "var(--text)" }}>{formatTimeInZone(r.starts_at, tz)}</p>

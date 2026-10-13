@@ -9,6 +9,7 @@ import { useBusinessQuery } from "@/lib/v2/hooks/useBusinessQuery";
 import { getBrowserSupabase } from "@/lib/v2/supabase-browser";
 import { TICKET_STATUS_UI, type Ticket, type TicketMessage, type TicketStatus, createTicket, listTicketMessages, listTickets, replyToTicket } from "@/lib/v2/data/tickets";
 import { Empty, ErrorBanner, PageHead, field, panel, useAction } from "../_components/ui";
+import { alertAgencyOfTicket } from "./actions";
 
 // Support : le commerce écrit à son agence et suit les réponses.
 
@@ -32,6 +33,8 @@ export default function SupportPage() {
             if (!user) throw new Error("Session expirée, reconnectez-vous.");
             id = await createTicket(supabase, currentBusiness, user.id, subject, body);
         });
+        // L'agence est prévenue par email, sans faire attendre l'utilisateur.
+        if (ok && id) void alertAgencyOfTicket(id);
         if (ok) { setCreating(false); setSubject(""); setBody(""); setOpenId(id); refresh(); }
     };
 

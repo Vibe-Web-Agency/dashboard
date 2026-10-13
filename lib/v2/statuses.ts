@@ -19,13 +19,27 @@ export const OPERATIONAL_BUSINESS_STATUSES = ['active', 'active_client', 'lead_d
 export const RESERVATION_STATUSES = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'] as const
 export type ReservationStatus = (typeof RESERVATION_STATUSES)[number]
 
-// Libellé et pastille (classes de app/globals.css) par statut de réservation.
-export const RESERVATION_STATUS_UI: Record<ReservationStatus, { label: string; pill: string }> = {
+// Libellé et pastille (classes de app/globals.css) par statut de réservation, au féminin.
+// Dans l'interface, passer par reservationStatusUI() pour l'accord.
+const RESERVATION_STATUS_UI: Record<ReservationStatus, { label: string; pill: string }> = {
     pending: { label: 'En attente', pill: 'pill pill-amber' },
     confirmed: { label: 'Confirmée', pill: 'pill pill-blue' },
     completed: { label: 'Venu', pill: 'pill pill-green' },
     no_show: { label: 'No show', pill: 'pill pill-red' },
     cancelled: { label: 'Annulée', pill: 'pill pill-muted' },
+}
+
+/**
+ * Libellés accordés au nom de ce qu'on réserve : « Confirmée » pour une réservation, « Confirmé » pour un rendez-vous.
+ * `feminine` vient de `bookingLabels(business).booking.feminine`.
+ */
+const RESERVATION_STATUS_UI_MASCULINE: typeof RESERVATION_STATUS_UI = {
+    ...RESERVATION_STATUS_UI,
+    confirmed: { ...RESERVATION_STATUS_UI.confirmed, label: 'Confirmé' },
+    cancelled: { ...RESERVATION_STATUS_UI.cancelled, label: 'Annulé' },
+}
+export function reservationStatusUI(feminine: boolean) {
+    return feminine ? RESERVATION_STATUS_UI : RESERVATION_STATUS_UI_MASCULINE
 }
 
 // Changements de statut proposés en un clic depuis chaque statut (CLAUDE.md 4.1).

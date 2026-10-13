@@ -414,7 +414,7 @@ Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp
   - slug généré depuis le nom (sans accents, suffixe `-2`… si déjà pris, index unique `(business_id, slug)`) et **jamais recalculé** au renommage, car le site public peut s'en servir ;
   - suppression refusée avec un message explicite si la prestation est liée à des réservations ou à des employés (FK) : on la désactive à la place.
 - **Accords de genre :** `bookingLabels` fournit des formes accordées pour chaque nom (`booking`, `customer`, `service`) : `the`, `a`, `this`, `of`, `newTitle`, `none` (« Nouvelle formule », « Nouvel élève », « Aucune réservation », « cet essayage », « l'intervention »). Les noms féminins sont listés dans `FEMININE` (`lib/v2/labels.ts`) : à compléter lors de l'ajout d'un nom féminin dans `business_types`. Pages Réservations et Clients corrigées (elles affichaient « Nouveau réservation », « Détails du réservation »…).
-  - Reste : les libellés de statut des réservations sont au féminin (« Confirmée », « Annulée ») quel que soit le nom (« rendez-vous » est masculin).
+  - Statuts des réservations accordés (2026-10-13) : `reservationStatusUI(labels.booking.feminine)` donne « Confirmée », « Annulée » ou « Confirmé », « Annulé ». Ne pas lire les libellés autrement.
 - **Page `/menu` (« Carte »)**, entrée de navigation liée au module `menu`, bouton Topbar « + Plat » :
   - rubriques et plats, ordre réglable (↑/↓), plat disponible ou indisponible, allergènes (les 14 du CHECK de `menu_items.allergens`), prix facultatif ;
   - données dans `lib/v2/data/menu.ts`, hook `useMenu` ;
@@ -548,7 +548,7 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Équipe** (`/team`, table `employees`) : les personnes présentées sur le site. Écriture réservée aux administrateurs (RLS). Suppression refusée si la personne est liée à des réservations : on la désactive. Le planning (`shifts`) et le lien employé ↔ prestation ne sont pas faits.
 - **Actualités** (`/blog`) : brouillon, publié, archivé. L'adresse (slug) vient du titre, est rendue unique et n'est jamais recalculée. La date de première publication est conservée.
 - **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois : réservations, couverts, taux d'absence, nouveaux clients, demandes, devis acceptés, répartition par jour de la semaine et par prestation.
-- **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. Pas d'email d'alerte à l'agence pour une nouvelle demande.
+- **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. À l'ouverture d'une demande, l'agence reçoit un email (`notifyAgencyOfTicket`, vers `agencies.contact_email` ; rien n'est envoyé si ce champ est vide), un seul par demande.
 
 ### 9.8 Analyse web — 2026-10-13
 Page `/analytics` (« Analyse web », module `analytics`), reprise de la version en production et complétée. `/stats` reste la page de l'activité (réservations, devis).

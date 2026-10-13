@@ -198,6 +198,30 @@ ${q.request_message ? `<p style="padding:12px 16px;background:#f5f2ec;border-rad
     })
 }
 
+// ── Support ──
+
+/** Avis à l'agence (`agencies.contact_email`) : un commerce vient d'ouvrir une demande de support. */
+export async function notifyAgencyOfTicket(db: AdminClient, ticketId: string, dashboardUrl: string): Promise<Outcome> {
+    const { data: t, error } = await db.from('tickets').select('id, agency_id, business_id, subject, priority').eq('id', ticketId).maybeSingle()
+    if (error) throw error
+    if (!t?.business_id) return 'skipped'
+    const [{ data: agency }, { data: business }, { data: first }] = await Promise.all([
+        db.from('agencies').select('contact_email').eq('id', t.agency_id).maybeSingle(),
+        db.from('businesses').select('name').eq('id', t.business_id).maybeSingle(),
+        db.from('ticket_messages').select('body').eq('ticket_id', t.id).order('created_at').limit(1).maybeSingle(),
+    ])
+    const to = agency?.contact_email
+    if (!to) return 'skipped'
+    const subject = `Support · ${business?.name ?? 'Un commerce'} : ${t.subject}`
+    return deliver(db, {
+        agencyId: t.agency_id, businessId: t.business_id, channel: 'email', template: 'ticket_new', to, subject, key: `ticket_new:${t.id}`,
+        send: () => sendEmail({ to, subject, html: emailLayout(`
+<p><strong>${escapeHtml(business?.name ?? 'Un commerce')}</strong> a ouvert une demande : ${escapeHtml(t.subject)}</p>
+${first?.body ? `<p style="padding:12px 16px;background:#f5f2ec;border-radius:8px;white-space:pre-wrap">${escapeHtml(first.body)}</p>` : ''}
+<p><a href="${escapeHtml(dashboardUrl)}/admin/support?ticket=${t.id}">Répondre depuis le back-office</a></p>`) }),
+    })
+}
+
 // ── Devis ──
 
 const euros = (cents: number, currency: string) => (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency })

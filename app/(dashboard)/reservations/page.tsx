@@ -15,7 +15,7 @@ import { type ReservationWithCustomer, upcomingThreshold } from "@/lib/v2/data/r
 import {
     RESERVATION_QUICK_ACTIONS,
     RESERVATION_STATUSES,
-    RESERVATION_STATUS_UI,
+    reservationStatusUI,
     type ReservationStatus,
 } from "@/lib/v2/statuses";
 import { bookingLabels } from "@/lib/v2/labels";
@@ -39,13 +39,15 @@ function displayName(r: ReservationWithCustomer) {
     return personName(r.customer) || r.guest_name || "Client inconnu";
 }
 
-function StatusControls({ reservation, onChange, readOnly }: {
+function StatusControls({ reservation, onChange, readOnly, feminine }: {
     reservation: ReservationWithCustomer;
     onChange: (id: string, status: ReservationStatus) => void;
     readOnly: boolean;
+    /** Accord des libellés : le nom de ce qu'on réserve est féminin. */
+    feminine: boolean;
 }) {
     const status = reservation.status as ReservationStatus;
-    const ui = RESERVATION_STATUS_UI[status];
+    const ui = reservationStatusUI(feminine)[status];
     return (
         <div className="flex items-center gap-1.5 flex-wrap">
             <span className={ui?.pill ?? "pill pill-muted"}>{ui?.label ?? reservation.status}</span>
@@ -190,7 +192,7 @@ function ReservationsPageInner() {
             r.customer?.phone ?? "",
             formatDateTimeInZone(r.starts_at, tz),
             ...(labels.showParty ? [String(r.party_size)] : []),
-            RESERVATION_STATUS_UI[r.status as ReservationStatus]?.label ?? r.status,
+            reservationStatusUI(labels.booking.feminine)[r.status as ReservationStatus]?.label ?? r.status,
             r.customer_message ?? "",
             r.internal_note ?? "",
         ]);
@@ -264,7 +266,7 @@ function ReservationsPageInner() {
                     {labels.showParty && (
                         <span className="pill pill-muted">{labels.partyCount(r.party_size)}</span>
                     )}
-                    <StatusControls reservation={r} onChange={changeStatus} readOnly={!writable} />
+                    <StatusControls reservation={r} onChange={changeStatus} readOnly={!writable} feminine={labels.booking.feminine} />
                 </div>
             </div>
         </Link>
@@ -335,9 +337,9 @@ function ReservationsPageInner() {
                         </button>
                         {RESERVATION_STATUSES.map((s) => (
                             <button key={s} onClick={() => handleStatusFilter(statusFilter === s ? null : s)}
-                                className={statusFilter === s ? RESERVATION_STATUS_UI[s].pill : "pill pill-muted"}
+                                className={statusFilter === s ? reservationStatusUI(labels.booking.feminine)[s].pill : "pill pill-muted"}
                                 style={{ cursor: "pointer", border: "none" }}>
-                                {RESERVATION_STATUS_UI[s].label} · {statusCounts[s] ?? 0}
+                                {reservationStatusUI(labels.booking.feminine)[s].label} · {statusCounts[s] ?? 0}
                             </button>
                         ))}
                     </div>

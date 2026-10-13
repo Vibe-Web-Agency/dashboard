@@ -26,6 +26,8 @@ function forms(noun: string) {
     const feminine = FEMININE.has(noun)
     const vowel = /^[aeiouyhàâéèêëîïôûù]/i.test(noun)
     return {
+        /** Le nom est féminin : sert à accorder ce qui s'y rapporte (« Confirmée », « Annulée »). */
+        feminine,
         /** « la réservation », « l'intervention », « le rendez-vous » */
         the: vowel ? `l'${noun}` : `${feminine ? 'la' : 'le'} ${noun}`,
         /** « une séance », « un soin » */

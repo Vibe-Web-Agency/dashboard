@@ -11,7 +11,7 @@ import { bookingLabels } from "@/lib/v2/labels";
 import { personName } from "@/lib/v2/names";
 import { readRequestDetails, whatsappLink } from "@/lib/v2/contact";
 import { formatDateTimeInZone, formatInZone } from "@/lib/v2/datetime";
-import { QUOTE_STATUS_UI, RESERVATION_STATUS_UI, type QuoteStatus, type ReservationStatus } from "@/lib/v2/statuses";
+import { QUOTE_STATUS_UI, reservationStatusUI, type QuoteStatus, type ReservationStatus } from "@/lib/v2/statuses";
 
 // Action rapide depuis la liste des clients (cahier des charges, phase 2) : contact, chiffres clés,
 // dernières réservations et demandes, et création d'une réservation préremplie, sans quitter la liste.
@@ -76,7 +76,7 @@ export function CustomerQuickView({ customerId, onClose }: { customerId: string;
                                 {detail.reservations.length === 0 ? (
                                     <p className="text-sm" style={{ color: "var(--muted)" }}>{labels.booking.none}.</p>
                                 ) : detail.reservations.slice(0, RECENT).map((r) => {
-                                    const ui = RESERVATION_STATUS_UI[r.status as ReservationStatus];
+                                    const ui = reservationStatusUI(labels.booking.feminine)[r.status as ReservationStatus];
                                     return (
                                         <Link key={r.id} href={`/reservations/${r.id}`} className="flex items-center gap-2 py-1.5 no-underline" style={{ borderBottom: '1px solid var(--border)' }}>
                                             <span className="flex-1 text-sm truncate" style={{ color: "var(--text)" }}>{formatDateTimeInZone(r.starts_at, tz)}</span>
