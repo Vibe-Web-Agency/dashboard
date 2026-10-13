@@ -71,6 +71,14 @@ describe('droits', () => {
             assert.equal(await claimGooglePlace(viewer.client, FIFI.id, 'autotest-lecteur'), false)
             assert.equal(await claimGooglePlace(owner.client, DEMO.id, 'autotest-premiere'), true)
             assert.equal(await claimGooglePlace(owner.client, DEMO.id, 'autotest-seconde'), false)
+            // Même en écrivant directement dans la table, le propriétaire ne la change ni ne la vide (trigger businesses_guard).
+            for (const value of ['autotest-directe', null]) {
+                const direct = await owner.client.from('businesses').update({ gbp_place_id: value }).eq('id', DEMO.id).select('id')
+                assert.equal(direct.error?.code, '42501')
+            }
+            // Le reste de la fiche du commerce se modifie toujours.
+            const other = await owner.client.from('businesses').update({ gbp_place_id: 'autotest-premiere' }).eq('id', DEMO.id).select('id')
+            assert.equal(other.data?.length, 1)
             assert.equal((await admin.from('businesses').select('gbp_place_id').eq('id', DEMO.id).single()).data?.gbp_place_id, 'autotest-premiere')
             await resetGoogleListing(admin, DEMO.id)
             assert.equal((await admin.from('businesses').select('gbp_place_id').eq('id', DEMO.id).single()).data?.gbp_place_id, null)
