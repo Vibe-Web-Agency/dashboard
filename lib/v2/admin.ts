@@ -158,6 +158,22 @@ export async function setTenantPlan(db: AdminClient, businessId: string, planId:
     }
 }
 
+/**
+ * Option SMS d'un commerce : nombre de SMS par mois ajoutés à ceux de son plan (business_addons, meter `sms`).
+ * 0 retire l'option. Une seule option SMS active par commerce.
+ */
+export async function setSmsAddon(db: AdminClient, businessId: string, monthlyLimit: number) {
+    if (!Number.isInteger(monthlyLimit) || monthlyLimit < 0 || monthlyLimit > 100000) throw new AdminInputError('Nombre de SMS invalide.')
+    const business = unwrap(await db.from('businesses').select('agency_id').eq('id', businessId).single())
+    const current = unwrap(await db.from('business_addons').select('id').eq('business_id', businessId).eq('meter', 'sms').eq('status', 'active'))
+    if (current.length > 0) {
+        unwrap(await db.from('business_addons').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).in('id', current.map((a) => a.id)).select('id'))
+    }
+    if (monthlyLimit > 0) {
+        unwrap(await db.from('business_addons').insert({ business_id: businessId, agency_id: business.agency_id, meter: 'sms', extra_monthly_limit: monthlyLimit, status: 'active' }).select('id').single())
+    }
+}
+
 /** Active ou désactive un module pour un commerce (business_module_settings). */
 export async function setTenantModule(db: AdminClient, businessId: string, moduleId: string, enabled: boolean, userId: string) {
     unwrap(

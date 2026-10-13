@@ -24,6 +24,9 @@ export async function middleware(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname
 
+    // Page publique d'un devis : ouverte par le client depuis son email, protégée par le jeton de son lien.
+    if (pathname.startsWith('/devis/')) return response
+
     const isAuthRoute =
         pathname.startsWith('/login') ||
         pathname.startsWith('/forgot-password') ||

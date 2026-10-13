@@ -355,7 +355,7 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
 - `useTenant()` expose `modules` et `hasModule(slug)`.
 - `lib/v2/labels.ts` (`bookingLabels`) fournit les libellés : `title` / `singularTitle` (booking), `customerTitle` / `customerSingularTitle` / `customerPlural` (customer), `showParty` / `partyTitle` / `partyCount` (party).
 
-### 6.2 Navigation dynamique
+### 6.2 Navigation dynamique — état du 6 octobre, remplacé par les sections 7 et 9
 - `lib/v2/navigation.ts` (`NAV_ITEMS`) est la source unique de la Sidebar, de la Topbar (titre de page, bouton « + ») et de la recherche (`SearchPalette`). Chaque entrée porte son `module`, son groupe et un titre fixe ou tiré du vocabulaire.
 - **Correspondance entrée → module :**
   - `/reservations` et `/calendar` → reservations ;
@@ -385,7 +385,7 @@ Tests du 2026-10-06 (commerce de démo, données nettoyées) : validation des ch
 - **Prévu, chantier « gating applicatif » :** bloquer dans le middleware l'accès direct par URL aux pages d'un module inactif (décision du 2026-10-06). Aujourd'hui, seuls les menus sont masqués.
 - **Démo :** pour qu'un module non core (ex. `reservations`) apparaisse, 'is_enabled' ne suffit pas : il faut aussi un plan actif qui l'inclut (`business_plans` → `plan_modules`) ou une option (`business_addons`), sinon `enabled_modules` l'écarte.
 
-### 6.3 Test en session réelle — 2026-10-06
+### 6.3 Test en session réelle — 2026-10-06 (menu de l'époque, voir section 9 pour le menu actuel)
 Méthode : sessions ouvertes par lien magique admin (`generateLink` + `verifyOtp`, aucun email envoyé) pour `test-auth@vwa.local` (owner de l'agence Vibe Web Agency) et `lecteur-test@vwa.local` (viewer FiFi). Les pages sont rendues par `next start` avec les cookies `@supabase/ssr`. Les données de test ont été nettoyées, le compteur de numérotation restauré, et seules les sessions du test ont été fermées (`signOut({ scope: 'local' })`).
 
 - ✅ **Sans session :** redirection vers `/login`.
@@ -521,19 +521,30 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Ce qui part :**
   - confirmation par email au client, à l'arrivée d'une réservation par le site, ou sur demande à la création manuelle (case à cocher) ;
   - avis par email au commerce (`businesses.email`) pour chaque réservation ou demande venue du site ;
-  - rappel la veille par email, et par SMS si le commerce l'active (désactivé par défaut, chaque SMS est facturé).
+  - rappel la veille par email, et par SMS si le commerce l'active **et que son offre en inclut** (voir « SMS payants » ci-dessous).
 - **Réglages :** quatre interrupteurs dans Paramètres → Messages automatiques, rangés dans `business_module_settings.settings.notifications` du module `reservations` (les préférences de réservation prévues en 5.2 commencent ici). Défauts : tout actif sauf le SMS.
 - **Journal et dédoublonnage :** chaque envoi est d'abord inscrit dans `outbound_messages` avec une clé d'idempotence (`reservation_confirmation:<id>`…). Un message ne part qu'une fois, et le trigger `guard_optout` écarte les destinataires désinscrits. Le statut (`sent` / `failed`) et l'erreur y sont notés.
 - **Routes publiques :** les emails partent après la réponse (`after` de Next) ; un envoi raté n'annule rien.
 - **Rappels :** `GET /api/cron/reminders`, protégé par `CRON_SECRET`, lancé chaque jour à 7 h UTC (`vercel.json`). Chaque exécution traite les réservations confirmées qui commencent entre 12 h et 36 h plus tard et pose `reminder_sent_at`. Une réservation prise moins de 12 h avant n'a pas de rappel.
 - **Expéditeur :** `<nom du commerce> <noreply@vibewebagency.fr>`, réponses vers l'email du commerce.
+- **SMS payants (2026-10-13)** : `lib/v2/usage.ts`. Le réglage du commerce ne suffit pas, il faut un droit.
+  - droit mensuel = quota du plan en cours (`plan_quotas`, meter `sms`) + options actives (`business_addons.extra_monthly_limit`, meter `sms`) ;
+  - consommation = somme de `usage_events` (meter `sms`) depuis le début du mois (UTC). Chaque SMS **réellement envoyé** y est inscrit, avec la clé d'idempotence du message ; un SMS en échec n'est pas compté ;
+  - sans droit, ou quota atteint : aucun SMS n'est tenté (`smsSkipped` dans le compte rendu du cron) ;
+  - Paramètres : l'interrupteur SMS est verrouillé si l'offre n'inclut aucun SMS, et la Server Action refuse de l'activer ; sinon il affiche la consommation du mois ;
+  - `/admin` → fiche client → « SMS de rappel » : consommation et option (nombre de SMS par mois en plus du plan, 0 pour la retirer). Le quota d'un plan se règle dans `plan_quotas`, sans écran.
 
 ### 9.4 Devis chiffrés
 `lib/v2/data/quote-items.ts`, `quotes/_components/QuoteBuilder.tsx`, `quotes/actions.ts`.
 - Éditeur dans le détail d'une demande : objet, lignes (désignation, quantité, prix unitaire **hors taxes**, taux de TVA), remise, date de validité, message au client.
 - Totaux : la remise s'applique au total HT, la TVA de chaque ligne est calculée sur sa part après remise.
 - Enregistrer une demande (`request`) avec un contenu la passe en brouillon (`draft`). Modifiable en `request`, `draft` et `sent` ; figé ensuite.
-- « Envoyer au client » : passe le devis à `sent` (numéro attribué par `next_document_number`) puis envoie l'email avec les lignes et les totaux. Pas de page d'acceptation en ligne : le client répond à l'email.
+- « Envoyer au client » : passe le devis à `sent` (numéro attribué par `next_document_number`) puis envoie l'email avec les lignes, les totaux, le PDF et un bouton « Voir et accepter le devis ».
+- **Acceptation en ligne (2026-10-13)** : page publique `/devis/[id]?t=<jeton>` (`app/devis/[id]`), sans compte.
+  - le jeton est une signature de l'identifiant du devis (`lib/v2/quote-link.ts`, HMAC dérivé de `SUPABASE_SERVICE_ROLE_KEY`) : rien n'est stocké, et changer cette clé invalide les liens déjà envoyés. Jeton absent ou faux : 404. Le middleware laisse passer `/devis/` ;
+  - la page montre le devis, le lien du PDF (`/api/quotes/[id]/pdf?t=<jeton>`), et « J'accepte » / « Je refuse ». Un brouillon n'a pas de page ;
+  - `lib/v2/quote-response.ts` : une seule réponse, seulement pour un devis `sent` dont la date de validité n'est pas dépassée (dernier jour inclus, heure de Paris). La Server Action revérifie le jeton ;
+  - la première ouverture est notée dans `viewed_at` ; le commerce reçoit un email à la réponse.
 - **PDF (2026-10-13)** : `lib/v2/quote-pdf.tsx` (`@react-pdf/renderer`, rendu serveur), `lib/v2/quote-document.ts`, route `GET /api/quotes/[id]/pdf`.
   - La route vérifie elle-même la session (le middleware ne couvre pas `/api`) et lit le devis sous RLS : sans session 401, devis hors de portée 404.
   - **Émetteur :** nom, adresse, téléphone et email viennent de « Mon établissement » ; raison sociale, SIREN/SIRET, n° de TVA et autres mentions viennent de Paramètres → « Mentions légales des devis » (`business_module_settings.settings.issuer` du module `quotes`). À l'envoi, l'émetteur est copié dans `quotes.seller` : un devis envoyé ne change plus si le commerce modifie ses coordonnées.
@@ -597,6 +608,13 @@ Données de test supprimées à chaque fois, aucun email ni SMS réellement envo
 - pages et accès : 35 contrôles en session réelle (pages, menu, sélecteur, garde de module, droits du viewer, avis, équipe, actualités, statistiques, support).
 - devis en PDF, mentions légales et analyse web (2026-10-13) : 16 contrôles en session réelle, et le PDF produit a été relu (mise en page, accents, montants).
 - **Non vérifié :** l'envoi réel par Resend et Twilio, le déclenchement du cron par Vercel, les Server Actions de l'équipe et de l'envoi de devis (appelées seulement par un navigateur), et tout clic dans un navigateur.
+
+### 9.10 Tests automatiques — 2026-10-13
+`npm test` (lanceur de tests de Node avec `tsx`, dossier `tests/`, mode d'emploi dans `tests/README.md`). 32 tests : droits par rôle, API publique, devis (contenu, PDF, lien public, réponse), messages automatiques et SMS, règles de calcul.
+- Ils écrivent en base : `tests/helpers.ts` refuse de tourner ailleurs que sur le projet de développement.
+- Ils retirent les clés Resend et Twilio du processus : aucun envoi réel.
+- Les tests HTTP sont ignorés si aucun serveur ne répond sur `TEST_BASE_URL`.
+- **Règle :** toute vérification qui mérite d'être refaite va dans `tests/`, pas dans un script jetable.
 
 ### 9.7 Non fait, en attente de décisions
 - **Boutique** (`products`, `orders`) : une commande ne peut plus être créée par le site (insertion anonyme fermée) et aucun paiement n'est branché.

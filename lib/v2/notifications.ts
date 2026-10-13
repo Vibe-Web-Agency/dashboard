@@ -3,7 +3,9 @@ import type { AdminClient } from './supabase-admin'
 import { formatDateTimeInZone } from './datetime'
 import { type SendResult, emailLayout, escapeHtml, sendEmail, sendSms, toE164 } from './mailer'
 import { personName } from './names'
+import { type Allowance, getAllowance, recordUsage } from './usage'
 import { loadQuoteDocument, quotePdfFilename } from './quote-document'
+import { quoteLink } from './quote-link'
 import { renderQuotePdf } from './quote-pdf'
 
 // Messages envoyés aux clients finaux et au commerce (CLAUDE.md 9) : confirmation et rappel de réservation,
@@ -227,7 +229,7 @@ ${first?.body ? `<p style="padding:12px 16px;background:#f5f2ec;border-radius:8p
 const euros = (cents: number, currency: string) => (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency })
 
 /** Email du devis chiffré au client : lignes, totaux, validité, et le PDF en pièce jointe. Peut être renvoyé. */
-export async function sendQuoteEmail(db: AdminClient, quoteId: string): Promise<Outcome> {
+export async function sendQuoteEmail(db: AdminClient, quoteId: string, siteUrl: string): Promise<Outcome> {
     const { data: q, error } = await db
         .from('quotes')
         .select(`id, business_id, number, title, valid_until, notes, subtotal_cents, discount_cents, tax_cents, total_cents, currency,
@@ -263,7 +265,8 @@ ${total('Total TTC', euros(q.total_cents, q.currency), true)}
 </table>
 ${validUntil ? '<p>Ce devis est valable jusqu\'au ' + validUntil + '.</p>' : ''}
 ${q.notes ? '<p style="white-space:pre-wrap">' + escapeHtml(q.notes) + '</p>' : ''}
-<p>Pour l'accepter ou en discuter, répondez simplement à cet email${q.business.phone ? ' ou appelez-nous au ' + escapeHtml(q.business.phone) : ''}.</p>
+<p><a href="${escapeHtml(quoteLink(siteUrl, q.id))}" style="display:inline-block;padding:10px 18px;background:#C9A876;color:#0E0D0B;text-decoration:none;border-radius:6px">Voir et accepter le devis</a></p>
+<p>Pour en discuter, répondez simplement à cet email${q.business.phone ? ' ou appelez-nous au ' + escapeHtml(q.business.phone) : ''}.</p>
 <p><strong>${escapeHtml(q.business.name)}</strong></p>`)
     return deliver(db, {
         agencyId: q.business.agency_id, businessId: q.business_id, channel: 'email', template: 'quote_sent', to, subject,
@@ -274,6 +277,28 @@ ${q.notes ? '<p style="white-space:pre-wrap">' + escapeHtml(q.notes) + '</p>' : 
             const pdf = doc ? await renderQuotePdf(doc).catch((e) => { console.error('[notifications] pdf', e); return null }) : null
             return sendEmail({ to, subject, html, fromName: q.business.name, replyTo: q.business.email, attachments: doc && pdf ? [{ filename: quotePdfFilename(doc), content: pdf }] : undefined })
         },
+    })
+}
+
+/** Avis au commerce : le client vient d'accepter ou de refuser son devis depuis le lien. */
+export async function notifyBusinessOfQuoteAnswer(db: AdminClient, quoteId: string, dashboardUrl: string): Promise<Outcome> {
+    const { data: q, error } = await db
+        .from('quotes')
+        .select('id, business_id, number, status, title, total_cents, currency, customer:customers ( first_name, last_name, email ), business:businesses ( agency_id, name, email )')
+        .eq('id', quoteId)
+        .maybeSingle()
+    if (error) throw error
+    if (!q?.business.email || (q.status !== 'accepted' && q.status !== 'declined')) return 'skipped'
+    const accepted = q.status === 'accepted'
+    const who = personName(q.customer) || q.customer?.email || 'Le client'
+    const subject = `Devis${q.number ? ' ' + q.number : ''} ${accepted ? 'accepté' : 'refusé'} par ${who}`
+    const to = q.business.email
+    return deliver(db, {
+        agencyId: q.business.agency_id, businessId: q.business_id, channel: 'email', template: accepted ? 'quote_accepted' : 'quote_declined', to, subject,
+        key: `quote_answer:${q.id}`, quoteId: q.id,
+        send: () => sendEmail({ to, subject, html: emailLayout(`
+<p><strong>${escapeHtml(who)}</strong> a ${accepted ? 'accepté' : 'refusé'} le devis${q.title ? ' « ' + escapeHtml(q.title) + ' »' : ''}${q.number ? ' (n° ' + escapeHtml(q.number) + ')' : ''}, d'un montant de ${euros(q.total_cents, q.currency)} TTC.</p>
+<p><a href="${escapeHtml(dashboardUrl)}/quotes/${q.id}">Ouvrir dans le dashboard</a></p>`) }),
     })
 }
 
@@ -295,8 +320,11 @@ export async function sendReservationReminders(db: AdminClient, now = new Date()
         .lte('starts_at', to)
     if (error) throw error
 
-    const summary = { reservations: due.length, emails: 0, sms: 0, failed: 0 }
+    /** smsSkipped : SMS non envoyés parce que l'offre du commerce n'en inclut pas, ou plus ce mois-ci. */
+    const summary = { reservations: due.length, emails: 0, sms: 0, smsSkipped: 0, failed: 0 }
     const settingsCache = new Map<string, NotificationSettings>()
+    // SMS restants ce mois-ci par commerce (quota du plan + options). Zéro : aucun SMS, quel que soit le réglage.
+    const smsCache = new Map<string, Allowance>()
     for (const { id } of due) {
         const r = await loadReservation(db, id)
         if (!r) continue
@@ -317,12 +345,23 @@ export async function sendReservationReminders(db: AdminClient, now = new Date()
         }
         const phone = settings.reminder_sms && r.customer?.phone ? toE164(r.customer.phone, r.business.country) : null
         if (phone) {
-            const outcome = await deliver(db, {
-                ...base, channel: 'sms', template: 'reservation_reminder', to: phone, key: `reservation_reminder:sms:${r.id}`,
-                send: () => sendSms(phone, `${r.business.name} : rappel de votre ${d.noun} le ${d.when}.${r.business.phone ? ` Pour modifier : ${r.business.phone}` : ''}`),
-            })
-            if (outcome === 'sent') summary.sms++
-            if (outcome === 'failed') summary.failed++
+            if (!smsCache.has(r.business_id)) smsCache.set(r.business_id, await getAllowance(db, r.business_id, 'sms', now))
+            const sms = smsCache.get(r.business_id)!
+            if (sms.remaining <= 0) {
+                summary.smsSkipped++
+            } else {
+                const key = `reservation_reminder:sms:${r.id}`
+                const outcome = await deliver(db, {
+                    ...base, channel: 'sms', template: 'reservation_reminder', to: phone, key,
+                    send: () => sendSms(phone, `${r.business.name} : rappel de votre ${d.noun} le ${d.when}.${r.business.phone ? ` Pour modifier : ${r.business.phone}` : ''}`),
+                })
+                if (outcome === 'sent') {
+                    summary.sms++
+                    sms.remaining--
+                    await recordUsage(db, { businessId: r.business_id, agencyId: r.business.agency_id, meter: 'sms', eventType: 'reservation_reminder_sms', idempotencyKey: key })
+                }
+                if (outcome === 'failed') summary.failed++
+            }
         }
         // Marquée traitée même sans envoi (pas de coordonnées, réglages coupés) : on ne la reprend pas demain.
         await db.from('reservations').update({ reminder_sent_at: new Date().toISOString() }).eq('id', r.id)

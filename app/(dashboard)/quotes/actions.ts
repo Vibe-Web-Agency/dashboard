@@ -6,6 +6,7 @@ import { updateQuoteStatus } from '@/lib/v2/data/quotes'
 import { sendQuoteEmail } from '@/lib/v2/notifications'
 import { currentSeller } from '@/lib/v2/quote-document'
 import { canWrite } from '@/lib/v2/roles'
+import { siteUrl } from '@/lib/v2/site-url'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { createServerSupabase } from '@/lib/v2/supabase-server'
 import { getTenantContext } from '@/lib/v2/tenant'
@@ -33,7 +34,7 @@ export async function sendQuoteToCustomer(quoteId: string): Promise<SendQuoteRes
         const seller = await currentSeller(supabase, business.id)
         if (seller) await supabase.from('quotes').update({ seller }).eq('business_id', business.id).eq('id', quoteId)
         await updateQuoteStatus(supabase, business.id, quoteId, 'sent')
-        const outcome = await sendQuoteEmail(getAdminClient(), quoteId)
+        const outcome = await sendQuoteEmail(getAdminClient(), quoteId, await siteUrl())
         return { ok: true, emailSent: outcome === 'sent' }
     } catch (e) {
         if (e instanceof NotAllowedError) return { ok: false, error: e.message }

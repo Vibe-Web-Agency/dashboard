@@ -2271,3 +2271,44 @@ SELECT sh.id AS shift_id,
 | `shifts_business_manage` | ALL | authenticated | PERMISSIVE | `has_business_access(business_id)` | `has_business_access(business_id)` |
 | `shifts_platform_admin_all` | ALL | authenticated | PERMISSIVE | `is_platform_admin()` | — |
 
+---
+
+## Changements depuis le 2026-10-12
+
+Ce qui précède décrit la base telle qu'elle était avant ces dates. En particulier, **la liste des politiques RLS ci-dessus est antérieure au durcissement du 2026-10-12** : les politiques `*_member_manage`, `*_agency_manage` et la plupart des `*_public_widget_insert` n'existent plus. L'état de référence est celui que produisent les scripts de `supabase/manual/`, décrits dans `CLAUDE.md` (section 1.3).
+
+### Tables ajoutées
+
+| Table | Rôle | Accès | Script |
+|---|---|---|---|
+| `api_rate_limits` | Compteur de débit de l'API publique (`key`, `window_start`, `count`) | Clé de service uniquement, par la fonction `rate_limit_hit` | `api-rate-limits.sql` |
+| `clarity_daily_metrics` | Chiffres Microsoft Clarity par commerce et par jour (`metrics`, `raw`) | Lecture : membres du commerce. Écriture : clé de service | `clarity-daily-metrics.sql` |
+
+### Colonnes ajoutées
+
+| Table | Colonnes | Rôle | Script |
+|---|---|---|---|
+| `profiles` | `first_name`, `last_name` | Remplacent `full_name`, qui n'est plus lu ni écrit | `profiles-names-status.sql` |
+| `profiles` | `status` (`invited`, `pending`, `active`), `last_sign_in_at` | État du compte, tenu par les triggers sur `auth.users` | `profiles-names-status.sql` |
+| `quotes` | `buyer`, `seller` (jsonb) | Destinataire saisi sur le devis ; émetteur figé à l'envoi | `quotes-seller-buyer.sql` |
+| `customers` | `first_name`, `last_name` | Remplacent `full_name` | `customers-first-last-name.sql` |
+| `business_types` | `customer_noun`, `service_noun` | Vocabulaire du métier | `business-types-*.sql` |
+
+### Fonctions et triggers ajoutés ou modifiés
+
+| Objet | Rôle |
+|---|---|
+| `rate_limit_hit(key, limit, window_seconds)` | Compte un appel et dit s'il reste sous la limite |
+| `business_accepts_public_writes(business)` | Le commerce existe et est en service (politiques d'insertion anonyme) |
+| `business_is_operational(status)` | `active`, `active_client` ou `lead_demo` |
+| `handle_new_user()` | Profil avec prénom, nom et statut ; pas d'établissement de démonstration pour un compte invité |
+| `handle_user_sign_in()` + trigger `on_auth_user_signed_in` | À chaque connexion : `profiles.status = 'active'`, `last_sign_in_at` recopié |
+| `handle_new_user_signup()` | Supprimée (code mort) |
+
+### Usages qui ne se voient pas dans le schéma
+
+- `business_integrations` : une ligne `provider = 'clarity'` par commerce relié (`account_id` = projet, `refresh_token` = jeton d'API).
+- `business_module_settings.settings` (public pour les modules activés, aucun secret) : `reservations.notifications`, `quotes.issuer`, `analytics.clarity`, `reviews.google`.
+- `plan_quotas`, `business_addons` (`meter = 'sms'`) et `usage_events` : droit mensuel aux SMS et consommation.
+- `outbound_messages` : journal de tous les emails et SMS envoyés, avec une clé d'idempotence.
+- `profiles` : un utilisateur ne peut modifier que `first_name`, `last_name`, `full_name`, `phone`, `avatar_url`, `locale` (droits de colonne).

@@ -9,6 +9,7 @@ import { cleanClarityProjectId } from '@/lib/v2/data/web-analytics'
 import { CLARITY_PROVIDER, ClarityError, collectClarity, connectClarity, disconnectClarity, storeClarity } from '@/lib/v2/clarity'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { type NotificationSettings, readNotificationSettings } from '@/lib/v2/notifications'
+import { getAllowance } from '@/lib/v2/usage'
 import {
     type FieldErrors,
     NotAllowedError,
@@ -96,6 +97,9 @@ export async function saveNotificationSettings(input: NotificationSettings): Pro
     if (!guard.ok) return guard
     // Ne garde que les quatre booléens attendus.
     const notifications = readNotificationSettings({ notifications: input })
+    if (notifications.reminder_sms && (await getAllowance(await createServerSupabase(), guard.businessId, 'sms')).limit <= 0) {
+        return { ok: false, error: "Les SMS ne sont pas inclus dans votre offre. Contactez votre agence pour en ajouter." }
+    }
 
     try {
         const supabase = await createServerSupabase()

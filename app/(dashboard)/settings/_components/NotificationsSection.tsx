@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Bell } from "lucide-react";
 import type { NotificationSettings } from "@/lib/v2/notifications";
+import type { Allowance } from "@/lib/v2/usage";
 import { saveNotificationSettings } from "../actions";
 
 const OPTIONS: { key: keyof NotificationSettings; label: string; help: string }[] = [
@@ -13,7 +14,9 @@ const OPTIONS: { key: keyof NotificationSettings; label: string; help: string }[
 ];
 
 /** Messages automatiques liés aux réservations (réglages du module « reservations »). */
-export function NotificationsSection({ initial, canManage, bookingPlural }: { initial: NotificationSettings; canManage: boolean; bookingPlural: string }) {
+export function NotificationsSection({ initial, canManage, bookingPlural, sms }: { initial: NotificationSettings; canManage: boolean; bookingPlural: string; sms: Allowance }) {
+    // Les SMS sont payants : sans quota dans l'offre, l'interrupteur reste éteint et verrouillé.
+    const smsIncluded = sms.limit > 0;
     const [values, setValues] = useState(initial);
     const [pending, startTransition] = useTransition();
     const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -44,11 +47,15 @@ export function NotificationsSection({ initial, canManage, bookingPlural }: { in
                 {OPTIONS.map((o) => (
                     <li key={o.key}>
                         <label className="flex items-start gap-3">
-                            <input type="checkbox" className="mt-1 h-4 w-4" style={{ accentColor: "var(--accent)" }} checked={values[o.key]} disabled={!canManage || pending}
+                            <input type="checkbox" className="mt-1 h-4 w-4" style={{ accentColor: "var(--accent)" }} checked={o.key === "reminder_sms" && !smsIncluded ? false : values[o.key]} disabled={!canManage || pending || (o.key === "reminder_sms" && !smsIncluded)}
                                 onChange={(e) => toggle(o.key, e.target.checked)} />
                             <span>
                                 <span className="block text-sm" style={{ color: "var(--text)" }}>{o.label}</span>
-                                <span className="block text-xs" style={{ color: "var(--text-muted)" }}>{o.help}</span>
+                                <span className="block text-xs" style={{ color: "var(--text-muted)" }}>
+                                    {o.key !== "reminder_sms" ? o.help
+                                        : smsIncluded ? `${sms.used} SMS envoyé${sms.used > 1 ? "s" : ""} ce mois-ci sur ${sms.limit} inclus dans votre offre. Nécessite le numéro de téléphone du client.`
+                                        : "Non inclus dans votre offre. Contactez votre agence pour ajouter des SMS."}
+                                </span>
                             </span>
                         </label>
                     </li>

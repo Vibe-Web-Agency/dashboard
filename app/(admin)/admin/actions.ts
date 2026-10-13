@@ -13,6 +13,7 @@ import {
     setMembershipRole,
     setPlanModule,
     setTenantModule,
+    setSmsAddon,
     setTenantPlan,
     updateTenant,
 } from '@/lib/v2/admin'
@@ -87,6 +88,10 @@ export async function addClient(input: NewClientInput) {
 
 export async function saveTenantPlan(businessId: string, planId: string | null) {
     return run(({ db }) => setTenantPlan(db, businessId, planId))
+}
+
+export async function saveSmsAddon(businessId: string, monthlyLimit: number) {
+    return run(({ db }) => setSmsAddon(db, businessId, monthlyLimit))
 }
 
 export async function toggleTenantModule(businessId: string, moduleId: string, enabled: boolean) {

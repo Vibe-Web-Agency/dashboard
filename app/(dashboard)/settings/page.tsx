@@ -4,6 +4,7 @@ import { getTenantContext } from "@/lib/v2/tenant";
 import { getProfile, listBusinessHours } from "@/lib/v2/data/businesses";
 import { bookingLabels } from "@/lib/v2/labels";
 import { readNotificationSettings } from "@/lib/v2/notifications";
+import { getAllowance } from "@/lib/v2/usage";
 import { personName } from "@/lib/v2/names";
 import { isPendingProfile } from "@/lib/v2/statuses";
 import { AccountSection, BusinessSection, HoursSection, SessionSection } from "./_components/SettingsSections";
@@ -45,6 +46,7 @@ export default async function SettingsPage() {
     ]);
     const issuer = quoteSettings ? readIssuer(quoteSettings) : null;
     const notifications = reservationSettings ? readNotificationSettings(reservationSettings) : null;
+    const sms = notifications ? await getAllowance(supabase, business.id, "sms") : null;
     const subscription = subscriptionRow.data;
 
     let team: TeamMember[] = [];
@@ -84,7 +86,7 @@ export default async function SettingsPage() {
             <BusinessSection key={`info-${business.id}`} business={business} canManage={canManage} />
             <HoursSection key={`hours-${business.id}`} initialHours={hours} canManage={canManage} />
             {issuer && <IssuerSection key={`issuer-${business.id}`} initial={issuer} canManage={canManage} />}
-            {notifications && <NotificationsSection key={`notif-${business.id}`} initial={notifications} canManage={canManage} bookingPlural={bookingLabels(business).plural} />}
+            {notifications && <NotificationsSection key={`notif-${business.id}`} initial={notifications} canManage={canManage} bookingPlural={bookingLabels(business).plural} sms={sms ?? { limit: 0, used: 0, remaining: 0 }} />}
             {canManage && tenant.currentRole && <TeamSection key={`team-${business.id}`} members={team} currentRole={tenant.currentRole} />}
             <section className="rounded-[12px] p-6" style={{ background: "var(--bg-elev)", border: "1px solid var(--border)" }}>
                 <h2 style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text)", letterSpacing: "-0.01em" }}>Mon abonnement</h2>

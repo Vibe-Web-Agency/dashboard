@@ -39,6 +39,7 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 - **Clarity** : identifiant du projet et jeton sur la page Analyse web (9.8).
 - **Fiche Google** depuis la page Avis (9.9).
 - **Plan et modules** depuis `/admin` : sans plan, seuls les modules de base apparaissent.
+- **SMS de rappel** : si le client paie pour des SMS, lui donner un quota depuis `/admin` → sa fiche → « SMS de rappel ». Sans quota, aucun SMS ne part pour lui.
 
 ## 4. Développements utiles, par rendement
 
@@ -47,10 +48,10 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 | 11 | **Corrections issues du passage en navigateur** (point 5). | Probablement le plus rentable : ce sont les défauts que vos clients verraient. | M |
 | 12 | ~~Email à l'agence pour chaque nouvelle demande de support.~~ **Fait le 2026-10-13.** L'email part vers `agencies.contact_email`, qui est **vide** pour Vibe Web Agency : à renseigner, sinon rien n'est envoyé. | — | — |
 | 13 | ~~Libellés de statut accordés.~~ **Fait le 2026-10-13** : « Confirmé », « Annulé » pour un rendez-vous ; « Confirmée », « Annulée » pour une réservation. | — | — |
-| 14 | **Page d'acceptation du devis en ligne** (lien dans l'email, bouton « J'accepte »). | Le client accepte en un clic au lieu de répondre à l'email ; le statut se met à jour seul. | M |
+| 14 | ~~Page d'acceptation du devis en ligne.~~ **Fait le 2026-10-13** : le client ouvre son devis par un lien, l'accepte ou le refuse, et le commerce est prévenu. | — | — |
 | 15 | **Connexion Google du commerce** (tous les avis, réponse depuis le dashboard). | Bloqué tant que Google n'a pas accordé l'accès : activer les deux API « My Business », envoyer le formulaire d'accès, créer l'identifiant OAuth (9.9). | L |
 | 16 | **Planning de l'équipe** et lien employé ↔ prestation. | Permet de réserver « avec telle personne ». Utile surtout aux coiffeurs et instituts. | L |
-| 17 | **Tests automatiques** des parcours clés (réservation publique, droits par rôle, devis). | Aujourd'hui chaque vérification est un script jetable : rien ne protège d'une régression. | M |
+| 17 | ~~Tests automatiques.~~ **Fait le 2026-10-13** : `npm test`, 32 tests (`tests/README.md`). | — | — |
 
 ## 5. Décisions en attente
 
@@ -66,14 +67,13 @@ Aucune ne bloque aujourd'hui, mais chacune conditionne un chantier.
 - **Seuils d'alerte Clarity** (3, 15, 15, 10 et 5 % des visites) : fixés arbitrairement, à ajuster.
 - **Données publiques** : `talents.date_of_birth` est lisible par un visiteur pour les profils actifs ; `agency_plan_modules` est lisible par tous.
 
-## 6. Ménage (faible priorité)
+## 6. Ménage
 
-- Mettre à jour `db.md` : tables `api_rate_limits` et `clarity_daily_metrics`, colonnes `quotes.buyer`, `quotes.seller`, `profiles.first_name`, `last_name`, `status`, `last_sign_in_at`.
-- `CLAUDE.md` : les sections 6.2 et 6.3 décrivent l'ancien menu ; elles sont remplacées par les sections 7 et 9.
-- Dépendances inutilisées dans `package.json` : `stripe`, `twilio`, `resend`, `recharts`.
-- Route `/api/revalidate-iconik` : sans authentification et sans appelant connu. À supprimer ou à protéger.
-- Deux erreurs de lint anciennes : `components/ThemeToggle.tsx`, `components/ui/input.tsx`.
-- Colonnes `customers.full_name` et `profiles.full_name` : plus lues ni écrites, peuvent être supprimées.
+Fait le 2026-10-13 : dépendances inutilisées retirées (`stripe`, `twilio`, `resend`, `recharts`, `googleapis`), route `/api/revalidate-iconik` supprimée, erreurs de lint corrigées, `db.md` complété, sections 6.2 et 6.3 de `CLAUDE.md` marquées comme historiques.
+
+Reste, parce que c'est irréversible et qu'il faut votre accord :
+
+- Supprimer les colonnes `customers.full_name` et `profiles.full_name`, qui ne sont plus lues ni écrites.
 
 ---
 
