@@ -4,9 +4,12 @@ import { useCallback } from 'react'
 import type { TablesInsert } from '@/types/supabase'
 import {
     type CustomerInput,
+    addCustomerNote,
     createCustomer,
+    deleteCustomerNote,
     getCustomerDetail,
     listCustomers,
+    setCustomerTags,
     updateCustomer,
 } from '../data/customers'
 import { useBusinessQuery } from './useBusinessQuery'
@@ -51,5 +54,28 @@ export function useCustomer(id: string) {
         [supabase, businessId, id, refresh],
     )
 
-    return { detail: data, loading, error, refresh, update }
+    const addNote = useCallback(
+        async (content: string) => {
+            const { data: session } = await supabase.auth.getSession()
+            await addCustomerNote(supabase, businessId, id, content, session.session?.user.id ?? null)
+            refresh()
+        },
+        [supabase, businessId, id, refresh],
+    )
+    const removeNote = useCallback(
+        async (noteId: string) => {
+            await deleteCustomerNote(supabase, businessId, noteId)
+            refresh()
+        },
+        [supabase, businessId, refresh],
+    )
+    const setTags = useCallback(
+        async (tags: string[]) => {
+            await setCustomerTags(supabase, businessId, id, tags)
+            refresh()
+        },
+        [supabase, businessId, id, refresh],
+    )
+
+    return { detail: data, loading, error, refresh, update, addNote, removeNote, setTags }
 }

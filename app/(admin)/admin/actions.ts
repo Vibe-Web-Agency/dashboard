@@ -13,6 +13,7 @@ import {
     setMembershipRole,
     setPlanModule,
     setTenantModule,
+    resetGoogleListing,
     setSmsAddon,
     setTenantPlan,
     updateTenant,
@@ -88,6 +89,10 @@ export async function addClient(input: NewClientInput) {
 
 export async function saveTenantPlan(businessId: string, planId: string | null) {
     return run(({ db }) => setTenantPlan(db, businessId, planId))
+}
+
+export async function unlinkGoogleListing(businessId: string) {
+    return run(({ db }) => resetGoogleListing(db, businessId))
 }
 
 export async function saveSmsAddon(businessId: string, monthlyLimit: number) {

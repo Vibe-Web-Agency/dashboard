@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, TablesInsert } from '@/types/supabase'
-import { assertTouched } from './errors'
+import { NotAllowedError, assertTouched } from './errors'
+import { cleanTags } from '../customer-insights'
 import { personName } from '../names'
 
 // Clients (customers) : résolution partagée par l'ingestion publique et le dashboard, puis base clients (5.1).
@@ -222,8 +223,14 @@ export async function getCustomerDetail(supabase: Client, businessId: string, id
     if (error) throw error
     if (!customer) return null
 
-    const [stats, reservations, quotes] = await Promise.all([
+    const [stats, notes, reservations, quotes] = await Promise.all([
         getStats(supabase, businessId, [id]),
+        supabase
+            .from('customer_notes')
+            .select('id, content, created_at, author_id, author:profiles ( first_name, last_name )')
+            .eq('business_id', businessId)
+            .eq('customer_id', id)
+            .order('created_at', { ascending: false }),
         supabase
             .from('reservations')
             .select('id, starts_at, status, party_size, source, service:services ( name )')
@@ -239,8 +246,34 @@ export async function getCustomerDetail(supabase: Client, businessId: string, id
     ])
     if (reservations.error) throw reservations.error
     if (quotes.error) throw quotes.error
+    if (notes.error) throw notes.error
 
-    return { customer, stats: stats.get(id) ?? null, reservations: reservations.data, quotes: quotes.data }
+    return { customer, stats: stats.get(id) ?? null, reservations: reservations.data, quotes: quotes.data, notes: notes.data }
+}
+
+/** Note interne sur un client : jamais montrée au client. */
+export async function addCustomerNote(supabase: Client, businessId: string, customerId: string, content: string, authorId: string | null) {
+    const text = content.trim()
+    if (!text) throw new Error('La note est vide.')
+    const { error } = await supabase.from('customer_notes').insert({ business_id: businessId, customer_id: customerId, content: text.slice(0, 2000), author_id: authorId })
+    if (error) {
+        // Refus RLS (rôle sous member) ou client d'un autre commerce (clé composite).
+        if (error.code === '42501' || error.code === '23503') throw new NotAllowedError()
+        throw error
+    }
+}
+
+export async function deleteCustomerNote(supabase: Client, businessId: string, noteId: string) {
+    const { data, error } = await supabase.from('customer_notes').delete().eq('business_id', businessId).eq('id', noteId).select('id')
+    if (error) throw error
+    assertTouched(data)
+}
+
+/** Étiquettes libres de la fiche (« VIP », « allergie gluten », « paie en retard »…). */
+export async function setCustomerTags(supabase: Client, businessId: string, id: string, tags: string[]) {
+    const { data, error } = await supabase.from('customers').update({ tags: cleanTags(tags) }).eq('business_id', businessId).eq('id', id).select('id')
+    if (error) throw error
+    assertTouched(data)
 }
 
 export type CustomerDetail = NonNullable<Awaited<ReturnType<typeof getCustomerDetail>>>

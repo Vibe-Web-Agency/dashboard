@@ -1,4 +1,5 @@
-import type { Json } from '@/types/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database, Json } from '@/types/supabase'
 import type { AdminClient } from './supabase-admin'
 import { readModuleSettings, writeModuleSetting } from './data/module-settings'
 
@@ -118,6 +119,17 @@ export async function storeGooglePlace(db: AdminClient, businessId: string, plac
 }
 
 /** Retire le résumé et les avis venus de Places d'un commerce délié de sa fiche. */
+/**
+ * Relie la fiche au commerce, seulement si aucune ne l'est encore : le choix est définitif pour le commerce,
+ * et deux demandes simultanées ne peuvent pas en relier deux. Écrit sous la session (RLS de `businesses` : administrateur).
+ * false : une fiche est déjà reliée, ou les droits manquent.
+ */
+export async function claimGooglePlace(supabase: SupabaseClient<Database>, businessId: string, placeId: string): Promise<boolean> {
+    const { data, error } = await supabase.from('businesses').update({ gbp_place_id: placeId }).eq('id', businessId).is('gbp_place_id', null).select('id')
+    if (error) throw error
+    return data.length > 0
+}
+
 export async function clearGooglePlace(db: AdminClient, businessId: string) {
     const { error } = await db.from('reviews').delete().eq('business_id', businessId).eq('source', 'google').like('external_id', `${PLACES_PREFIX}%`)
     if (error) throw error

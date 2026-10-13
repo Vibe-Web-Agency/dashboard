@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { GooglePlacesError, type GoogleListing, clearGooglePlace, fetchGooglePlace, searchGoogleListings, storeGooglePlace } from '@/lib/v2/google-places'
+import { GooglePlacesError, type GoogleListing, claimGooglePlace, fetchGooglePlace, searchGoogleListings, storeGooglePlace } from '@/lib/v2/google-places'
 import { getAdminClient } from '@/lib/v2/supabase-admin'
 import { createServerSupabase } from '@/lib/v2/supabase-server'
 import { getTenantContext } from '@/lib/v2/tenant'
@@ -27,7 +27,10 @@ function failure(e: unknown): GoogleResult<never> {
 
 /** Fiches Google correspondant à une recherche, pour choisir celle du commerce. */
 export async function findGoogleListings(query: string): Promise<GoogleResult<GoogleListing[]>> {
-    if (!(await requireManager())) return { ok: false, error: DENIED }
+    const business = await requireManager()
+    if (!business) return { ok: false, error: DENIED }
+    // Une fois la fiche reliée, la recherche (facturée par Google) n'a plus lieu d'être.
+    if (business.gbp_place_id) return { ok: false, error: 'La fiche Google est déjà reliée.' }
     try {
         return { ok: true, data: await searchGoogleListings(query) }
     } catch (e) {
@@ -35,22 +38,23 @@ export async function findGoogleListings(query: string): Promise<GoogleResult<Go
     }
 }
 
-/** Relie le commerce à une fiche (identifiant de lieu Google), puis fait un premier relevé. Identifiant vide : délie. */
+/**
+ * Relie le commerce à sa fiche Google (identifiant de lieu), puis fait un premier relevé.
+ * Le choix est définitif pour le commerce : une fiche déjà reliée ne se change ni ne se délie ici.
+ * Seule l'agence peut la délier, depuis le back-office (CLAUDE.md 9.9) ; le commerce passe par le support.
+ */
 export async function linkGoogleListing(placeId: string): Promise<GoogleResult> {
     const business = await requireManager()
     if (!business) return { ok: false, error: DENIED }
+    if (business.gbp_place_id) return { ok: false, error: 'La fiche Google est déjà reliée. Pour la changer, écrivez-nous depuis la page Support.' }
+    const id = placeId.trim()
+    if (!id) return { ok: false, error: 'Choisissez une fiche.' }
     try {
         const supabase = await createServerSupabase()
-        const admin = getAdminClient()
-        const id = placeId.trim()
         // La fiche est lue avant d'être enregistrée : un identifiant faux n'est jamais gardé.
-        const place = id ? await fetchGooglePlace(id) : null
-        // Écrit sous la session : c'est la RLS de `businesses` qui autorise (administrateur).
-        const { data, error } = await supabase.from('businesses').update({ gbp_place_id: place?.placeId ?? null }).eq('id', business.id).select('id')
-        if (error) throw error
-        if (!data.length) return { ok: false, error: DENIED }
-        if (place) await storeGooglePlace(admin, business.id, place)
-        else await clearGooglePlace(admin, business.id)
+        const place = await fetchGooglePlace(id)
+        if (!(await claimGooglePlace(supabase, business.id, place.placeId))) return { ok: false, error: 'La fiche Google est déjà reliée. Pour la changer, écrivez-nous depuis la page Support.' }
+        await storeGooglePlace(getAdminClient(), business.id, place)
     } catch (e) {
         return failure(e)
     }

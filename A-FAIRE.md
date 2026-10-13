@@ -37,7 +37,7 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 - **Email de l'établissement** : c'est là qu'arrivent les avis de nouvelle réservation ou demande (9.3).
 - **Mentions légales des devis** dans Paramètres : SIRET, TVA, forme juridique (9.4).
 - **Clarity** : identifiant du projet et jeton sur la page Analyse web (9.8).
-- **Fiche Google** depuis la page Avis (9.9).
+- **Fiche Google** depuis la page Avis (9.9). Le choix est **définitif** pour le client : pour la changer, vous la déliez depuis `/admin` → sa fiche → « Fiche Google ».
 - **Plan et modules** depuis `/admin` : sans plan, seuls les modules de base apparaissent.
 - **SMS de rappel** : si le client paie pour des SMS, lui donner un quota depuis `/admin` → sa fiche → « SMS de rappel ». Sans quota, aucun SMS ne part pour lui.
 
@@ -51,7 +51,9 @@ Réglages, pas du code. Pour chacun des quatre premiers clients :
 | 14 | ~~Page d'acceptation du devis en ligne.~~ **Fait le 2026-10-13** : le client ouvre son devis par un lien, l'accepte ou le refuse, et le commerce est prévenu. | — | — |
 | 15 | **Connexion Google du commerce** (tous les avis, réponse depuis le dashboard). | Bloqué tant que Google n'a pas accordé l'accès : activer les deux API « My Business », envoyer le formulaire d'accès, créer l'identifiant OAuth (9.9). | L |
 | 16 | **Planning de l'équipe** et lien employé ↔ prestation. | Permet de réserver « avec telle personne ». Utile surtout aux coiffeurs et instituts. | L |
-| 17 | ~~Tests automatiques.~~ **Fait le 2026-10-13** : `npm test`, 32 tests (`tests/README.md`). | — | — |
+| 17 | ~~Tests automatiques.~~ **Fait le 2026-10-13** : `npm test`, 40 tests (`tests/README.md`). | — | — |
+| 18 | ~~Statistiques et fiche client enrichies.~~ **Fait le 2026-10-13** (CLAUDE.md 9.11) : couverts, moyenne par réservation, midi / soir, heures, tailles de groupe, provenance, évolution ; sur la fiche : habitudes, notes internes, étiquettes, prochaine réservation. Les blocs suivent le secteur du commerce. | — | — |
+| 19 | **Découpages propres à d'autres secteurs** (`lib/v2/verticals.ts`). | Aujourd'hui seule la restauration a le sien (midi / soir) ; les autres ont matin / après-midi / soir. À affiner quand un client d'un autre secteur arrive (ex. chiffre d'affaires par prestation pour un coiffeur, quand les prix seront rattachés aux réservations). | S |
 
 ## 5. Décisions en attente
 
@@ -65,6 +67,7 @@ Aucune ne bloque aujourd'hui, mais chacune conditionne un chantier.
 - **Devis** : prix saisis hors taxes avec 20 % de TVA par défaut. Vos clients raisonnent-ils en TTC ?
 - **Avis Google** : par Places, seuls les 5 avis du jour sont gardés, pour respecter les conditions de Google. Acceptable en attendant la connexion Google ?
 - **Seuils d'alerte Clarity** (3, 15, 15, 10 et 5 % des visites) : fixés arbitrairement, à ajuster.
+- **Fiche client** : une fiche est « à relancer » quand le client n'est pas venu depuis plus de deux fois son rythme habituel et plus de 30 jours. Seuil à ajuster ? Et faut-il un bouton pour bloquer un client (la colonne `is_blocked` existe, rien ne l'applique) ?
 - **Données publiques** : `talents.date_of_birth` est lisible par un visiteur pour les profils actifs ; `agency_plan_modules` est lisible par tous.
 
 ## 6. Ménage

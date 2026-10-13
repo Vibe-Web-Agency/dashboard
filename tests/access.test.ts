@@ -1,5 +1,9 @@
 // Droits : ce que chaque rôle peut lire et écrire, vérifié sous de vraies sessions (RLS).
 import { DEMO, FIFI, OWNER, VIEWER, admin, anon, mark, signIn } from './helpers'
+import { addCustomerNote, getCustomerDetail, setCustomerTags } from '../lib/v2/data/customers'
+import { NotAllowedError } from '../lib/v2/data/errors'
+import { claimGooglePlace } from '../lib/v2/google-places'
+import { resetGoogleListing } from '../lib/v2/admin'
 import assert from 'node:assert/strict'
 import { after, before, describe, it } from 'node:test'
 
@@ -45,6 +49,34 @@ describe('droits', () => {
         const insert = await viewer.client.from('business_plans').insert({ business_id: FIFI.id, agency_id: FIFI.agency_id, plan_id: plan!.plan_id, status: 'cancelled' }).select('id')
         assert.ok(insert.error)
         assert.ok((await viewer.client.from('document_sequences').select('*')).error)
+    })
+
+    it('notes et étiquettes d\'un client : le propriétaire écrit, le lecteur lit seulement', async () => {
+        const { data: customer } = await admin.from('customers').insert({ business_id: FIFI.id, first_name: tag, source: 'manual' }).select('id').single()
+        await addCustomerNote(owner.client, FIFI.id, customer!.id, '  préfère la terrasse  ', owner.userId)
+        await setCustomerTags(owner.client, FIFI.id, customer!.id, ['VIP', 'vip', ' Terrasse '])
+        const seen = await getCustomerDetail(viewer.client, FIFI.id, customer!.id)
+        assert.deepEqual(seen?.notes.map((n) => n.content), ['préfère la terrasse'])
+        assert.deepEqual(seen?.customer.tags, ['VIP', 'Terrasse'])
+        await assert.rejects(addCustomerNote(viewer.client, FIFI.id, customer!.id, 'x', viewer.userId), NotAllowedError)
+        await assert.rejects(setCustomerTags(viewer.client, FIFI.id, customer!.id, []), NotAllowedError)
+        // Une note ne se rattache pas au client d'un autre commerce.
+        await assert.rejects(addCustomerNote(owner.client, DEMO.id, customer!.id, 'x', owner.userId), NotAllowedError)
+    })
+
+    it('la fiche Google ne se relie qu\'une fois ; seule l\'agence la délie', async () => {
+        const { data: before } = await admin.from('businesses').select('gbp_place_id').eq('id', DEMO.id).single()
+        await admin.from('businesses').update({ gbp_place_id: null }).eq('id', DEMO.id)
+        try {
+            assert.equal(await claimGooglePlace(viewer.client, FIFI.id, 'autotest-lecteur'), false)
+            assert.equal(await claimGooglePlace(owner.client, DEMO.id, 'autotest-premiere'), true)
+            assert.equal(await claimGooglePlace(owner.client, DEMO.id, 'autotest-seconde'), false)
+            assert.equal((await admin.from('businesses').select('gbp_place_id').eq('id', DEMO.id).single()).data?.gbp_place_id, 'autotest-premiere')
+            await resetGoogleListing(admin, DEMO.id)
+            assert.equal((await admin.from('businesses').select('gbp_place_id').eq('id', DEMO.id).single()).data?.gbp_place_id, null)
+        } finally {
+            await admin.from('businesses').update({ gbp_place_id: before!.gbp_place_id }).eq('id', DEMO.id)
+        }
     })
 
     it('le propriétaire écrit dans son commerce', async () => {

@@ -3,6 +3,7 @@ import { type AdminClient, getAdminClient } from './supabase-admin'
 import { createServerSupabase } from './supabase-server'
 import { ROLES, type Role } from './roles'
 import { BUSINESS_STATUSES } from './admin-constants'
+import { clearGooglePlace } from './google-places'
 import { personName } from './names'
 import { isPendingProfile } from './statuses'
 
@@ -74,7 +75,7 @@ export async function loadTenants(db: AdminClient) {
 
 export async function loadTenant(db: AdminClient, businessId: string) {
     const business = unwrapMaybe(
-        await db.from('businesses').select('id, name, slug, status, agency_id, business_type_id').eq('id', businessId).maybeSingle(),
+        await db.from('businesses').select('id, name, slug, status, agency_id, business_type_id, gbp_place_id').eq('id', businessId).maybeSingle(),
     )
     if (!business) return null
 
@@ -156,6 +157,12 @@ export async function setTenantPlan(db: AdminClient, businessId: string, planId:
     } else if (current) {
         unwrap(await db.from('business_plans').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', current.id).select('id'))
     }
+}
+
+/** Délie la fiche Google d'un commerce (réservé à l'agence) : il pourra en relier une autre depuis sa page Avis. */
+export async function resetGoogleListing(db: AdminClient, businessId: string) {
+    unwrap(await db.from('businesses').update({ gbp_place_id: null }).eq('id', businessId).select('id').single())
+    await clearGooglePlace(db, businessId)
 }
 
 /**

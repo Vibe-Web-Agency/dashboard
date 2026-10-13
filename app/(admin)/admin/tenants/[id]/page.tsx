@@ -7,6 +7,7 @@ import { panelStyle } from "@/lib/v2/admin-constants";
 import { InviteForm } from "../../_components/InviteForm";
 import { TaskList } from "../../_components/TaskList";
 import { MembershipManager } from "../../memberships/_components/MembershipManager";
+import { GoogleListingReset } from "../_components/GoogleListingReset";
 import { SmsAddon } from "../_components/SmsAddon";
 import { TenantEditor } from "../_components/TenantEditor";
 
@@ -37,6 +38,11 @@ export default async function TenantPage({ params }: { params: Promise<{ id: str
             <section className="rounded-xl p-5 flex flex-col gap-4" style={panelStyle}>
                 <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>SMS de rappel</h2>
                 <SmsAddon key={`${id}-${smsAddon}`} businessId={id} allowance={sms} addon={smsAddon} />
+            </section>
+
+            <section className="rounded-xl p-5 flex flex-col gap-4" style={panelStyle}>
+                <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>Fiche Google</h2>
+                <GoogleListingReset businessId={id} placeId={tenant.business.gbp_place_id} />
             </section>
 
             <section className="rounded-xl p-5 flex flex-col gap-4" style={panelStyle}>

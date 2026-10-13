@@ -320,7 +320,7 @@ Remplace l'ancienne page `/clients`, qui reconstituait les clients à partir des
   - `updateCustomer` : modification de la fiche. Un email déjà porté par un autre client lève `DuplicateCustomerError` avec l'id de l'autre fiche.
   - Emails toujours normalisés avec `normalizeEmail`.
 - **`/customers`** : tableau, recherche instantanée (300 ms après la dernière frappe), filtre par source, pagination, export CSV de tous les résultats filtrés, modale de création ouverte par le bouton ou par `?new=1`.
-- **`/customers/[id]`** : fiche (source, statut bloqué, ancienneté), coordonnées modifiables, contact rapide (`mailto:`, `tel:`, WhatsApp), statistiques, historique des réservations et des demandes avec liens vers leur détail.
+- **`/customers/[id]`** : fiche (source, statut bloqué, ancienneté), coordonnées modifiables, contact rapide (`mailto:`, `tel:`, WhatsApp), chiffres, habitudes, notes internes, étiquettes, historique des réservations et des demandes avec liens vers leur détail. Détail en 9.11.
 - **Non repris de la V1 :** la « campagne email » de l'ancienne page Clients, qui relève du module `campaigns`.
 
 ### 5.2 Paramètres du commerce (/settings)
@@ -558,7 +558,7 @@ Menu actuel (`lib/v2/navigation.ts`), chaque entrée soumise à son module : Vue
 - **Avis** (`/reviews`) : filtres par statut, note moyenne des avis publiés, publier / masquer, réponse de l'établissement. Pas de suppression.
 - **Équipe** (`/team`, table `employees`) : les personnes présentées sur le site. Écriture réservée aux administrateurs (RLS). Suppression refusée si la personne est liée à des réservations : on la désactive. Le planning (`shifts`) et le lien employé ↔ prestation ne sont pas faits.
 - **Actualités** (`/blog`) : brouillon, publié, archivé. L'adresse (slug) vient du titre, est rendue unique et n'est jamais recalculée. La date de première publication est conservée.
-- **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois : réservations, couverts, taux d'absence, nouveaux clients, demandes, devis acceptés, répartition par jour de la semaine et par prestation.
+- **Statistiques** (`/stats`) : sur 30 jours, 3 mois ou 12 mois ; détail en 9.11.
 - **Support** (`/support` et `/admin/support`) : le commerce ouvre une demande et suit le fil ; l'agence répond depuis le back-office. `open` = à traiter par l'agence, `pending` = réponse reçue par le commerce. À l'ouverture d'une demande, l'agence reçoit un email (`notifyAgencyOfTicket`, vers `agencies.contact_email` ; rien n'est envoyé si ce champ est vide), un seul par demande.
 
 ### 9.8 Analyse web — 2026-10-13
@@ -593,6 +593,7 @@ Page `/analytics` (« Analyse web », module `analytics`), reprise de la version
 
 ### 9.9 Fiche Google et avis Google — 2026-10-13
 - **Où va l'identifiant :** `businesses.gbp_place_id` = identifiant de lieu Google (`ChIJ…`). `businesses.google_location_id` et la table `google_connexions` sont réservés à la connexion Google du commerce (ci-dessous), pas encore faite.
+- **Choix définitif pour le commerce (décision du 2026-10-13) :** une fiche reliée ne se change ni ne se délie depuis la page Avis. Le commerce confirme son choix avant de relier, puis la page le renvoie vers le support. `claimGooglePlace` n'écrit que si `gbp_place_id` est encore NULL (deux demandes simultanées n'en relient qu'une), et la recherche de fiche est refusée une fois la fiche reliée. Seule l'agence délie : `/admin` → fiche client → « Fiche Google » (`resetGoogleListing`, qui efface aussi la note et les avis relevés). Ce n'est pas garanti en base : un administrateur du commerce qui écrirait directement dans `businesses` passerait outre ; un trigger serait à ajouter si cela compte.
 - **Liaison** (page Avis, propriétaire et administrateurs) : recherche de la fiche par nom et ville (`places:searchText`), ou saisie directe de l'identifiant. La fiche est lue avant d'être enregistrée ; un identifiant faux n'est jamais gardé. `app/(dashboard)/reviews/actions.ts`, `lib/v2/google-places.ts` (API Places (New), clé `GOOGLE_PLACES_API_KEY`, serveur uniquement).
 - **Ce qui est relevé :** la note moyenne, le nombre d'avis et le lien vers la fiche, rangés dans `business_module_settings.settings.google` du module `reviews` (informations publiques). Relevé à la liaison, puis chaque matin par le cron `/api/cron/reminders`, qui regroupe les tâches du matin.
 - **Texte des avis — constat du 2026-10-13 :** avec la clé du projet, Places renvoie la note et le nombre d'avis mais **pas** le champ `reviews`, et l'ancienne API Places répond « You must enable Billing ». La cause la plus probable est donc la facturation non activée sur le projet Google Cloud ; ce n'est pas confirmé. Le code d'import est en place : dès que Google renvoie les avis (5 au plus), ils entrent dans `reviews` (source `google`, statut `published`, `external_id` = `places/<lieu>/reviews/<avis>`).
@@ -609,8 +610,29 @@ Données de test supprimées à chaque fois, aucun email ni SMS réellement envo
 - devis en PDF, mentions légales et analyse web (2026-10-13) : 16 contrôles en session réelle, et le PDF produit a été relu (mise en page, accents, montants).
 - **Non vérifié :** l'envoi réel par Resend et Twilio, le déclenchement du cron par Vercel, les Server Actions de l'équipe et de l'envoi de devis (appelées seulement par un navigateur), et tout clic dans un navigateur.
 
+### 9.11 Statistiques et fiche client selon le secteur — 2026-10-13
+Rien n'est écrit « pour les restaurants » : chaque bloc dépend d'un trait du commerce.
+- **Traits :**
+  - `party_noun` non NULL (`labels.showParty`) → blocs couverts / joueurs / personnes, au vocabulaire du type ;
+  - verticale (`lib/v2/verticals.ts`, `dayParts`) → découpage de la journée : « Midi » (dès 5 h) et « Soir » (dès 16 h) pour `food`, « Matin », « Après-midi » (12 h), « Soir » (18 h) ailleurs. Les heures d'après minuit comptent dans le dernier moment. Pour un autre découpage par secteur, c'est ici qu'on l'ajoute ;
+  - modules actifs → prestations, demandes et devis, note des avis.
+- **`/stats`** (`lib/v2/data/stats.ts`, `computeReservationStats` est pure et testée) :
+  - réservations et couverts avec l'évolution par rapport à la période précédente de même durée ; couverts par réservation et plus grand groupe ; taux d'annulation ; taux d'absence ; nouveaux clients ; part des clients qui avaient déjà une fiche avant la période ; délai médian entre la prise de réservation et sa date ; jour le plus chargé ;
+  - répartitions : par jour de la semaine (réservations, et couverts), par moment de la journée (avec la moyenne de couverts), par heure, par taille de groupe (1, 2, 3 à 4, 5 à 6, 7 et plus), par prestation, par provenance (`reservations.source`) ;
+  - les annulées ne comptent ni dans les réservations ni dans les couverts ;
+  - les réservations sont lues par pages de 1 000 (20 000 au plus), sur deux fois la période.
+- **Fiche client** (`/customers/[id]`, `lib/v2/customer-insights.ts`, pure et testée) :
+  - prochaine réservation, bouton de nouvelle réservation préremplie ;
+  - venues (notées « venu », ou passées et restées confirmées), couverts au total et par réservation, absences et leur part, annulations ; total payé et note seulement s'ils existent ;
+  - habitudes : jour, moment et prestation préférés (au moins deux fois), rythme moyen entre deux venues, première et dernière venue ;
+  - pastille : Nouveau (au plus une venue), Habitué (deux et plus), Fidèle (cinq et plus), À relancer (absent depuis plus de deux fois son rythme et plus de 30 jours, sans réservation à venir) ;
+  - **notes internes** (`customer_notes`, écriture member, jamais montrées au client) et **étiquettes** libres (`customers.tags`, 12 au plus, 30 caractères, sans doublon) ;
+  - consentement aux messages promotionnels, en lecture seule.
+  - La liste des clients et l'aperçu rapide lisent toujours « visites » dans `v_customer_profiles_360` (réservations notées « venu » seulement) : les deux chiffres peuvent différer tant que l'issue n'est pas notée.
+- **Vérifié :** 8 tests de plus (calculs, droits sur les notes et les étiquettes, fiche Google reliée une seule fois) ; pages rendues sous session sur FiFi (restaurant) et la démo (barbier), à 375 et 1 280 px, sans débordement ni erreur. **Non vérifié :** les clics (ajout de note, d'étiquette, confirmation de la fiche Google) et l'écran « Fiche Google » du back-office.
+
 ### 9.10 Tests automatiques — 2026-10-13
-`npm test` (lanceur de tests de Node avec `tsx`, dossier `tests/`, mode d'emploi dans `tests/README.md`). 32 tests : droits par rôle, API publique, devis (contenu, PDF, lien public, réponse), messages automatiques et SMS, règles de calcul.
+`npm test` (lanceur de tests de Node avec `tsx`, dossier `tests/`, mode d'emploi dans `tests/README.md`). 40 tests : droits par rôle, API publique, devis (contenu, PDF, lien public, réponse), messages automatiques et SMS, règles de calcul.
 - Ils écrivent en base : `tests/helpers.ts` refuse de tourner ailleurs que sur le projet de développement.
 - Ils retirent les clés Resend et Twilio du processus : aucun envoi réel.
 - Les tests HTTP sont ignorés si aucun serveur ne répond sur `TEST_BASE_URL`.

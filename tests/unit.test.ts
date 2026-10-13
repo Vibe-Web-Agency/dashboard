@@ -10,6 +10,9 @@ import { reservationStatusUI } from '../lib/v2/statuses'
 import { quoteToken, verifyQuoteToken } from '../lib/v2/quote-link'
 import { responseState } from '../lib/v2/quote-response'
 import { personName, splitFullName } from '../lib/v2/names'
+import { dayPartIndex, dayParts } from '../lib/v2/verticals'
+import { type StatsRow, computeReservationStats } from '../lib/v2/data/stats'
+import { cleanTags, customerInsights } from '../lib/v2/customer-insights'
 
 describe('devis : totaux', () => {
     const lines = [{ description: 'a', quantity: 2, unit_price_cents: 5000, tax_rate: 10 }, { description: 'b', quantity: 1.5, unit_price_cents: 2000, tax_rate: 20 }]
@@ -99,5 +102,86 @@ describe('Clarity : lecture des réponses', () => {
         ], 'Source')
         assert.deepEqual(rows.map((r) => [r.label, r.sessions]), [['google', 64], ['Accès direct', 63]])
         assert.equal(rows[1].scrollDepth, 33.3)
+    })
+})
+
+describe('statistiques et fiche client selon le secteur', () => {
+    const tz = 'Europe/Paris'
+    const food = dayParts({ business_type: { vertical: { slug: 'food' } } } as never)
+    const other = dayParts({ business_type: { vertical: { slug: 'beauty' } } } as never)
+    const row = (starts_at: string, over: Partial<StatsRow> = {}): StatsRow => ({ starts_at, created_at: starts_at, status: 'completed', party_size: 2, source: 'website', customer_id: null, service: null, customer: null, ...over })
+
+    it('découpe la journée : midi et soir en restauration, trois moments ailleurs', () => {
+        assert.deepEqual(food.map((p) => p.label), ['Midi', 'Soir'])
+        assert.deepEqual([12, 15, 16, 23, 1].map((h) => food[dayPartIndex(food, h)].label), ['Midi', 'Midi', 'Soir', 'Soir', 'Soir'])
+        assert.deepEqual([9, 12, 17, 18, 2].map((h) => other[dayPartIndex(other, h)].label), ['Matin', 'Après-midi', 'Après-midi', 'Soir', 'Soir'])
+        assert.equal(dayParts({ business_type: { vertical: null } } as never).length, 3)
+    })
+
+    it('compte les couverts hors annulations, par jour, par service et par taille de table', () => {
+        const since = new Date('2026-10-01T00:00:00Z')
+        const s = computeReservationStats([
+            // Samedi 3 octobre : 12 h 30 et 20 h à Paris (UTC+2).
+            row('2026-10-03T10:30:00Z', { party_size: 4, customer_id: 'a', customer: { created_at: '2026-01-01T00:00:00Z' }, created_at: '2026-10-01T10:30:00Z' }),
+            row('2026-10-03T18:00:00Z', { party_size: 8, customer_id: 'b', customer: { created_at: '2026-10-02T00:00:00Z' }, source: 'phone' }),
+            row('2026-10-04T18:00:00Z', { party_size: 2, status: 'no_show' }),
+            row('2026-10-05T18:00:00Z', { party_size: 6, status: 'cancelled' }),
+            // Période précédente : ne sert qu'à la comparaison.
+            row('2026-09-20T18:00:00Z', { party_size: 3 }),
+        ], { since, timeZone: tz, parts: food })
+        assert.equal(s.reservations, 3)
+        assert.equal(s.guests, 14)
+        assert.equal(s.averageParty, 14 / 3)
+        assert.equal(s.largestParty, 8)
+        assert.equal(s.cancellationRate, 0.25)
+        assert.equal(s.noShowRate, 1 / 3)
+        assert.deepEqual(s.previous, { reservations: 1, guests: 3 })
+        assert.deepEqual(s.byWeekday[5], { label: 'Samedi', value: 2, guests: 12 })
+        assert.deepEqual(s.byDayPart, [{ label: 'Midi', value: 1, guests: 4 }, { label: 'Soir', value: 2, guests: 10 }])
+        assert.deepEqual(s.byPartySize.map((b) => b.value), [0, 1, 1, 0, 1])
+        assert.deepEqual(s.busiestDay, { day: '2026-10-03', value: 2, guests: 12 })
+        assert.deepEqual([s.knownCustomers, s.returningCustomers], [2, 1])
+        assert.deepEqual(s.bySource, [{ label: 'website', value: 2 }, { label: 'phone', value: 1 }])
+        assert.deepEqual(s.byHour.map((h) => h.label), ['12 h', '13 h', '14 h', '15 h', '16 h', '17 h', '18 h', '19 h', '20 h'])
+        assert.equal(s.medianLeadDays, 0)
+    })
+
+    it('ne plante pas sans réservation', () => {
+        const s = computeReservationStats([], { since: new Date(), timeZone: tz, parts: other })
+        assert.deepEqual([s.reservations, s.averageParty, s.cancellationRate, s.busiestDay, s.medianLeadDays, s.byHour.length], [0, null, null, null, null, 0])
+    })
+
+    it('dégage les habitudes d\'un client', () => {
+        const now = new Date('2026-10-13T12:00:00Z')
+        const r = (id: string, starts_at: string, status = 'completed', party_size = 2, service: string | null = 'Coupe') => ({ id, starts_at, status, party_size, service: service ? { name: service } : null })
+        const i = customerInsights([
+            r('1', '2026-09-05T08:00:00Z'), r('2', '2026-09-19T08:30:00Z', 'confirmed'), r('3', '2026-10-03T08:00:00Z', 'completed', 4, 'Barbe'),
+            r('4', '2026-09-12T08:00:00Z', 'no_show'), r('5', '2026-09-26T08:00:00Z', 'cancelled'),
+            r('7', '2026-10-24T08:00:00Z', 'pending'), r('6', '2026-10-17T08:00:00Z', 'confirmed'),
+        ], { timeZone: tz, parts: other, now })
+        assert.equal(i.next?.id, '6')
+        assert.deepEqual([i.upcoming, i.visits, i.noShows, i.cancelled], [2, 3, 1, 1])
+        assert.equal(i.noShowRate, 0.25)
+        assert.deepEqual([i.guests, i.averageParty], [8, 8 / 3])
+        assert.equal(i.intervalDays, 14)
+        assert.equal(i.daysSinceLast, 10)
+        assert.deepEqual(i.favouriteWeekday, { label: 'Samedi', count: 3 })
+        assert.deepEqual(i.favouriteDayPart, { label: 'Matin', count: 3 })
+        assert.deepEqual(i.favouriteService, { label: 'Coupe', count: 2 })
+        assert.equal(i.segment, 'regular')
+    })
+
+    it('signale un habitué qui ne vient plus, sauf s\'il a déjà réservé', () => {
+        const visits = ['2026-01-03', '2026-01-17', '2026-01-31'].map((d, n) => ({ id: String(n), starts_at: d + 'T09:00:00Z', status: 'completed', party_size: 1, service: null }))
+        const opts = { timeZone: tz, parts: other, now: new Date('2026-10-13T12:00:00Z') }
+        assert.equal(customerInsights(visits, opts).segment, 'lapsed')
+        assert.equal(customerInsights([...visits, { id: 'x', starts_at: '2026-10-20T09:00:00Z', status: 'confirmed', party_size: 1, service: null }], opts).segment, 'regular')
+        const none = customerInsights([], opts)
+        assert.deepEqual([none.segment, none.next, none.averageParty, none.favouriteWeekday], ['new', null, null, null])
+    })
+
+    it('nettoie les étiquettes', () => {
+        assert.deepEqual(cleanTags(['  VIP ', 'vip', '', 'Allergie   gluten', 'x'.repeat(40)]), ['VIP', 'Allergie gluten', 'x'.repeat(30)])
+        assert.equal(cleanTags(Array.from({ length: 20 }, (_, n) => 't' + n)).length, 12)
     })
 })

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Star } from "lucide-react";
 import { useTenant } from "@/providers/TenantProvider";
@@ -24,18 +25,18 @@ export function GooglePanel({ canManage, onChanged }: { canManage: boolean; onCh
     const [query, setQuery] = useState([currentBusiness.name, currentBusiness.city].filter(Boolean).join(", "));
     const [results, setResults] = useState<GoogleListing[] | null>(null);
     const [manualId, setManualId] = useState("");
-    const [changing, setChanging] = useState(false);
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
 
     if (!linked && !canManage) return null;
 
-    const link = (placeId: string) => {
+    const link = (placeId: string, name?: string) => {
+        // Le choix est définitif pour le commerce : on le lui fait confirmer.
+        if (!window.confirm(`Relier ${name ? `« ${name} »` : "cette fiche"} à votre établissement ? Ce choix est définitif : pour le changer ensuite, il faudra contacter le support.`)) return;
         setError(null);
         startTransition(async () => {
             const result = await linkGoogleListing(placeId);
             if (!result.ok) { setError(result.error); return; }
-            setChanging(false);
             setResults(null);
             setManualId("");
             refresh();
@@ -84,12 +85,11 @@ export function GooglePanel({ canManage, onChanged }: { canManage: boolean; onCh
                 </p>
             )}
 
-            {canManage && (!linked || changing) && (
+            {canManage && !linked && (
                 <div className="flex flex-col gap-3">
                     <form onSubmit={search} className="flex flex-wrap gap-2">
                         <input required value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nom et ville de l'établissement" aria-label="Rechercher la fiche Google" className="flex-1 min-w-56 rounded-md px-3 py-2 text-sm" style={field} />
                         <button type="submit" disabled={pending} className="btn btn-primary btn-sm">{pending ? "Recherche…" : "Chercher la fiche"}</button>
-                        {linked && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setChanging(false); setResults(null); setError(null); }}>Annuler</button>}
                     </form>
                     {results && (results.length === 0
                         ? <p className="text-sm" style={{ color: "var(--text-muted)" }}>Aucune fiche trouvée. Précisez l&apos;adresse, ou collez l&apos;identifiant de la fiche ci-dessous.</p>
@@ -101,7 +101,7 @@ export function GooglePanel({ canManage, onChanged }: { canManage: boolean; onCh
                                             <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{r.name}</p>
                                             <p className="text-xs" style={{ color: "var(--text-muted)" }}>{r.address}{r.rating !== null ? ` · ${r.rating.toLocaleString("fr-FR")} / 5 (${r.reviewCount ?? 0} avis)` : ""}</p>
                                         </div>
-                                        <button type="button" disabled={pending} className="btn btn-ghost btn-sm" onClick={() => link(r.placeId)}>C&apos;est celle-ci</button>
+                                        <button type="button" disabled={pending} className="btn btn-ghost btn-sm" onClick={() => link(r.placeId, r.name)}>C&apos;est celle-ci</button>
                                     </li>
                                 ))}
                             </ul>
@@ -112,11 +112,11 @@ export function GooglePanel({ canManage, onChanged }: { canManage: boolean; onCh
                     </form>
                 </div>
             )}
-            {canManage && linked && !changing && (
-                <div className="flex gap-4">
-                    <button type="button" className="text-xs" style={{ color: "var(--text-muted)" }} onClick={() => setChanging(true)}>Changer de fiche</button>
-                    <button type="button" disabled={pending} className="text-xs" style={{ color: "var(--danger)" }} onClick={() => { if (window.confirm("Délier la fiche Google ? Sa note ne sera plus suivie.")) link(""); }}>Délier</button>
-                </div>
+            {canManage && !linked && <p className="text-xs" style={{ color: "var(--text-muted)" }}>Vérifiez bien la fiche avant de la relier : ce choix est définitif.</p>}
+            {canManage && linked && (
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    Ce n&apos;est pas la bonne fiche ? <Link href="/support" style={{ color: "var(--accent)" }}>Écrivez au support</Link> pour la faire changer.
+                </p>
             )}
             {error && <p className="text-sm" role="alert" style={{ color: "var(--danger)" }}>{error}</p>}
         </section>
