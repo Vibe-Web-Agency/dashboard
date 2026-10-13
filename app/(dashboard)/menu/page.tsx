@@ -167,7 +167,7 @@ function MenuPageInner() {
                         ) : (
                             <ul>
                                 {section.items.map((item, iIndex) => (
-                                    <li key={item.id} className="flex items-start gap-3 px-4 py-3" style={{ borderBottom: iIndex < section.items.length - 1 ? '1px solid var(--border)' : 'none', opacity: item.is_available ? 1 : 0.55 }}>
+                                    <li key={item.id} className="flex flex-wrap items-start gap-x-3 gap-y-1 px-4 py-3" style={{ borderBottom: iIndex < section.items.length - 1 ? '1px solid var(--border)' : 'none', opacity: item.is_available ? 1 : 0.55 }}>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="font-medium text-sm" style={{ color: "var(--text)" }}>{item.name}</p>
@@ -180,7 +180,7 @@ function MenuPageInner() {
                                         </div>
                                         <span className="text-sm font-medium shrink-0" style={{ color: "var(--text)" }}>{formatPrice(item.price_cents, item.currency)}</span>
                                         {writable && (
-                                            <div className="flex items-center gap-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
+                                            <div className="flex items-center justify-end gap-0.5 w-full sm:w-auto sm:shrink-0" style={{ color: "var(--text-muted)" }}>
                                                 <button className={iconButton} disabled={iIndex === 0} onClick={() => act(() => menu.moveItem(item, -1))} aria-label="Monter le plat"><ChevronUp className="w-4 h-4" /></button>
                                                 <button className={iconButton} disabled={iIndex === section.items.length - 1} onClick={() => act(() => menu.moveItem(item, 1))} aria-label="Descendre le plat"><ChevronDown className="w-4 h-4" /></button>
                                                 <button className={iconButton} onClick={() => act(() => menu.setItemAvailability(item.id, !item.is_available))} aria-label={item.is_available ? "Marquer indisponible" : "Marquer disponible"} title={item.is_available ? "Marquer indisponible" : "Marquer disponible"}>

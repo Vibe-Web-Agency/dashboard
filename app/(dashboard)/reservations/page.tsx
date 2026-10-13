@@ -242,7 +242,7 @@ function ReservationsPageInner() {
     const row = (r: ReservationWithCustomer, idx: number, count: number, past: boolean) => (
         <Link key={r.id} href={`/reservations/${r.id}`} className="no-underline">
             <div
-                className="flex items-center gap-3 px-4 py-3 transition-colors"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors"
                 style={{ borderBottom: idx < count - 1 ? "1px solid var(--border)" : "none" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
@@ -257,7 +257,7 @@ function ReservationsPageInner() {
                         {past ? formatDateTimeInZone(r.starts_at, tz) : (r.customer?.phone || r.customer?.email || "—")}
                     </p>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 w-full pl-11 sm:w-auto sm:pl-0 sm:shrink-0">
                     {!past && (
                         <span style={{ fontSize: "11px", color: "var(--accent)" }}>{formatTimeInZone(r.starts_at, tz)}</span>
                     )}
@@ -451,11 +451,17 @@ function ReservationsPageInner() {
                                         <div className="flex items-start justify-between mb-1">
                                             <div className="text-sm font-medium" style={{ color: isToday ? 'var(--accent)' : 'var(--text-2)' }}>{day.getDate()}</div>
                                             {dayReservations.length > 0 && (
-                                                <div className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
+                                                <div className="hidden sm:block text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center" style={{ background: 'var(--accent)', color: '#0E0D0B' }}>
                                                     {dayReservations.length}
                                                 </div>
                                             )}
                                         </div>
+                                        {dayReservations.length > 0 && (
+                                            <div className="sm:hidden flex items-center gap-1 text-[10px] font-bold leading-none" style={{ color: 'var(--accent)' }} aria-label={`${dayReservations.length} ce jour`}>
+                                                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+                                                {dayReservations.length}
+                                            </div>
+                                        )}
                                         {dayReservations.length > 0 && (
                                             <div className="flex-1 flex flex-col gap-0.5 overflow-hidden">
                                                 {dayReservations.slice(0, 2).map((r) => (

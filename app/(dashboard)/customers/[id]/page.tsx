@@ -168,7 +168,7 @@ export default function CustomerDetailPage() {
             </div>
 
             {/* ─── Historique ─── */}
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid gap-5 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <section className="rounded-xl p-5" style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
                     <h2 className="flex items-center gap-2 mb-3 font-medium" style={{ color: "var(--text)" }}>
                         <CalendarDays className="w-4 h-4" style={{ color: 'var(--accent)' }} /> {labels.title}

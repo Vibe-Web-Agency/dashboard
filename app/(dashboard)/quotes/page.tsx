@@ -154,9 +154,9 @@ export default function QuotesPage() {
                     <p>{quotes.length === 0 ? "Aucune demande pour le moment" : "Aucune demande ne correspond"}</p>
                 </div>
             ) : (
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start">
+                <div className="grid gap-4 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start">
                     {/* Liste */}
-                    <div className="flex flex-col gap-2 lg:max-h-[calc(100vh-260px)] lg:overflow-y-auto lg:pr-1">
+                    <div className="flex flex-col gap-2 min-w-0 lg:max-h-[calc(100vh-260px)] lg:overflow-y-auto lg:pr-1">
                         {filtered.map((q) => {
                             const d = readRequestDetails(q.request_details);
                             const ui = QUOTE_STATUS_UI[q.status as QuoteStatus];
@@ -165,7 +165,7 @@ export default function QuotesPage() {
                                 <button
                                     key={q.id}
                                     onClick={() => openQuote(q.id)}
-                                    className="text-left rounded-xl p-4 transition-colors"
+                                    className="text-left rounded-xl p-4 transition-colors w-full min-w-0"
                                     style={{
                                         background: isSelected ? 'var(--accent-dim)' : 'var(--bg-elev)',
                                         border: `1px solid ${isSelected ? 'var(--accent-glow)' : 'var(--border)'}`,
